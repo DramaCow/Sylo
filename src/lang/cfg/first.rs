@@ -19,7 +19,7 @@ impl First {
     #[must_use]
     pub fn new(grammar: &Grammar) -> Self {
         let var_firsts = compute_var_firsts(&grammar);
-        let var_offset = grammar.termcount + 1;
+        let var_offset = grammar.term_count + 1;
         let var_ranges = once(var_offset)
             .chain(var_firsts.iter()
                 .map(BTreeSet::len)

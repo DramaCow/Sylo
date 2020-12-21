@@ -11,9 +11,9 @@ pub enum Symbol {
 
 pub struct Grammar {
     symbols: Vec<Symbol>,
-    alts:    Vec<usize>,         // start index of each alt in symbols
-    rules:   Vec<usize>,         // start index of each rule in alts
-    pub(super) termcount: usize, // number of terminal symbols in grammar
+    alts:    Vec<usize>,          // start index of each alt in symbols
+    rules:   Vec<usize>,          // start index of each rule in alts
+    pub(super) term_count: usize, // number of terminal symbols in grammar
 }
 
 pub struct Rules<'a> {
@@ -131,13 +131,13 @@ pub enum GrammarBuildError {
 impl GrammarBuilder {
     #[must_use]
     #[allow(clippy::new_without_default)]
-    pub fn new(termcount: usize) -> Self {
+    pub fn new(term_count: usize) -> Self {
         Self {
             grammar: Grammar {
                 symbols: Vec::new(),
                 alts: vec![0],
                 rules: vec![0],
-                termcount,
+                term_count,
             }
         }
     }
@@ -154,7 +154,7 @@ impl GrammarBuilder {
 
     /// # Errors
     pub fn try_build(mut self) -> Result<Grammar, GrammarBuildError> {
-        let termcount = self.grammar.termcount;
+        let termcount = self.grammar.term_count;
         let varcount  = self.grammar.rule_count();
 
         // Iterates through each rule and checks to see

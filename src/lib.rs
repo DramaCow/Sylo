@@ -3,17 +3,12 @@
 #![allow(clippy::similar_names)]
 
 #[macro_use]
-extern crate lazy_static;
-
-#[macro_use]
 mod macros;
 
-pub mod re;
-pub mod cfg;
-pub mod lex;
-pub mod syn;
+pub mod collections;
 pub mod iter;
 
-pub mod parser;
+pub mod lang;
+pub mod cst;
 
 pub mod debug;

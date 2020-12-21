@@ -71,6 +71,11 @@ impl RegEx {
         Self { root: mk_cat(&self.root, &mk_star(&self.root)) }
     }
 
+    #[must_use]
+    pub fn diff(&self, other: &Self) -> Self {
+        Self { root: mk_and(&self.root, &mk_not(&other.root)) }
+    }
+
     // === other functions ===
 
     #[must_use]

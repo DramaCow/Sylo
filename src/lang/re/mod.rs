@@ -10,6 +10,7 @@ pub use self::regex::RegEx;
 pub use self::dfa::DFA;
 pub use self::unicode::{basic_latin, basic_multilingual_plane, non_compatibility_char};
 
+/// Constructs a `RegEx` that recognizes some input string only.
 #[must_use]
 pub fn literal(s: &str) -> RegEx {
     s.bytes().fold(RegEx::empty(), |r, byte| {
@@ -17,6 +18,7 @@ pub fn literal(s: &str) -> RegEx {
     })
 }
 
+/// Constructs a `RegEx` that recognizes any char in a string.
 #[must_use]
 pub fn any(s: &str) -> RegEx {
     s.chars().fold(RegEx::empty(), |r, c| {
@@ -25,6 +27,8 @@ pub fn any(s: &str) -> RegEx {
     })
 }
 
+/// Constructs a `RegEx` that recognizes all chars within a provided range (inclusive).
+/// Also accounts for char ranges that span different number of bytes.
 #[must_use]
 pub fn range(from: char, to: char) -> RegEx {
     #[allow(clippy::cast_possible_truncation)]

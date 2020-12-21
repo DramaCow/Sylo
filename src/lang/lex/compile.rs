@@ -1,16 +1,9 @@
-use super::{Command, LexAnalyzer};
-use crate::re::{RegEx, DFA};
-
-#[derive(Debug)]
-pub struct LexDef {
-    pub labels: Vec<String>,
-    pub regexes: Vec<RegEx>,
-    pub commands: Vec<Command>,
-}
+use super::{LexAnalyzerDef, LexAnalyzer};
+use crate::lang::re::DFA;
 
 impl LexAnalyzer {
     #[must_use]
-    pub fn compile(def: &LexDef) -> Self {
+    pub fn compile(def: &LexAnalyzerDef) -> Self {
         let dfa = DFA::from(&def.regexes).minimize();
         
         let nrows = dfa.states().len() - 1; // excluding sink

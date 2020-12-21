@@ -1,7 +1,5 @@
-use super::parse::ParseStep;
-
 #[derive(Debug)]
-pub struct ParseTree {
+pub struct CST {
     pub nodes: Vec<Node>, // first = first leaf, last = tree root
     pub links: Vec<Link>,
 }
@@ -23,13 +21,13 @@ pub struct Link {
 // =================
 
 #[derive(Default)]
-pub struct ParseTreeBuilder {
+pub struct CSTBuilder {
     nodes: Vec<Node>,
     links: Vec<Link>,
     frontier: Vec<FrontierElem>,
 }
 
-impl ParseTreeBuilder {
+impl CSTBuilder {
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -62,9 +60,9 @@ impl ParseTreeBuilder {
     }
 
     #[must_use]
-    pub fn build(self) -> ParseTree {
+    pub fn build(self) -> CST {
         // TODO: check tree is valid before returning
-        ParseTree {
+        CST {
             nodes: self.nodes,
             links: self.links,
         }
@@ -72,43 +70,42 @@ impl ParseTreeBuilder {
 }
 
 enum FrontierElem {
-    Node { index: usize },              // Used by non-propagating variables w/ children 
-    List { first: usize, last: usize }, // Used by propagating variables
-    Empty,                              // Used by variables w/o children
+    Node { index: usize },              // Used by non-skip variables w/ children 
+    List { first: usize, last: usize }, // Used by skip variables
+    Empty,                              // Any variables that contain no children are ignored
 }
 
-impl ParseTreeBuilder {
-    /// If a children list was successfully created, returns first and last link indices,
+impl CSTBuilder {
+    /// If a non-empty children list was created, returns first and last link indices,
     /// else returns None.
     fn make_children_list(&mut self, num_children: usize) -> Option<(usize, usize)> {
         if num_children == 0 {
             return None;
         }
         
-        let mut i = 0_usize;
+        let mut count = num_children;
         
-        // tail = last out of non-empty child 
-        let tail = loop {
+        // get output link index of last non-empty child 
+        let last = loop {
             match self.frontier.last().unwrap() {
-                FrontierElem::Node { index: _ }       => break self.links.len(),
-                FrontierElem::List { first: _, last } => break *last,
+                FrontierElem::Node { index: _ }       => break self.links.len(), // final link will be the next created link
+                FrontierElem::List { first: _, last } => break *last,            // final link will be poached from list
                 FrontierElem::Empty => {
                     self.frontier.pop();
-                    i += 1;
-                    // All children are skip elements
-                    if i >= num_children {
-                        return None;
-                    }
+                    count -= 1;
                 },
             };
+
+            // All children are empty elements
+            if count == 0 {
+                return None;
+            }
         };
 
+        // construct linked list of children in reverse order
         let mut next: Option<usize> = None;
-
-        for _ in i..num_children {
-            let frontier_elem = self.frontier.pop().unwrap();
-
-            match frontier_elem {
+        for _ in 0..count {
+            match self.frontier.pop().unwrap() {
                 FrontierElem::Node { index } => {
                     self.links.push(Link { index, next });
                     next = Some(self.links.len() - 1);
@@ -121,6 +118,6 @@ impl ParseTreeBuilder {
             }
         }
 
-        Some((next.unwrap(), tail))
+        Some((next.unwrap(), last))
     }
 }

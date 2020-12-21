@@ -45,9 +45,3 @@ fn indentifiers() {
     assert!( A.matches("__allowed_123_") );
     assert!( !A.matches("not allowed") );
 }
-
-impl DFA {
-    fn matches(&self, text: &str) -> bool {
-        self.class(text.bytes().fold(self.start(), |id, byte| { self.step(id, byte) })).is_some()
-    }
-}

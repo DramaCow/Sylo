@@ -38,10 +38,9 @@ impl DFA {
     }
 
     #[must_use]
-    #[allow(clippy::unused_self)]
-    pub fn start(&self) -> usize {
-        // 0-th index reserved for sink state
-        1
+    pub fn matches(&self, text: &str) -> bool {
+        // Note: start index is always 1.
+        self.class(text.bytes().fold(1, |id, byte| { self.step(id, byte) })).is_some()
     }
 
     #[must_use]

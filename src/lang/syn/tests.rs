@@ -43,6 +43,32 @@ fn parentheses_grammar() {
     }
 }
 
+#[test]
+fn parentheses_grammar_2() {
+    let parser = SynAnalyzer::try_compile(&syn_def! {
+        { open, close }
+        List : List Pair
+             | Pair,
+        Pair : open List close
+             | open close,
+    }).unwrap();
+
+    let input = vec![0, 0, 1, 1];
+
+    let actions = parser.parse(input.iter().cloned()).collect::<Result<Vec<_>, _>>().unwrap();
+
+    assert_eq!(actions[0], super::Action::Shift { word: 0, index: 0 });
+    assert_eq!(actions[1], super::Action::Shift { word: 0, index: 1 });
+    assert_eq!(actions[2], super::Action::Shift { word: 1, index: 2 });
+    assert_eq!(actions[3], super::Action::Reduce { var: 1, count: 2 });
+    assert_eq!(actions[4], super::Action::Reduce { var: 0, count: 1 });
+    assert_eq!(actions[5], super::Action::Shift { word: 1, index: 3 });
+    assert_eq!(actions[6], super::Action::Reduce { var: 1, count: 3 });
+    assert_eq!(actions[7], super::Action::Reduce { var: 0, count: 1 });
+    
+    // println!("{:?}", parse.unwrap());
+}
+
 // #[test]
 // fn parse_tree() {
 //     let (lex_grammar, syn_grammar) = crate::meta::make_grammars();

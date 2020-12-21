@@ -12,24 +12,24 @@ macro_rules! lex_def {
     (@accum $out:tt $count:expr ; [$($body:tt)*] [$command:ident] $label:ident : $regex:expr $(,)?) => {
         $crate::lex_def![@fin $out $count + 1_usize ; $($body)* $count , $command $label $regex]
     };
-    (@command emit) => { $crate::lex::Command::Emit };
-    (@command skip) => { $crate::lex::Command::Skip };
+    (@command emit) => { $crate::lang::lex::LexCommand::Emit };
+    (@command skip) => { $crate::lang::lex::LexCommand::Skip };
     (@fin _ $count:expr ; $($id:expr , $command:ident $label:ident $regex:expr);+) => {
-        &$crate::lex::LexDef {
+        &$crate::lang::lex::LexAnalyzerDef {
             labels: vec![$(stringify!($label).to_string()),+],
             regexes: vec![$($regex),+],
             commands: vec![$($crate::lex_def![@command $command]),+],
         }
     };
     (@fin $out:ident $count:expr ; $($id:expr , $command:ident $label:ident $regex:expr);+) => {
-        let $out = $crate::lex::LexDef {
+        let $out = $crate::lang::lex::LexAnalyzerDef {
             labels: vec![$(stringify!($label).to_string()),+],
             regexes: vec![$($regex),+],
             commands: vec![$($crate::lex_def![@command $command]),+],
         };
         $(
             #[allow(non_upper_case_globals)]
-            const $label: $crate::cfg::Symbol = $crate::cfg::Symbol::Terminal($id);
+            const $label: $crate::lang::cfg::Symbol = $crate::lang::cfg::Symbol::Terminal($id);
         )+
         const __WORD_COUNT__: usize = $count;
     };
@@ -42,7 +42,7 @@ macro_rules! lex_def {
 macro_rules! syn_def {
     (@count $id:expr ; $word:ident $($tail:tt)+) => {
         #[allow(non_upper_case_globals)]
-        const $word: $crate::cfg::Symbol = $crate::cfg::Symbol::Terminal($id);
+        const $word: $crate::lang::cfg::Symbol = $crate::lang::cfg::Symbol::Terminal($id);
         $crate::syn_def![@count $id + 1_usize ; $($tail)+]
     };
     (@count $id:expr ; _ $($tail:tt)+) => {
@@ -50,7 +50,7 @@ macro_rules! syn_def {
     };
     (@count $id:expr ; $word:ident) => {
         #[allow(non_upper_case_globals)]
-        const $word: $crate::cfg::Symbol = $crate::cfg::Symbol::Terminal($id);
+        const $word: $crate::lang::cfg::Symbol = $crate::lang::cfg::Symbol::Terminal($id);
         const __WORD_COUNT__: usize = $id + 1_usize;
     };
     (@count $id:expr ; _) => {
@@ -68,18 +68,18 @@ macro_rules! syn_def {
     (@accum $n:expr ; $count:expr ; [$($body:tt)*] [$command:ident] $label:ident : $($($symbol:ident)*)|* $(,)?) => {
         $crate::syn_def![@fin $n ; $($body)* $command $label $count , &[$(&[$($symbol),*]),*]]
     };
-    (@command emit) => { $crate::syn::Command::Emit };
-    (@command skip) => { $crate::syn::Command::Skip };
+    (@command emit) => { $crate::lang::syn::SynCommand::Emit };
+    (@command skip) => { $crate::lang::syn::SynCommand::Skip };
     (@fin $n:expr ; $($command:ident $label:ident $id:expr , $rule:expr);+) => {
         {
             $(
                 #[allow(non_upper_case_globals)]
-                const $label: $crate::cfg::Symbol = $crate::cfg::Symbol::Variable($id); 
+                const $label: $crate::lang::cfg::Symbol = $crate::lang::cfg::Symbol::Variable($id); 
             )+
 
-            $crate::syn::SynDef {
+            $crate::lang::syn::SynAnalyzerDef {
                 labels: vec![$(stringify!($label).to_string()),+],
-                grammar: $crate::cfg::GrammarBuilder::new($n)$(.rule($rule))+.try_build().unwrap(),
+                grammar: $crate::lang::cfg::GrammarBuilder::new($n)$(.rule($rule))+.try_build().unwrap(),
                 commands: vec![$($crate::syn_def![@command $command]),+],
             }
         }
@@ -98,7 +98,7 @@ macro_rules! parser_def {
         {
             $crate::lex_def![@accum lex_def 0_usize ; [] $($lexer)*];
             let syn_def = $crate::syn_def![@accum __WORD_COUNT__ ; 0_usize ; [] $($parser)*];
-            $crate::parser::ParserDef { lex_def, syn_def }
+            $crate::lang::parser::ParserDef { lex_def, syn_def }
         }
     };
 }
