@@ -1,7 +1,10 @@
+use crate::collections::FreeList;
+
 #[derive(Debug)]
-pub struct CST {
-    pub nodes: Vec<Node>, // first = first leaf, last = tree root
-    pub links: Vec<Link>,
+pub struct CSTArena {
+    pub nodes: FreeList<Node>,  // first = first leaf, last = tree root
+    pub links: FreeList<Link>,
+    pub roots: FreeList<usize>, // node indices of roots of CSTs
 }
 
 #[derive(Debug)]
@@ -16,36 +19,39 @@ pub struct Link {
     pub next: Option<usize>,
 }
 
+impl CSTArena {
+    #[must_use]
+    pub fn insert() {}
+}
+
 // =================
 // === INTERNALS ===
 // =================
 
 #[derive(Default)]
-pub struct CSTBuilder {
-    nodes: Vec<Node>,
-    links: Vec<Link>,
+pub struct CSTBuilder<'a> {
+    arena: &'a mut CSTArena,
     frontier: Vec<FrontierElem>,
 }
 
 impl CSTBuilder {
     #[must_use]
-    pub fn new() -> Self {
+    pub fn new(arena: &'a mut CSTArena) -> Self {
         Self {
-            nodes: Vec::new(),
-            links: Vec::new(),
+            arena,
             frontier: Vec::new(),
         }
     }
 
     pub fn leaf(&mut self, word: usize, index: usize) {
-        self.nodes.push(Node::Leaf { word, index });
+        self.arena.nodes.push(Node::Leaf { word, index });
         self.frontier.push(FrontierElem::Node { index: self.nodes.len() - 1 });
     }
 
     pub fn branch(&mut self, var: usize, num_children: usize) {
         if let Some((first, _)) = self.make_children_list(num_children) {
-            self.nodes.push(Node::Branch { var, head: first });
-            self.frontier.push(FrontierElem::Node { index: self.nodes.len() - 1 });
+            self.arena.nodes.push(Node::Branch { var, head: first });
+            self.frontier.push(FrontierElem::Node { index: self.arena.nodes.len() - 1 });
         } else {
             self.frontier.push(FrontierElem::Empty);
         }

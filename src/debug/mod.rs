@@ -8,7 +8,7 @@ pub use self::string_builder::StringBuilder;
 // use crate::cfg::first::First;
 // use crate::cfg::lr1::{DFA, Item};
 
-// use crate::syn::{SynAnalyzer, SynAction};
+// use crate::syn::{SynAnalyzer, Action};
 // // use crate::syn::cst::{CST, Node};
 
 // #[must_use]
@@ -154,10 +154,10 @@ pub use self::string_builder::StringBuilder;
 //             row,
 //             actions.iter().map(|action| {
 //                 match action {
-//                     SynAction::Invalid => "-".to_string(),
-//                     SynAction::Accept => "acc".to_string(),
-//                     SynAction::Shift(next_state) => format!("s {}", next_state),
-//                     SynAction::Reduce(alt) => format!("r {}", alt),
+//                     Action::Invalid => "-".to_string(),
+//                     Action::Accept => "acc".to_string(),
+//                     Action::Shift(next_state) => format!("s {}", next_state),
+//                     Action::Reduce(alt) => format!("r {}", alt),
 //                 }
 //             }).collect::<Vec<_>>().join(" & "),
 //             gotos.iter().map(|goto| {

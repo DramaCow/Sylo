@@ -57,14 +57,14 @@ fn parentheses_grammar_2() {
 
     let actions = parser.parse(input.iter().cloned()).collect::<Result<Vec<_>, _>>().unwrap();
 
-    assert_eq!(actions[0], super::Action::Shift { word: 0, index: 0 });
-    assert_eq!(actions[1], super::Action::Shift { word: 0, index: 1 });
-    assert_eq!(actions[2], super::Action::Shift { word: 1, index: 2 });
-    assert_eq!(actions[3], super::Action::Reduce { var: 1, count: 2 });
-    assert_eq!(actions[4], super::Action::Reduce { var: 0, count: 1 });
-    assert_eq!(actions[5], super::Action::Shift { word: 1, index: 3 });
-    assert_eq!(actions[6], super::Action::Reduce { var: 1, count: 3 });
-    assert_eq!(actions[7], super::Action::Reduce { var: 0, count: 1 });
+    assert_eq!(actions[0], super::Instruction::Shift { word: 0, index: 0 });
+    assert_eq!(actions[1], super::Instruction::Shift { word: 0, index: 1 });
+    assert_eq!(actions[2], super::Instruction::Shift { word: 1, index: 2 });
+    assert_eq!(actions[3], super::Instruction::Reduce { var: 1, count: 2 });
+    assert_eq!(actions[4], super::Instruction::Reduce { var: 0, count: 1 });
+    assert_eq!(actions[5], super::Instruction::Shift { word: 1, index: 3 });
+    assert_eq!(actions[6], super::Instruction::Reduce { var: 1, count: 3 });
+    assert_eq!(actions[7], super::Instruction::Reduce { var: 0, count: 1 });
     
     // println!("{:?}", parse.unwrap());
 }
