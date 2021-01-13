@@ -1,7 +1,8 @@
 use crate::lang::lex;
 use crate::lang::syn;
 
-pub struct Command {
+#[derive(Clone)]
+pub enum Command {
     Skip,
     Emit,
 }
