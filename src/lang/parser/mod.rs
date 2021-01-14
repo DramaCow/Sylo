@@ -23,8 +23,8 @@ impl Parser {
     /// # Errors
     pub fn try_compile(def: &ParserDef) -> Result<Self, syn::CompileError> {
         Ok(Self {
-            lex: lex::LexAnalyzer::compile(&def.lex_def),
-            syn: syn::SynAnalyzer::try_compile(&def.syn_def)?,
+            lex: def.lex_def.compile(),
+            syn: def.syn_def.compile()?,
             commands: def.commands.to_vec(),
         })
     }

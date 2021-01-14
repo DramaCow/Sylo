@@ -1,15 +1,14 @@
 use std::iter::once;
-use super::SynAnalyzer;
 
 #[test]
 fn parentheses_grammar() {
-    let parser = SynAnalyzer::try_compile(&syn_def! {
+    let parser = syn_def! {
         { open, close }
         List : List Pair
              | Pair,
         Pair : open List close
              | open close,
-    }).unwrap();
+    }.compile().unwrap();
 
     // ad hoc ground truth
     let is_valid = |input: &[usize]| -> bool {
@@ -45,13 +44,13 @@ fn parentheses_grammar() {
 
 #[test]
 fn parentheses_grammar_2() {
-    let parser = SynAnalyzer::try_compile(&syn_def! {
+    let parser = syn_def! {
         { open, close }
         List : List Pair
              | Pair,
         Pair : open List close
              | open close,
-    }).unwrap();
+    }.compile().unwrap();
 
     let input = vec![0, 0, 1, 1];
 

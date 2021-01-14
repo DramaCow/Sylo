@@ -6,10 +6,10 @@ use super::parse::Token;
 
 #[test]
 fn simple_lexer() {
-    let lexer = LexAnalyzer::compile(&lex_def! {
+    let lexer = lex_def! {
         [skip] _ws: re::any(" ,").plus(),
         word:       re::any("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz").plus()
-    });
+    }.compile();
             
     let tokens = lexer.parse("Waltz, bad nymph, for quick jigs vex").collect::<Result<Vec<_>, _>>().unwrap();
     
