@@ -2,13 +2,14 @@ use std::iter::once;
 use std::collections::BTreeSet;
 use super::{Grammar, Symbol};
 
-/// A utility struct that, for each unique symbol present in a 
+/// A utility struct that, for each unique variable present in a 
 /// grammar, stores the set of terminals (the first set) that can
 /// appear at the start of a sentence derived from that symbol.
 /// 
-/// Trivially, the first set of each terminal symbol is the 
+/// NOTE: Trivially, the first set of each terminal symbol is the 
 /// set containing only itself, and the first of epsilon is 
-/// the set containing None. 
+/// the set containing None. For this reason, they are omitted from
+/// this structure.
 #[derive(Debug)]
 pub struct First {
     firsts: Vec<Option<usize>>,
@@ -19,99 +20,20 @@ impl First {
     #[must_use]
     pub fn new(grammar: &Grammar) -> Self {
         let var_firsts = compute_var_firsts(&grammar);
-        let var_offset = grammar.term_count + 1;
-        let var_ranges = once(var_offset)
-            .chain(var_firsts.iter()
-                .map(BTreeSet::len)
-                .scan(var_offset, |cumsum, len| { *cumsum += len; Some(*cumsum) }))
-            .collect();
-        let firsts = once(None)
-            .chain((0..var_offset-1).map(Some))
-            .chain(var_firsts.into_iter().flatten())
+        let var_ranges = var_firsts.iter()
+            .map(BTreeSet::len)
+            .scan(0, |cumsum, len| { *cumsum += len; Some(*cumsum) })
             .collect();
 
         Self {
-            firsts,
+            firsts: var_firsts.into_iter().flatten().collect(),
             var_ranges,
         }
     }
 
     #[must_use]
-    pub fn get(&self, symbol: &Option<Symbol>) -> &[Option<usize>] {
-        match symbol {
-            None                      => &self.firsts[0..=0],
-            Some(Symbol::Terminal(a)) => &self.firsts[1+a..=1+a],
-            Some(Symbol::Variable(A)) => &self.firsts[self.var_ranges[*A]..self.var_ranges[A+1]],
-        }
-    }
-
-    #[must_use]
-    pub fn get_union(&self, symbol: &Option<Symbol>, successor: &Option<Symbol>) -> FirstUnion {
-        let first = self.get(&symbol);
-
-        // if first contains epsilon, it is guaranteed to be at index 0
-        if first[0].is_none() {
-            FirstUnion::new(&first[1..], self.get(&successor))
-        } else {
-            FirstUnion::new(first, &[])
-        }
-    }
-}
-
-/// Leverages the fact first sets are stored as sorted vectors in First
-/// in order to allow quick iteration over the union.
-pub struct FirstUnion<'a> {
-    first1: &'a [Option<usize>],
-    first2: &'a [Option<usize>],
-    i1: usize,
-    i2: usize,
-}
-
-impl<'a> FirstUnion<'a> {
-    #[must_use]
-    fn new(first1: &'a [Option<usize>], first2: &'a [Option<usize>]) -> Self {
-        Self {
-            first1,
-            first2,
-            i1: 0,
-            i2: 0,
-        }
-    }
-}
-
-impl<'a> Iterator for FirstUnion<'a> {
-    type Item = &'a Option<usize>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let (i1, i2) = (self.i1, self.i2);
-
-        if i1 < self.first1.len() {
-            if i2 < self.first2.len() {
-                match (&self.first1[i1], &self.first2[i2]) {
-                    (a, b) if a < b => {
-                        self.i1 += 1;
-                        Some(a)
-                    }
-                    (a, b) if a > b => {
-                        self.i2 += 1;
-                        Some(b)
-                    }
-                    (a, _) => {
-                        self.i1 += 1;
-                        self.i2 += 1;
-                        Some(a)
-                    }
-                }
-            } else {
-                self.i1 += 1;
-                Some(&self.first1[i1])
-            }
-        } else if self.i2 < self.first2.len() {
-            self.i2 += 1;
-            Some(&self.first2[i2])
-        } else {
-            None
-        }
+    pub fn get(&self, var: usize) -> &[Option<usize>] {
+        &self.firsts[self.var_ranges[var]..self.var_ranges[var+1]]
     }
 }
 

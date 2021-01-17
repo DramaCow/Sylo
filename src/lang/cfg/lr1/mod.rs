@@ -13,12 +13,6 @@ pub struct Item {
     pub successor: Option<usize>, // class of successor terminal
 }
 
-impl Item {
-    pub(super) fn lookahead_symbol(&self) -> Option<Symbol> {
-        self.successor.map(Symbol::Terminal)
-    }
-}
-
 pub struct DFA {
     pub states: Vec<State>,
 }

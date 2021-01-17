@@ -118,26 +118,51 @@ impl<'a> DFABuilder<'a> {
             done = true;
 
             for item in &items {
-                if let Some(Symbol::Variable(C)) = self.grammar.symbol_at_dot(item) {
-                    let first = self.first.get_union(
-                        &self.grammar.symbol_after_dot(item),
-                        &item.lookahead_symbol()
-                    );
-
-                    for &successor in first {
-                        for p in self.grammar.rule(C).alt_indices() {
-                            let new_item = Item {
-                                rule: C,
-                                alt: p,
-                                pos: 0,
-                                successor,
-                            };
-
-                            if new_items.insert(new_item) {
-                                done = false;
+                if let Some(Symbol::Variable(rule)) = self.grammar.symbol_at_dot(item) {
+                    match self.grammar.symbol_after_dot(item) {
+                        None => {
+                            for alt in self.grammar.rule(rule).alt_indices() {
+                                if new_items.insert(Item { rule, alt, pos: 0, successor: item.successor }) {
+                                    done = false;
+                                }
                             }
-                        }
-                    }
+                        },
+                        Some(Symbol::Terminal(a)) => {
+                            for alt in self.grammar.rule(rule).alt_indices() {
+                                if new_items.insert(Item { rule, alt, pos: 0, successor: Some(a) }) {
+                                    done = false;
+                                }
+                            }
+                        },
+                        Some(Symbol::Variable(A)) => {
+                            let first_A = self.first.get(A);
+
+                            // NOTE: if first contains epsilon, it is guaranteed to be at index 0
+                            if first_A[0].is_some() {
+                                for &successor in first_A {
+                                    for alt in self.grammar.rule(rule).alt_indices() {
+                                        if new_items.insert(Item { rule, alt, pos: 0, successor }) {
+                                            done = false;
+                                        }
+                                    }
+                                }
+                            } else {
+                                for &successor in &first_A[1..] {
+                                    for alt in self.grammar.rule(rule).alt_indices() {
+                                        if new_items.insert(Item { rule, alt, pos: 0, successor }) {
+                                            done = false;
+                                        }
+                                    }
+                                }
+
+                                for alt in self.grammar.rule(rule).alt_indices() {
+                                    if new_items.insert(Item { rule, alt, pos: 0, successor: item.successor }) {
+                                        done = false;
+                                    }
+                                }
+                            }
+                        },
+                    };
                 }
             }
 
