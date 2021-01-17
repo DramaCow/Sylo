@@ -5,7 +5,6 @@ pub use self::parse::{Instruction, Parse, ParseError};
 
 #[derive(Debug)]
 pub struct SynAnalyzer {
-    labels:     Vec<String>,
     actions:    Vec<Action>,
     gotos:      Vec<Option<usize>>,
     reductions: Vec<Reduction>,     // alt --> rule and number of symbols

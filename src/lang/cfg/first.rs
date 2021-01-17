@@ -1,4 +1,3 @@
-use std::iter::once;
 use std::collections::BTreeSet;
 use super::{Grammar, Symbol};
 

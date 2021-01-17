@@ -1,5 +1,4 @@
 use crate::lang::re;
-use crate::lang::lex::LexAnalyzer;
 use super::parse::Token;
 
 // std::fs::write("_graph.dot", nfa.dot()).unwrap();

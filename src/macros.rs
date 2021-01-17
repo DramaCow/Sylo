@@ -74,8 +74,9 @@ macro_rules! syn_def {
             )+
     
             $crate::lang::syn::SynAnalyzerDef {
-                labels: vec![$(stringify!($label).to_string()),+],
+                // labels: vec![$(stringify!($label).to_string()),+],
                 grammar: $crate::lang::cfg::GrammarBuilder::new($n)$(.rule($rule))+.try_build().unwrap(),
+                term_count: $n,
             }
         }
     };

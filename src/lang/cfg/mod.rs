@@ -11,9 +11,8 @@ pub enum Symbol {
 
 pub struct Grammar {
     symbols: Vec<Symbol>,
-    alts:    Vec<usize>,          // start index of each alt in symbols
-    rules:   Vec<usize>,          // start index of each rule in alts
-    pub(super) term_count: usize, // number of terminal symbols in grammar
+    alts:    Vec<usize>,  // start index of each alt in symbols
+    rules:   Vec<usize>,  // start index of each rule in alts
 }
 
 pub struct Rules<'a> {
@@ -120,6 +119,7 @@ impl<'a> Iterator for Alternatives<'a> {
 
 pub struct GrammarBuilder {
     grammar: Grammar,
+    term_count: usize,
 }
 
 pub enum GrammarBuildError {
@@ -137,8 +137,8 @@ impl GrammarBuilder {
                 symbols: Vec::new(),
                 alts: vec![0],
                 rules: vec![0],
-                term_count,
-            }
+            },
+            term_count,
         }
     }
 
@@ -154,7 +154,6 @@ impl GrammarBuilder {
 
     /// # Errors
     pub fn try_build(mut self) -> Result<Grammar, GrammarBuildError> {
-        let termcount = self.grammar.term_count;
         let varcount  = self.grammar.rule_count();
 
         // Iterates through each rule and checks to see
@@ -165,7 +164,7 @@ impl GrammarBuilder {
                 for (k, symbol) in alt.iter().enumerate() {
                     match symbol {
                         Symbol::Terminal(a) => {
-                            if *a >= termcount { 
+                            if *a >= self.term_count { 
                                 return Err(GrammarBuildError::InvalidTerminal {
                                     rule: i,
                                     alt: j,

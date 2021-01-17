@@ -8,7 +8,6 @@ pub enum Command {
 }
 
 pub struct LexAnalyzer {
-    labels:   Vec<String>,
     table:    Vec<usize>,
     classes:  Vec<Option<usize>>,
     commands: Vec<Command>,

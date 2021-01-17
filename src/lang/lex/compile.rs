@@ -26,7 +26,6 @@ impl LexAnalyzerDef {
             .collect();
         
         LexAnalyzer {
-            labels: self.labels.to_vec(),
             table,
             classes,
             commands: self.commands.to_vec(),
