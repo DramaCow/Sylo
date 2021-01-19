@@ -147,17 +147,11 @@ impl<'a> DFABuilder<'a> {
                                     }
                                 }
                             } else {
-                                for &successor in &first_A[1..] {
+                                for &successor in first_A[1..].iter().chain(once(&item.successor)) {
                                     for alt in self.grammar.rule(rule).alt_indices() {
                                         if new_items.insert(Item { rule, alt, pos: 0, successor }) {
                                             done = false;
                                         }
-                                    }
-                                }
-
-                                for alt in self.grammar.rule(rule).alt_indices() {
-                                    if new_items.insert(Item { rule, alt, pos: 0, successor: item.successor }) {
-                                        done = false;
                                     }
                                 }
                             }

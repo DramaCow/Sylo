@@ -1,5 +1,8 @@
-use crate::lang::lex;
+use crate::lang::lex::{self, Token};
 use crate::lang::syn;
+use crate::cst::{CST, CSTBuilder};
+
+pub use self::compile::ParserDef;
 
 #[derive(Clone)]
 pub enum Command {
@@ -7,47 +10,62 @@ pub enum Command {
     Emit,
 }
 
-pub struct ParserDef {
-    pub lex_def: lex::LexAnalyzerDef,
-    pub syn_def: syn::SynAnalyzerDef,
-    pub commands: Vec<Command>,
+pub struct Parser {
+    pub lex_labels: Vec<String>,
+    pub syn_labels: Vec<String>,
+    lex: lex::LexAnalyzer,
+    syn: syn::SynAnalyzer,
+    commands: Vec<Command>
 }
 
-pub struct Parser {
-    pub(crate) lex: lex::LexAnalyzer,
-    pub(crate) syn: syn::SynAnalyzer,
-    pub(crate) commands: Vec<Command>
+#[derive(Debug)]
+pub enum ParseError<'a> {
+    Lex(lex::ParseError<'a>),
+    Syn(syn::ParseError),
 }
 
 impl Parser {
     /// # Errors
-    pub fn try_compile(def: &ParserDef) -> Result<Self, syn::CompileError> {
-        Ok(Self {
-            lex: def.lex_def.compile(),
-            syn: def.syn_def.compile()?,
-            commands: def.commands.to_vec(),
-        })
+    pub fn tokenize<'a>(&'a self, text: &'a str) -> Result<Vec<Token>, lex::ParseError> {
+        self.lex.parse(text).collect()
     }
 
-    // /// # Errors
-    // pub fn cst<'a>(&'a self, text: &'a str) -> Result<CST, syn::ParseError> {
-    //     let tokens = self.lex.parse(text).collect::<Result<Vec<_>, _>>().unwrap();
-    //     let tokens2 = self.lex.parse(text).map(|res| res.and_then(|token| Ok(token.class)));
-
-    //     let mut builder = CSTBuilder::new();
-
-    //     for step in self.syn.parse(tokens.iter().map(|token| token.class)) {
-    //         match step? {
-    //             syn::Instruction::Shift { word, index } => builder.leaf(word, index),
-    //             syn::Instruction::Reduce { var, count } => {
-    //                 match self.syn.commands.get(var).unwrap() {
-    //                     syn::Command::Emit => builder.branch(var, count),
-    //                     syn::Command::Skip => builder.list(count),
-    //                 };
-    //             },
-    //         }
-    //     }
-
-    //     Ok(builder.build())
-    // }
+    /// # Errors
+    pub fn cst<'a>(&'a self, text: &'a str) -> Result<CST, ParseError> {
+        match self.tokenize(text) {
+            Ok(tokens) => {
+                let mut builder = CSTBuilder::new();
+        
+                for res in self.syn.parse(tokens.iter().map(|token| token.class)) {
+                    match res {
+                        Ok(step) => {
+                            match step {
+                                syn::Instruction::Shift { word: _, index } => builder.leaf(index),
+                                syn::Instruction::Reduce { var, count } => {
+                                    match self.commands.get(var).unwrap() {
+                                        Command::Emit => builder.branch(var, count),
+                                        Command::Skip => builder.list(count),
+                                    };
+                                },
+                            }
+                        },
+                        Err(error) => {
+                            return Err(ParseError::Syn(error));
+                        }
+                    }
+                }
+        
+                Ok(builder.build(tokens))
+            },
+            Err(error) => {
+                Err(ParseError::Lex(error))
+            }
+        }
+    }
 }
+
+// =================
+// === INTERNALS ===
+// =================
+
+mod compile;

@@ -1,9 +1,10 @@
 use std::collections::{BTreeSet, HashMap};
+use std::fmt;
 
 use super::{Grammar, Symbol};
 
 /// LR(1) item.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Item {
     pub rule: usize,              // index of rule
     pub alt:  usize,              // index of alt
@@ -25,6 +26,16 @@ pub struct State {
 impl From<&Grammar> for DFA {
     fn from(grammar: &Grammar) -> Self {
         DFABuilder::new(grammar).build()
+    }
+}
+
+impl fmt::Debug for Item {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        if let Some(delta) = self.successor {
+            f.write_str(&format!("(alt: {}, pos: {}) --> {}", self.alt, self.pos, delta))
+        } else {
+            f.write_str(&format!("(alt: {}, pos: {}) --> \u{03b5}", self.alt, self.pos))
+        }
     }
 }
 

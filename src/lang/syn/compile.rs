@@ -2,13 +2,17 @@ use crate::lang::cfg::{Grammar, Symbol, lr1};
 use super::{SynAnalyzer, Action, Reduction};
 
 pub struct SynAnalyzerDef {
+    pub labels: Vec<String>,
     pub grammar: Grammar,
     pub term_count: usize,
 }
 
 #[derive(Debug)]
-pub enum CompileError {
-    Conflict { state: usize, item: lr1::Item, },//action1: Action, action2: Action },
+pub struct CompileError {
+    state: usize,
+    item: lr1::Item,
+    action1: Action,
+    action2: Action,
 }
 
 impl SynAnalyzerDef {
@@ -35,11 +39,11 @@ impl SynAnalyzerDef {
 
                     // check for shift-reduce conflict
                     if let Action::Reduce(_) = action {
-                        return Err(CompileError::Conflict { 
+                        return Err(CompileError { 
                             state: i,
                             item: *item,
-                            // action1: *action,
-                            // action2: Action::Shift(state.next[symbol]),
+                            action1: *action,
+                            action2: Action::Shift(state.next[symbol]),
                         });
                     } else {
                         *action = Action::Shift(state.next[symbol]);
@@ -52,11 +56,11 @@ impl SynAnalyzerDef {
                     if let Action::Invalid = action {
                         *action = Action::Reduce(item.alt);
                     } else {
-                        return Err(CompileError::Conflict { 
+                        return Err(CompileError { 
                             state: i,
                             item: *item,
-                            // action1: *action,
-                            // action2: Action::Reduce(item.alt),
+                            action1: *action,
+                            action2: Action::Reduce(item.alt),
                         });
                     }
                 } else {

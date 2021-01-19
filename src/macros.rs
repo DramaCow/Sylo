@@ -74,7 +74,7 @@ macro_rules! syn_def {
             )+
     
             $crate::lang::syn::SynAnalyzerDef {
-                // labels: vec![$(stringify!($label).to_string()),+],
+                labels: vec![$(stringify!($label).to_string()),+],
                 grammar: $crate::lang::cfg::GrammarBuilder::new($n)$(.rule($rule))+.try_build().unwrap(),
                 term_count: $n,
             }
@@ -114,7 +114,11 @@ macro_rules! parser_def {
     (@fin $lex_def:ident {$($grammar:tt)*} {$($commands:tt)*}) => {
         {
             let __SYN_DEF__ = syn_def![@internal __WORD_COUNT__ ; $($grammar)*];
-            $crate::lang::parser::ParserDef { lex_def: $lex_def, syn_def: __SYN_DEF__, commands: vec![$($commands)*] }
+            $crate::lang::parser::ParserDef {
+                lex_def: $lex_def,
+                syn_def: __SYN_DEF__,
+                commands: vec![$($commands)*]
+            }
         }
     };
     (lexer : { $($lexer:tt)* } , parser : { $($parser:tt)* } $(,)?) => {

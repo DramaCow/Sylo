@@ -1,6 +1,6 @@
 use std::ptr;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct FreeList<T> {
     slots: Vec<Slot<T>>,
     head: Option<usize>,
@@ -54,12 +54,23 @@ impl<T> FreeList<T> {
             panic!("Attempted to remove already removed slot.")
         }
     }
+
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.count
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.count == 0
+    }
 }
 
 // =================
 // === INTERNALS ===
 // =================
 
+#[derive(Debug)]
 enum Slot<T> {
     Occupied { value: T },
     Vacant { next: Option<usize> },

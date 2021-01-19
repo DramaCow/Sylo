@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use std::iter::once;
 use super::{Grammar, Symbol};
 
 /// A utility struct that, for each unique variable present in a 
@@ -19,9 +20,11 @@ impl First {
     #[must_use]
     pub fn new(grammar: &Grammar) -> Self {
         let var_firsts = compute_var_firsts(&grammar);
-        let var_ranges = var_firsts.iter()
-            .map(BTreeSet::len)
-            .scan(0, |cumsum, len| { *cumsum += len; Some(*cumsum) })
+        let var_ranges = once(0)
+            .chain(
+                var_firsts.iter()
+                .map(BTreeSet::len)
+                .scan(0, |cumsum, len| { *cumsum += len; Some(*cumsum) }))
             .collect();
 
         Self {
