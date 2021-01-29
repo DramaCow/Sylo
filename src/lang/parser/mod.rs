@@ -32,6 +32,8 @@ impl Parser {
 
     /// # Errors
     pub fn cst<'a>(&'a self, text: &'a str) -> Result<CST, ParseError> {
+        // let iter = self.lex.parse(text).map(|res| Ok((res?.class, res?.lexeme)));
+        // let tokenize = iter.unzip::<Result<(Vec<usize>, Vec<&str>), lex::ParseError>>();
         match self.tokenize(text) {
             Ok(tokens) => {
                 let mut builder = CSTBuilder::new();
@@ -40,7 +42,7 @@ impl Parser {
                     match res {
                         Ok(step) => {
                             match step {
-                                syn::Instruction::Shift { word: _, index } => builder.leaf(index),
+                                syn::Instruction::Shift { word, index } => builder.leaf(word, index),
                                 syn::Instruction::Reduce { var, count } => {
                                     match self.commands.get(var).unwrap() {
                                         Command::Emit => builder.branch(var, count),

@@ -16,7 +16,10 @@ pub struct Parse<'a, I: Iterator<Item=usize>> {
 }
 
 #[derive(Debug)]
-pub struct ParseError {}
+pub enum ParseError {
+    InvalidAction { /*TODO:*/ },
+    InvalidGoto   { state: usize, var: usize },
+}
 
 impl<'a, I: Iterator<Item=usize>> Parse<'a, I> {
     #[must_use]
@@ -38,7 +41,7 @@ impl<'a, I: Iterator<Item=usize>> Iterator for Parse<'a, I> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.next_action {
             Action::Invalid => {
-                Some(Err(ParseError {}))
+                Some(Err(ParseError::InvalidAction {}))
             },
             Action::Accept => {
                 None
@@ -76,7 +79,7 @@ impl<'a, I: Iterator<Item=usize>> Iterator for Parse<'a, I> {
                     self.state_history.push(next_state);
                     Some(Ok(Instruction::Reduce { var: reduction.var, count: reduction.count }))
                 } else {
-                    Some(Err(ParseError {}))
+                    Some(Err(ParseError::InvalidGoto { state: old_state, var: reduction.var }))
                 }
             },
         }

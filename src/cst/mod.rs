@@ -1,86 +1,83 @@
 use crate::lang::lex::Token;
 use crate::debug::StringBuilder;
+use crate::lang::parser::Parser;
 
 #[derive(Debug)]
 pub struct CST<'a> {
     tokens: Vec<Token<'a>>,
-    nodes: Vec<Node>, // first = first leaf, last = tree root
+    nodes: Vec<CSTNode>, // first = first leaf, last = tree root
     links: Vec<Link>,
 }
 
+#[derive(Clone, Copy)]
+pub struct CSTNodeId(usize);
+
 #[derive(Debug)]
-pub enum Node {
-    Leaf { index: usize },
-    Branch { var: usize, head: usize },
+pub enum CSTNode {
+    Leaf(CSTLeaf),
+    Branch(CSTBranch),
 }
 
 #[derive(Debug)]
-pub struct Link {
+pub struct CSTLeaf {
+    #[deprecated] pub word: usize,
     index: usize,
-    next: Option<usize>,
+}
+
+#[derive(Debug)]
+pub struct CSTBranch {
+    pub var: usize,
+    head: usize,
+}
+
+pub struct CSTChildren<'a> {
+    cst: &'a CST<'a>,
+    next_link_index: Option<usize>,
 }
 
 impl CST<'_> {
     #[must_use]
-    pub fn dot(&self) -> String {
-        self.dot_with_labelling(|var| var)
+    pub fn root(&self) -> CSTNodeId {
+        CSTNodeId(self.nodes.len() - 1)
     }
 
     #[must_use]
-    pub fn dot_with_labelling<F, T>(&self, labelling: F) -> String
-        where F: Fn(usize) -> T,
-              T: std::fmt::Display,
-    {
-        let mut dot = StringBuilder::new();
+    pub fn dot(&self, parser: &Parser) -> String {
+        dot_with_labelling_internal(self, |word| &self.tokens[word].lexeme, |var| &parser.syn_labels[var])
+    }
+}
 
-        dot.writeln("digraph CC {");
-        dot.indent();
+impl CSTNodeId {
+    #[must_use]
+    pub fn to_node<'a>(&self, cst: &'a CST) -> &'a CSTNode {
+        &cst.nodes[self.0]
+    }
+}
 
-        // nodes
-        for (id, node) in self.nodes.iter().enumerate() {
-            match node {
-                Node::Leaf { index } => dot.writeln(&format!("s{}[label=\"{}\", shape=none];", id, self.tokens[*index].lexeme)),
-                Node::Branch { var, .. }  => dot.writeln(&format!("s{}[label=\"{}\", shape=oval];", id, labelling(*var))),
-            }
+impl CSTLeaf {
+    #[must_use]
+    pub fn token<'a>(&self, cst: &'a CST) -> &Token<'a> {
+        &cst.tokens[self.index]
+    }
+}
+
+impl CSTBranch {
+    #[must_use]
+    pub fn children<'a>(&self, cst: &'a CST) -> CSTChildren<'a> {
+        CSTChildren { cst, next_link_index: Some(self.head) }
+    }
+}
+
+impl Iterator for CSTChildren<'_> {
+    type Item = CSTNodeId;
+    
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(i) = self.next_link_index {
+            self.next_link_index = self.cst.links[i].next;
+            Some(CSTNodeId(self.cst.links[i].index))
+        } else {
+            None
         }
-        dot.newline();
-
-        // edges
-        let mut stack = vec![self.nodes.len() - 1];
-        while let Some(id) = stack.pop() {
-            if let Node::Branch { var: _ , head } = &self.nodes[id] {
-                let mut index = *head;
-                loop {
-                    let link = &self.links[index];
-                    dot.writeln(&format!("s{}->s{};", id, link.index));
-                    stack.push(link.index);
-                    if let Some(next) = link.next {
-                        index = next;
-                    } else {
-                        break;
-                    }
-                }
-            }
-        }
-        dot.newline();
-
-        // place leaves on same level
-        dot.writeln("{");
-        dot.indent();
-        dot.writeln("rank=max;");
-        dot.newline();
-        for (id, node) in self.nodes.iter().enumerate() {
-            if let Node::Leaf { .. } = node {
-                dot.writeln(&format!("s{}; ", id))
-            }
-        }
-        dot.unindent();
-        dot.writeln("}");
-
-        dot.unindent();
-        dot.write("}");
-
-        dot.build()
     }
 }
 
@@ -88,8 +85,14 @@ impl CST<'_> {
 // === INTERNALS ===
 // =================
 
+#[derive(Debug)]
+struct Link {
+    index: usize,
+    next: Option<usize>,
+}
+
 pub(crate) struct CSTBuilder {
-    nodes: Vec<Node>,
+    nodes: Vec<CSTNode>,
     links: Vec<Link>,
     frontier: Vec<FrontierElem>,
 }
@@ -110,14 +113,14 @@ impl CSTBuilder {
         }
     }
 
-    pub fn leaf(&mut self, index: usize) {
-        self.nodes.push(Node::Leaf { index });
+    pub fn leaf(&mut self, word: usize, index: usize) {
+        self.nodes.push(CSTNode::Leaf(CSTLeaf { word, index }));
         self.frontier.push(FrontierElem::Node { index: self.nodes.len() - 1 });
     }
 
     pub fn branch(&mut self, var: usize, num_children: usize) {
         if let Some((first, _)) = self.make_children_list(num_children) {
-            self.nodes.push(Node::Branch { var, head: first });
+            self.nodes.push(CSTNode::Branch(CSTBranch { var, head: first }));
             self.frontier.push(FrontierElem::Node { index: self.nodes.len() - 1 });
         } else {
             self.frontier.push(FrontierElem::Empty);
@@ -186,4 +189,62 @@ impl CSTBuilder {
 
         Some((next.unwrap(), last))
     }
+}
+
+fn dot_with_labelling_internal<F, G, T, U>(cst: &CST, word_labelling: F, var_labelling: G) -> String
+    where F: Fn(usize) -> T,
+          G: Fn(usize) -> U,
+          T: std::fmt::Display,
+          U: std::fmt::Display,
+{
+    let mut dot = StringBuilder::new();
+
+    dot.writeln("digraph CC {");
+    dot.indent();
+
+    // nodes
+    for (id, node) in cst.nodes.iter().enumerate() {
+        match node {
+            CSTNode::Leaf(leaf) => dot.writeln(&format!("s{}[label=\"{}\", shape=none];", id, word_labelling(leaf.index))),
+            CSTNode::Branch(branch)  => dot.writeln(&format!("s{}[label=\"{}\", shape=oval];", id, var_labelling(branch.var))),
+        }
+    }
+    dot.newline();
+
+    // edges
+    let mut stack = vec![cst.nodes.len() - 1];
+    while let Some(id) = stack.pop() {
+        if let CSTNode::Branch(branch) = &cst.nodes[id] {
+            let mut index = branch.head;
+            loop {
+                let link = &cst.links[index];
+                dot.writeln(&format!("s{}->s{};", id, link.index));
+                stack.push(link.index);
+                if let Some(next) = link.next {
+                    index = next;
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+    dot.newline();
+
+    // place leaves on same level
+    dot.writeln("{");
+    dot.indent();
+    dot.writeln("rank=max;");
+    dot.newline();
+    for (id, node) in cst.nodes.iter().enumerate() {
+        if let CSTNode::Leaf(_) = node {
+            dot.writeln(&format!("s{}; ", id))
+        }
+    }
+    dot.unindent();
+    dot.writeln("}");
+
+    dot.unindent();
+    dot.write("}");
+
+    dot.build()
 }

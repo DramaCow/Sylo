@@ -5,8 +5,8 @@ pub use self::parse::{Instruction, Parse, ParseError};
 
 #[derive(Debug)]
 pub struct SynAnalyzer {
-    actions:    Vec<Action>,
-    gotos:      Vec<Option<usize>>,
+    actions:    Vec<Action>,        /// lookup what action to perform given state and word
+    gotos:      Vec<Option<usize>>, /// lookup what state should be transitioned to after reduction
     reductions: Vec<Reduction>,     // alt --> rule and number of symbols
     term_count: usize,
     var_count:  usize,
