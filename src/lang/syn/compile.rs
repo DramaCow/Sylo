@@ -22,15 +22,15 @@ impl SynAnalyzerDef {
         
         let num_words  = self.term_count + 1; // +1 for eof
         let num_vars   = self.grammar.rule_count() - 1; // implicit start variable not needed in goto table
-        let num_states = dfa.states.len();
+        let num_states = dfa.states().len();
         
         let mut actions: Vec<Action>      = vec![Action::Invalid; num_words * num_states];
         let mut gotos: Vec<Option<usize>> = vec![None; num_vars * num_states];
 
-        for (i, state) in dfa.states.iter().enumerate() {
+        for (i, state) in dfa.states().iter().enumerate() {
             for item in &state.items {
-                if !self.grammar.is_complete(item) {
-                    let symbol = &self.grammar.symbol_at_dot(item).unwrap();
+                if !item.is_complete(&self.grammar) {
+                    let symbol = &item.symbol_at_dot(&self.grammar).unwrap();
                     let index = match symbol {
                         Symbol::Terminal(a) => i * num_words + a + 1,
                         Symbol::Variable(_) => continue,
@@ -48,7 +48,7 @@ impl SynAnalyzerDef {
                     } else {
                         *action = Action::Shift(state.next[symbol]);
                     }
-                } else if item.rule != num_vars || item.successor.is_some() { // TODO: second check not necessary?
+                } else if item.rule < num_vars || item.successor.is_some() { // TODO: second check not necessary?
                     let index = i * num_words + item.successor.map_or(0, |a| a + 1);
                     let action = actions.get_mut(index).unwrap();
 

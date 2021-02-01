@@ -55,7 +55,7 @@ impl<'a> DFABuilder<'a> {
             let mut iter2 = iter1.clone();
 
             while let Some(item) = iter1.next() {
-                if let Some(x) = self.grammar.symbol_at_dot(item) {
+                if let Some(x) = item.symbol_at_dot(&self.grammar) {
                     // x has already been processed
                     if gotos[i].contains_key(&x) {
                         continue;
@@ -118,8 +118,8 @@ impl<'a> DFABuilder<'a> {
             done = true;
 
             for item in &items {
-                if let Some(Symbol::Variable(rule)) = self.grammar.symbol_at_dot(item) {
-                    match self.grammar.symbol_after_dot(item) {
+                if let Some(Symbol::Variable(rule)) = item.symbol_at_dot(&self.grammar) {
+                    match item.symbol_after_dot(&self.grammar) {
                         None => {
                             for alt in self.grammar.rule(rule).alt_indices() {
                                 if new_items.insert(Item { rule, alt, pos: 0, successor: item.successor }) {
@@ -168,7 +168,7 @@ impl<'a> DFABuilder<'a> {
 
     fn goto<'b, I: Iterator<Item=&'b Item>>(&self, items: I, x: &Symbol) -> ItemSet {
         self.closure(&items.filter_map(|item| {
-            if let Some(y) = self.grammar.symbol_at_dot(item) {
+            if let Some(y) = item.symbol_at_dot(&self.grammar) {
                 if *x == y {
                     return Some(Item { pos: item.pos + 1, ..*item });
                 }

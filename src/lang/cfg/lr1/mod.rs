@@ -5,23 +5,50 @@ use crate::debug::StringBuilder;
 use super::{Grammar, Symbol};
 
 /// LR(1) item.
+// If all of alt is present in context (LHS), and the suceeding
+// symbol is successor, then lhs can be reduced to rule (RHS).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Item {
     pub rule: usize,              // index of rule
-    pub alt:  usize,              // index of alt
-    pub pos:  usize,              // index of dot in alt
-    // If all of alt is present in context (LHS), and the suceeding
-    // symbol is successor, then lhs can be reduced to rule (RHS).
+    pub alt: usize,               // index of alt
+    pub pos: usize,               // (index) position of dot in alt
     pub successor: Option<usize>, // class of successor terminal
 }
 
 pub struct DFA {
-    pub(crate) states: Vec<State>,
+    states: Vec<State>,
 }
 
 pub struct State {
     pub items: BTreeSet<Item>,
     pub next: HashMap<Symbol, usize>,
+}
+
+impl Item {
+    #[must_use]
+    pub fn is_complete(&self, grammar: &Grammar) -> bool {
+        self.pos >= grammar.alt(self.alt).len()
+    }
+
+    #[must_use]
+    pub fn symbol_at_dot(&self, grammar: &Grammar) -> Option<Symbol> {
+        let alt = &grammar.alt(self.alt);
+        if self.pos < alt.len() {
+            Some(alt[self.pos])
+        } else {
+            None
+        }
+    }
+
+    #[must_use]
+    pub fn symbol_after_dot(&self, grammar: &Grammar) -> Option<Symbol> {
+        let alt = &grammar.alt(self.alt);
+        if self.pos + 1 < alt.len() {
+            Some(alt[self.pos+1])
+        } else {
+            None
+        }
+    }
 }
 
 impl From<&Grammar> for DFA {
@@ -31,6 +58,11 @@ impl From<&Grammar> for DFA {
 }
 
 impl DFA {
+    #[must_use]
+    pub fn states(&self) -> &[State] {
+        &self.states
+    }
+
     #[must_use]
     pub fn dot<T: std::fmt::Display, U: std::fmt::Display>(&self, grammar: &Grammar, word_names: &[T], var_names: &[U]) -> String {
         let word_to_string = |word: usize| {
@@ -62,30 +94,6 @@ impl fmt::Debug for Item {
 // =================
 // === INTERNALS ===
 // =================
-
-impl Grammar {
-    pub(crate) fn is_complete(&self, item: &Item) -> bool {
-        item.pos >= self.alt(item.alt).len()
-    }
-
-    pub(crate) fn symbol_at_dot(&self, item: &Item) -> Option<Symbol> {
-        let alt = &self.alt(item.alt);
-        if item.pos < alt.len() {
-            Some(alt[item.pos])
-        } else {
-            None
-        }
-    }
-
-    pub(crate) fn symbol_after_dot(&self, item: &Item) -> Option<Symbol> {
-        let alt = &self.alt(item.alt);
-        if item.pos + 1 < alt.len() {
-            Some(alt[item.pos+1])
-        } else {
-            None
-        }
-    }
-}
 
 fn format_item<F, G, T, U>(grammar: &Grammar, item: &Item, word_labelling: F, var_labelling: G) -> String
     where F: Fn(usize) -> T,
