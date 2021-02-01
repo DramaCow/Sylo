@@ -122,6 +122,8 @@ fn main() {
         }
     };
 
+    std::fs::write("_dfa.dot", def.dot_lr1_dfa()).unwrap();
+
     let parser = def.compile().unwrap();
 
     let cst = parser.cst("(('A'..'Z' | 'a'..'z' | '_') ('A'..'Z' | 'a'..'z' | '0'..'9' | '_')*) - '_'+").unwrap();

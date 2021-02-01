@@ -28,6 +28,8 @@ fn main() {
         }
     };
 
+    std::fs::write("_dfa.dot", def.dot_lr1_dfa()).unwrap();
+
     let parser = def.compile().unwrap();
 
     let cst = parser.cst("never gonna give you up. never gonna let you down...").unwrap();
