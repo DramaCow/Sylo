@@ -8,7 +8,7 @@ fn simple_lexer() {
     let lexer = lex_def! {
         [skip] _ws: re::any(" ,").plus(),
         word:       re::any("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz").plus()
-    }.compile();
+    }.1.compile();
             
     let tokens = lexer.parse("Waltz, bad nymph, for quick jigs vex").collect::<Result<Vec<_>, _>>().unwrap();
     

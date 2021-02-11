@@ -3,28 +3,28 @@ use std::collections::VecDeque;
 use std::iter::once;
 use std::rc::Rc;
 
-use super::{DFA, State, Item};
+use super::{LR1A, State, Item};
 use super::{Grammar, Symbol};
 use super::super::first::First;
 
 type ItemSet = BTreeSet<Item>;
 
-pub struct DFABuilder<'a> {
+pub struct LR1ABuilder<'a> {
     grammar: &'a Grammar,
     first: First,
 }
 
-impl<'a> DFABuilder<'a> {
+impl<'a> LR1ABuilder<'a> {
     #[must_use]
     pub fn new(grammar: &'a Grammar) -> Self {
-        DFABuilder {
+        LR1ABuilder {
             grammar,
             first: First::new(grammar),
         }
     }
 
     #[must_use]
-    pub fn build(self) -> DFA {   
+    pub fn build(self) -> LR1A {   
         // Last rule the start
         let initial_items = Rc::new(
             self.closure(
@@ -98,7 +98,7 @@ impl<'a> DFABuilder<'a> {
         // reference counts get decremented.
         drop(table);
 
-        DFA {
+        LR1A {
             states: itemsets.into_iter()
                 .map(Rc::try_unwrap)
                 .map(Result::unwrap)

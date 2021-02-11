@@ -8,7 +8,7 @@ fn parentheses_grammar() {
              | Pair,
         Pair : open List close
              | open close,
-    }.compile().unwrap();
+    }.1.compile().unwrap();
 
     // ad hoc ground truth
     let is_valid = |input: &[usize]| -> bool {
@@ -50,7 +50,7 @@ fn parentheses_grammar_2() {
              | Pair,
         Pair : open List close
              | open close,
-    }.compile().unwrap();
+    }.1.compile().unwrap();
 
     let input = vec![0, 0, 1, 1];
 

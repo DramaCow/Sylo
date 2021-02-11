@@ -35,22 +35,28 @@ macro_rules! lex_def {
     (@command emit) => { $crate::lang::lex::Command::Emit };
     (@command skip) => { $crate::lang::lex::Command::Skip };
     (@fin _ $count:expr ; $($id:expr , $command:ident $label:ident $regex:expr);+) => {
-        &$crate::lang::lex::LexAnalyzerDef {
-            labels: vec![$(stringify!($label).to_string()),+],
-            regexes: vec![$($regex),+],
-            commands: vec![$($crate::lex_def![@command $command]),+],
+        {
+            let lex_def = $crate::lang::lex::LexDef {
+                regexes: vec![$($regex),+],
+                commands: vec![$($crate::lex_def![@command $command]),+],
+            };
+            (vec![$(stringify!($label).to_string()),+], lex_def)
         }
     };
     (@fin $out:ident $count:expr ; $($id:expr , $command:ident $label:ident $regex:expr);+) => {
-        let $out = $crate::lang::lex::LexAnalyzerDef {
-            labels: vec![$(stringify!($label).to_string()),+],
-            regexes: vec![$($regex),+],
-            commands: vec![$($crate::lex_def![@command $command]),+],
+        let $out = {
+            let lex_def = $crate::lang::lex::LexDef {
+                regexes: vec![$($regex),+],
+                commands: vec![$($crate::lex_def![@command $command]),+],
+            };
+            (vec![$(stringify!($label).to_string()),+], lex_def)
         };
+
         $(
             #[allow(non_upper_case_globals)]
             const $label: $crate::lang::cfg::Symbol = $crate::lang::cfg::Symbol::Terminal($id);
         )+
+
         const __WORD_COUNT__: usize = $count;
     };
     ($($body:tt)*) => {
@@ -73,11 +79,12 @@ macro_rules! syn_def {
                 const $label: $crate::lang::cfg::Symbol = $crate::lang::cfg::Symbol::Variable($id); 
             )+
     
-            $crate::lang::syn::SynAnalyzerDef {
-                labels: vec![$(stringify!($label).to_string()),+],
+            let syn_def = $crate::lang::syn::SynDef {
                 grammar: $crate::lang::cfg::GrammarBuilder::new($n)$(.rule($rule))+.try_build().unwrap(),
                 term_count: $n,
-            }
+            };
+
+            (vec![$(stringify!($label).to_string()),+], syn_def)
         }
     };
     (@internal $n:expr ; $($grammar:tt)*) => {
@@ -113,9 +120,11 @@ macro_rules! parser_def {
     };
     (@fin $lex_def:ident {$($grammar:tt)*} {$($commands:tt)*}) => {
         {
-            let __SYN_DEF__ = syn_def![@internal __WORD_COUNT__ ; $($grammar)*];
+            let (syn_labels, __SYN_DEF__) = syn_def![@internal __WORD_COUNT__ ; $($grammar)*];
             $crate::lang::parser::ParserDef {
-                lex_def: $lex_def,
+                lex_labels: $lex_def.0,
+                syn_labels,
+                lex_def: $lex_def.1,
                 syn_def: __SYN_DEF__,
                 commands: vec![$($commands)*]
             }

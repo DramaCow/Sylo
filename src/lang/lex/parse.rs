@@ -111,7 +111,7 @@ impl LexAnalyzer {
     }
 
     fn step(&self, id: usize, symbol: u8) -> usize {
-        self.table[256 * id + symbol as usize]
+        self.next[256 * id + symbol as usize]
     }
 
     fn accept(&self, id: usize) -> Option<usize> {

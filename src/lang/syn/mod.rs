@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-pub use self::compile::{SynAnalyzerDef, CompileError};
+pub use self::compile::{SynDef, CompileError};
 pub use self::parse::{Instruction, Parse, ParseError};
 
 #[derive(Debug)]

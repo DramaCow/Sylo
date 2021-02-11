@@ -28,7 +28,7 @@ fn main() {
         }
     };
 
-    std::fs::write("_dfa.dot", def.dot_lr1_dfa()).unwrap();
+    std::fs::write("_dfa.dot", def.dot_lr1a()).unwrap();
 
     let parser = def.compile().unwrap();
 

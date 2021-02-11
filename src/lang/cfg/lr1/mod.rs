@@ -15,7 +15,7 @@ pub struct Item {
     pub successor: Option<usize>, // class of successor terminal
 }
 
-pub struct DFA {
+pub struct LR1A {
     states: Vec<State>,
 }
 
@@ -51,13 +51,13 @@ impl Item {
     }
 }
 
-impl From<&Grammar> for DFA {
+impl From<&Grammar> for LR1A {
     fn from(grammar: &Grammar) -> Self {
-        DFABuilder::new(grammar).build()
+        LR1ABuilder::new(grammar).build()
     }
 }
 
-impl DFA {
+impl LR1A {
     #[must_use]
     pub fn states(&self) -> &[State] {
         &self.states
@@ -122,7 +122,7 @@ fn format_item<F, G, T, U>(grammar: &Grammar, item: &Item, word_labelling: F, va
 }
 
 #[must_use]
-fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, dfa: &DFA, word_labelling: F, var_labelling: G) -> String
+fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, lr1a: &LR1A, word_labelling: F, var_labelling: G) -> String
     where F: Fn(usize) -> T + Copy,
           G: Fn(usize) -> U + Copy,
           T: std::fmt::Display,
@@ -137,7 +137,7 @@ fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, dfa: &DFA, word_la
     dot.newline();
 
     dot.writeln("node[shape=plain];");
-    for (id, state) in dfa.states.iter().enumerate() {
+    for (id, state) in lr1a.states.iter().enumerate() {
         dot.writeln(&format!("s{}[label=", id));
         dot.indent();
         dot.writeln("<<table border=\"1\" cellborder=\"0\">");
@@ -153,7 +153,7 @@ fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, dfa: &DFA, word_la
 
     dot.newline();
 
-    for (A, state) in dfa.states.iter().enumerate() {
+    for (A, state) in lr1a.states.iter().enumerate() {
         for (symbol, B) in &state.next {
             dot.writeln(&format!("s{}->s{}[label={:?}];", A, B, 
                 match symbol {
@@ -171,4 +171,4 @@ fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, dfa: &DFA, word_la
 }
 
 mod builder;
-use builder::DFABuilder;
+use builder::LR1ABuilder;

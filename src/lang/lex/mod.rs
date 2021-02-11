@@ -1,4 +1,4 @@
-pub use self::compile::LexAnalyzerDef;
+pub use self::compile::LexDef;
 pub use self::parse::{Token, Parse, ParseError};
 
 #[derive(Debug, Clone)]
@@ -8,7 +8,7 @@ pub enum Command {
 }
 
 pub struct LexAnalyzer {
-    table:    Vec<usize>,
+    next:     Vec<usize>,
     classes:  Vec<Option<usize>>,
     commands: Vec<Command>,
 }

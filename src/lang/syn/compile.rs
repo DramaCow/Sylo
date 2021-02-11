@@ -1,8 +1,7 @@
-use crate::lang::cfg::{Grammar, Symbol, lr1};
+use crate::lang::cfg::{Grammar, Symbol, lr1::{self, LR1A}};
 use super::{SynAnalyzer, Action, Reduction};
 
-pub struct SynAnalyzerDef {
-    pub labels: Vec<String>,
+pub struct SynDef {
     pub grammar: Grammar,
     pub term_count: usize,
 }
@@ -15,19 +14,19 @@ pub struct CompileError {
     action2: Action,
 }
 
-impl SynAnalyzerDef {
+impl SynDef {
     /// # Errors
     pub fn compile(&self) -> Result<SynAnalyzer, CompileError> {
-        let dfa = lr1::DFA::from(&self.grammar);
+        let lr1a = LR1A::from(&self.grammar);
         
         let num_words  = self.term_count + 1; // +1 for eof
         let num_vars   = self.grammar.rule_count() - 1; // implicit start variable not needed in goto table
-        let num_states = dfa.states().len();
+        let num_states = lr1a.states().len();
         
         let mut actions: Vec<Action>      = vec![Action::Invalid; num_words * num_states];
         let mut gotos: Vec<Option<usize>> = vec![None; num_vars * num_states];
 
-        for (i, state) in dfa.states().iter().enumerate() {
+        for (i, state) in lr1a.states().iter().enumerate() {
             for item in &state.items {
                 if !item.is_complete(&self.grammar) {
                     let symbol = &item.symbol_at_dot(&self.grammar).unwrap();
