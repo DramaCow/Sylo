@@ -25,6 +25,6 @@ impl ParserDef {
     #[must_use]
     pub fn dot_lr1a(&self) -> String {
         let lr1a = LR1A::from(&self.syn_def.grammar);
-        lr1a.dot(&self.syn_def.grammar, &self.lex_labels, &self.syn_labels)
+        lr1a.dot(&self.syn_def.grammar, &self.lex_labels, &self.syn_labels, false)
     }
 }

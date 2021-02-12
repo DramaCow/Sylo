@@ -14,7 +14,7 @@ pub struct Parser {
     pub lex_labels: Vec<String>,
     pub syn_labels: Vec<String>,
     lex: lex::LexAnalyzer,
-    syn: syn::SynAnalyzer,
+    pub syn: syn::SynAnalyzer,
     commands: Vec<Command>
 }
 

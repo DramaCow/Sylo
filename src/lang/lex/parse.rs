@@ -47,7 +47,7 @@ impl<'a> Iterator for Parse<'a> {
                     break;
                 }
                 
-                if self.lex.accept(state).is_some() {
+                if self.lex.classes[state].is_some() {
                     last_accept_state = state;
                     last_accept_index = index;
                 }
@@ -56,26 +56,26 @@ impl<'a> Iterator for Parse<'a> {
                 index += 1;
             }
 
-            if let Some(class) = self.lex.accept(state) {
-                // currently on an accept state
+            // currently on an accept state
+            if let Some(class) = self.lex.classes[state] {
                 let i = self.index;
                 self.index = index;
 
-                match self.lex.commands.get(class).unwrap() {
+                match self.lex.commands[class] {
                     Command::Emit => return Some(Ok(Token { lexeme: &self.text[i..self.index], class })),
                     Command::Skip => (),
                 };
-            } else if let Some(class) = self.lex.accept(last_accept_state) {
-                // landed on an accept state in the past
+            // landed on an accept state in the past
+            } else if let Some(class) = self.lex.classes[last_accept_state] {
                 let i = self.index;
                 self.index = last_accept_index;
 
-                match self.lex.commands.get(class).unwrap() {
+                match self.lex.commands[class] {
                     Command::Emit => return Some(Ok(Token { lexeme: &self.text[i..self.index], class })), 
                     Command::Skip => (),
                 };
+            // failed to match anything
             } else {
-                // failed to match anything
                 let i = self.index;
                 self.index = usize::MAX; // forces next iteration to return None
 
@@ -112,10 +112,6 @@ impl LexAnalyzer {
 
     fn step(&self, id: usize, symbol: u8) -> usize {
         self.next[256 * id + symbol as usize]
-    }
-
-    fn accept(&self, id: usize) -> Option<usize> {
-        self.classes[id]
     }
 }
 

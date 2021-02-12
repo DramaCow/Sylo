@@ -1,7 +1,9 @@
 #![allow(non_snake_case)]
 
-pub mod first;
 pub mod lr1;
+pub use self::first::First;
+
+mod first;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Symbol {
@@ -119,7 +121,7 @@ impl<'a> Iterator for Alternatives<'a> {
 
 pub struct GrammarBuilder {
     grammar: Grammar,
-    term_count: usize,
+    word_count: usize,
 }
 
 pub enum GrammarBuildError {
@@ -131,14 +133,14 @@ pub enum GrammarBuildError {
 impl GrammarBuilder {
     #[must_use]
     #[allow(clippy::new_without_default)]
-    pub fn new(term_count: usize) -> Self {
+    pub fn new(word_count: usize) -> Self {
         Self {
             grammar: Grammar {
                 symbols: Vec::new(),
                 alts: vec![0],
                 rules: vec![0],
             },
-            term_count,
+            word_count,
         }
     }
 
@@ -164,7 +166,7 @@ impl GrammarBuilder {
                 for (k, symbol) in alt.iter().enumerate() {
                     match symbol {
                         Symbol::Terminal(a) => {
-                            if *a >= self.term_count { 
+                            if *a >= self.word_count { 
                                 return Err(GrammarBuildError::InvalidTerminal {
                                     rule: i,
                                     alt: j,

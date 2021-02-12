@@ -9,15 +9,21 @@ pub enum Instruction {
 pub struct Parse<'a, I: Iterator<Item=usize>> {
     syn:           &'a SynAnalyzer,
     words:         I,
-    step:          usize,
+    count:         usize,
     next_word:     Option<usize>,
     next_action:   Action,
     state_history: Vec<usize>,
 }
 
 #[derive(Debug)]
-pub enum ParseError {
-    InvalidAction { /*TODO:*/ },
+pub struct ParseError {
+    pub count: usize,
+    pub source: ParseErrorType,
+}
+
+#[derive(Debug)]
+pub enum ParseErrorType {
+    InvalidAction { state: usize, word: Option<usize> },
     InvalidGoto   { state: usize, var: usize },
 }
 
@@ -27,7 +33,7 @@ impl<'a, I: Iterator<Item=usize>> Parse<'a, I> {
         Self {
             syn,
             words,
-            step:          0,
+            count:         0,
             next_word:     None,
             next_action:   Action::Shift(0),
             state_history: Vec::new(),
@@ -41,7 +47,13 @@ impl<'a, I: Iterator<Item=usize>> Iterator for Parse<'a, I> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.next_action {
             Action::Invalid => {
-                Some(Err(ParseError::InvalidAction {}))
+                Some(Err(ParseError {
+                    count: self.count,
+                    source: ParseErrorType::InvalidAction {
+                        state: *self.state_history.last().unwrap(),
+                        word: self.next_word
+                    },
+                }))
             },
             Action::Accept => {
                 None
@@ -55,8 +67,8 @@ impl<'a, I: Iterator<Item=usize>> Iterator for Parse<'a, I> {
                 self.state_history.push(next_state);
 
                 if let Some(word) = curr_word {
-                    self.step += 1;
-                    Some(Ok(Instruction::Shift { word, index: self.step - 1 }))   
+                    self.count += 1;
+                    Some(Ok(Instruction::Shift { word, index: self.count - 1 }))   
                 } else {
                     // occurs on first and last iterations
                     self.next()
@@ -79,7 +91,13 @@ impl<'a, I: Iterator<Item=usize>> Iterator for Parse<'a, I> {
                     self.state_history.push(next_state);
                     Some(Ok(Instruction::Reduce { var: reduction.var, count: reduction.count }))
                 } else {
-                    Some(Err(ParseError::InvalidGoto { state: old_state, var: reduction.var }))
+                    Some(Err(ParseError {
+                        count: self.count,
+                        source: ParseErrorType::InvalidGoto {
+                            state: old_state,
+                            var: reduction.var
+                        },
+                    }))
                 }
             },
         }

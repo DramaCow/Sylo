@@ -81,7 +81,7 @@ macro_rules! syn_def {
     
             let syn_def = $crate::lang::syn::SynDef {
                 grammar: $crate::lang::cfg::GrammarBuilder::new($n)$(.rule($rule))+.try_build().unwrap(),
-                term_count: $n,
+                word_count: $n,
             };
 
             (vec![$(stringify!($label).to_string()),+], syn_def)

@@ -64,7 +64,7 @@ impl LR1A {
     }
 
     #[must_use]
-    pub fn dot<T: std::fmt::Display, U: std::fmt::Display>(&self, grammar: &Grammar, word_names: &[T], var_names: &[U]) -> String {
+    pub fn dot<T: std::fmt::Display, U: std::fmt::Display>(&self, grammar: &Grammar, word_names: &[T], var_names: &[U], print_itemsets: bool) -> String {
         let word_to_string = |word: usize| {
             format!("{}", word_names[word])
         };
@@ -77,7 +77,7 @@ impl LR1A {
             }
         };
 
-        dot_with_labelling_internal(grammar, self, word_to_string, var_to_string)
+        dot_with_labelling_internal(grammar, self, word_to_string, var_to_string, print_itemsets)
     }
 }
 
@@ -122,7 +122,7 @@ fn format_item<F, G, T, U>(grammar: &Grammar, item: &Item, word_labelling: F, va
 }
 
 #[must_use]
-fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, lr1a: &LR1A, word_labelling: F, var_labelling: G) -> String
+fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, lr1a: &LR1A, word_labelling: F, var_labelling: G, print_itemsets: bool) -> String
     where F: Fn(usize) -> T + Copy,
           G: Fn(usize) -> U + Copy,
           T: std::fmt::Display,
@@ -136,19 +136,26 @@ fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, lr1a: &LR1A, word_
 
     dot.newline();
 
-    dot.writeln("node[shape=plain];");
-    for (id, state) in lr1a.states.iter().enumerate() {
-        dot.writeln(&format!("s{}[label=", id));
-        dot.indent();
-        dot.writeln("<<table border=\"1\" cellborder=\"0\">");
-        dot.indent();
-        dot.writeln(&format!("<tr><td align=\"center\"><b>s{}</b></td></tr>", id));
-        for item in &state.items {
-            dot.writeln(&format!("<tr><td align=\"left\">{}</td></tr>", format_item(grammar, item, word_labelling, var_labelling)));
+    if print_itemsets {
+        dot.writeln("node[shape=plain];");
+        for (id, state) in lr1a.states.iter().enumerate() {
+            dot.writeln(&format!("s{}[label=", id));
+            dot.indent();
+            dot.writeln("<<table border=\"1\" cellborder=\"0\">");
+            dot.indent();
+            dot.writeln(&format!("<tr><td align=\"center\"><b>s{}</b></td></tr>", id));
+            for item in &state.items {
+                dot.writeln(&format!("<tr><td align=\"left\">{}</td></tr>", format_item(grammar, item, word_labelling, var_labelling)));
+            }
+            dot.unindent();
+            dot.writeln("</table>>];");
+            dot.unindent();
         }
-        dot.unindent();
-        dot.writeln("</table>>];");
-        dot.unindent();
+    } else {
+        dot.writeln("node[shape=rectangle];");
+        for (id, _) in lr1a.states.iter().enumerate() {
+            dot.writeln(&format!("s{};", id));
+        }
     }
 
     dot.newline();

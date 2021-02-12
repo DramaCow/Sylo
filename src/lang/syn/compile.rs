@@ -3,7 +3,7 @@ use super::{SynAnalyzer, Action, Reduction};
 
 pub struct SynDef {
     pub grammar: Grammar,
-    pub term_count: usize,
+    pub word_count: usize,
 }
 
 #[derive(Debug)]
@@ -19,7 +19,7 @@ impl SynDef {
     pub fn compile(&self) -> Result<SynAnalyzer, CompileError> {
         let lr1a = LR1A::from(&self.grammar);
         
-        let num_words  = self.term_count + 1; // +1 for eof
+        let num_words  = self.word_count + 1; // +1 for eof
         let num_vars   = self.grammar.rule_count() - 1; // implicit start variable not needed in goto table
         let num_states = lr1a.states().len();
         
@@ -80,7 +80,7 @@ impl SynDef {
             actions,
             gotos,
             reductions,
-            term_count: self.term_count,
+            word_count: self.word_count,
             var_count: num_vars,
         })
     }

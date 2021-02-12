@@ -73,7 +73,7 @@ pub use self::string_builder::StringBuilder;
 
 // #[must_use]
 // pub fn latex_parser(parser: &SynAnalyzer, var_names: &[&str], word_names: &[&str]) -> String {
-//     let ncol_action = parser.term_count() + 1;
+//     let ncol_action = parser.word_count() + 1;
 //     let ncol_goto   = parser.var_count();
 
 //     let mut output = StringBuilder::new();

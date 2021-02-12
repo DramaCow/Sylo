@@ -3,6 +3,7 @@
 
 // use sylo::cst::{CSTNodeProxy, CSTVarNodeProxy, CSTWordNodeProxy};
 use sylo::lang::re::{self, RegEx};
+use sylo::lang::parser::ParseError::{Lex as LexError, Syn as SynError};
 use sylo::cst::{CST, CSTNode, CSTNodeId};
 use std::time::Instant;
 
@@ -126,10 +127,19 @@ fn main() {
 
     let parser = def.compile().unwrap();
 
-    let cst = parser.cst("(('A'..'Z' | 'a'..'z' | '_') ('A'..'Z' | 'a'..'z' | '0'..'9' | '_')*) - '_'+").unwrap();
-    std::fs::write("_graph.dot", cst.dot(&parser)).unwrap();
-
-    // let regex = compile(&cst, cst.root());
-
-    println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());
+    match parser.cst("(('A'..'Z' | 'a'..'z' | '_') ('A'..'Z' | 'a'..'z' | '0'..'9' | '_')*) - '_'+") {
+        Ok(cst) => {
+            std::fs::write("_graph.dot", cst.dot(&parser)).unwrap();
+            // let regex = compile(&cst, cst.root());
+            println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());
+        },
+        Err(LexError(_)) => {
+            
+        },
+        Err(SynError(error)) => {
+            println!("{}", error.count);
+        },
+    }
+    
+    
 }
