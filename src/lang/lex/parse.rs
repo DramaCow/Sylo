@@ -12,12 +12,9 @@ pub struct Parse<'a> {
     index: usize,
 }
 
-pub enum ParseError<'a> {
-    NoNextToken {
-        byte_pos: usize,
-        prefix:   &'a str,
-        text:     &'a str,
-    },
+#[derive(Debug)]
+pub struct ParseError {
+    pos: usize,
 }
 
 impl<'a> Parse<'a> {
@@ -31,7 +28,7 @@ impl<'a> Parse<'a> {
 }
 
 impl<'a> Iterator for Parse<'a> {
-    type Item = Result<Token<'a>, ParseError<'a>>;
+    type Item = Result<Token<'a>, ParseError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while self.index < self.text.len() {
@@ -79,25 +76,11 @@ impl<'a> Iterator for Parse<'a> {
                 let i = self.index;
                 self.index = usize::MAX; // forces next iteration to return None
 
-                return Some(Err(ParseError::NoNextToken {
-                    byte_pos: i,
-                    prefix: &self.text[..i],
-                    text: &self.text[i..],
-                }));
+                return Some(Err(ParseError { pos: i }));
             }
         };
         
         None
-    }
-}
-
-impl std::fmt::Debug for ParseError<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            ParseError::NoNextToken { byte_pos, prefix, text } => {
-                write!(f, "Failed to match token starting at byte {}: \"{}\"", byte_pos, text_summary(prefix, text, (6, 6)))
-            },
-        }
     }
 }
 
@@ -115,34 +98,34 @@ impl LexAnalyzer {
     }
 }
 
-fn text_summary(prefix: &str, suffix: &str, (pn, sn): (usize, usize)) -> String {
-    let (pcount, plen) = upto(prefix.chars().rev(), pn);
-    let (scount, slen) = upto(suffix.chars(), sn);
+// fn text_summary(prefix: &str, suffix: &str, (pn, sn): (usize, usize)) -> String {
+//     fn upto<I: Iterator<Item=char>>(iter: I, n: usize) -> (usize, usize) {
+//         let mut count = 0_usize;
+//         let mut len = 0_usize;
+//         let mut iter = iter;
+    
+//         for _ in 0..n {
+//             if let Some(chr) = iter.next() {
+//                 count += 1;
+//                 len += chr.len_utf8();
+//             } else {
+//                 break;
+//             }
+//         }
+    
+//         (count, len)
+//     }
 
-    if pcount < pn && scount < sn {
-        format!("{}{}", prefix, suffix)
-    } else if pcount >= pn && scount < sn {
-        format!("..{}{}", &prefix[prefix.len()-plen..], suffix)
-    } else if pcount < pn && scount >= sn {
-        format!("{}{}..", prefix, &suffix[..slen])
-    } else {
-        format!("..{}{}..", &prefix[prefix.len()-plen..], &suffix[..slen])
-    }
-}
+//     let (pcount, plen) = upto(prefix.chars().rev(), pn);
+//     let (scount, slen) = upto(suffix.chars(), sn);
 
-fn upto<I: Iterator<Item=char>>(iter: I, n: usize) -> (usize, usize) {
-    let mut count = 0_usize;
-    let mut len = 0_usize;
-    let mut iter = iter;
-
-    for _ in 0..n {
-        if let Some(chr) = iter.next() {
-            count += 1;
-            len += chr.len_utf8();
-        } else {
-            break;
-        }
-    }
-
-    (count, len)
-}
+//     if pcount < pn && scount < sn {
+//         format!("{}{}", prefix, suffix)
+//     } else if pcount >= pn && scount < sn {
+//         format!("..{}{}", &prefix[prefix.len()-plen..], suffix)
+//     } else if pcount < pn && scount >= sn {
+//         format!("{}{}..", prefix, &suffix[..slen])
+//     } else {
+//         format!("..{}{}..", &prefix[prefix.len()-plen..], &suffix[..slen])
+//     }
+// }

@@ -1,30 +1,31 @@
 use super::{SynAnalyzer, Action};
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum Instruction {
-    Shift { word: usize, index: usize },
-    Reduce { var: usize, count: usize },
+pub enum Node {
+    Word { word: usize, index: usize },
+    Var { var: usize, child_count: usize },
 }
 
 pub struct Parse<'a, I: Iterator<Item=usize>> {
     syn:           &'a SynAnalyzer,
     words:         I,
-    count:         usize,
-    next_word:     Option<usize>,
+    step:          usize,
+    curr_word:     Option<usize>,
     next_action:   Action,
     state_history: Vec<usize>,
 }
 
 #[derive(Debug)]
 pub struct ParseError {
-    pub count: usize,
-    pub source: ParseErrorType,
+    pub step: usize,
+    pub state: usize,
+    pub source: ParseErrorSource,
 }
 
 #[derive(Debug)]
-pub enum ParseErrorType {
-    InvalidAction { state: usize, word: Option<usize> },
-    InvalidGoto   { state: usize, var: usize },
+pub enum ParseErrorSource {
+    InvalidAction { word: Option<usize> },
+    InvalidGoto   { var: usize },
 }
 
 impl<'a, I: Iterator<Item=usize>> Parse<'a, I> {
@@ -33,8 +34,8 @@ impl<'a, I: Iterator<Item=usize>> Parse<'a, I> {
         Self {
             syn,
             words,
-            count:         0,
-            next_word:     None,
+            step:          0, // only really useful for debugging, not strictly necessary
+            curr_word:     None,
             next_action:   Action::Shift(0),
             state_history: Vec::new(),
         }
@@ -42,33 +43,33 @@ impl<'a, I: Iterator<Item=usize>> Parse<'a, I> {
 }
 
 impl<'a, I: Iterator<Item=usize>> Iterator for Parse<'a, I> {
-    type Item = Result<Instruction, ParseError>;
+    type Item = Result<Node, ParseError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.next_action {
             Action::Invalid => {
                 Some(Err(ParseError {
-                    count: self.count,
-                    source: ParseErrorType::InvalidAction {
-                        state: *self.state_history.last().unwrap(),
-                        word: self.next_word
+                    step: self.step,
+                    state: *self.state_history.last().unwrap(),
+                    source: ParseErrorSource::InvalidAction {
+                        word: self.curr_word
                     },
                 }))
             },
             Action::Accept => {
                 None
             },
-            Action::Shift(next_state) => {
-                let curr_word = self.next_word;
+            Action::Shift(state) => {
+                let prev_word = self.curr_word;
                 
-                // pre-load next state
-                self.next_word = self.words.next();
-                self.next_action = self.syn.action(next_state, self.next_word);
-                self.state_history.push(next_state);
+                // pre-load next action
+                self.curr_word = self.words.next();
+                self.next_action = self.syn.action(state, self.curr_word);
+                self.state_history.push(state);
 
-                if let Some(word) = curr_word {
-                    self.count += 1;
-                    Some(Ok(Instruction::Shift { word, index: self.count - 1 }))   
+                if let Some(word) = prev_word {
+                    self.step += 1;
+                    Some(Ok(Node::Word { word, index: self.step - 1 }))   
                 } else {
                     // occurs on first and last iterations
                     self.next()
@@ -86,15 +87,15 @@ impl<'a, I: Iterator<Item=usize>> Iterator for Parse<'a, I> {
                 // state is rewinded to before words associated with reduction
                 let old_state = *self.state_history.last().unwrap();
 
-                if let Some(next_state) = self.syn.goto(old_state, reduction.var) {
-                    self.next_action = self.syn.action(next_state, self.next_word);
-                    self.state_history.push(next_state);
-                    Some(Ok(Instruction::Reduce { var: reduction.var, count: reduction.count }))
+                if let Some(state) = self.syn.goto(old_state, reduction.var) {
+                    self.next_action = self.syn.action(state, self.curr_word);
+                    self.state_history.push(state);
+                    Some(Ok(Node::Var { var: reduction.var, child_count: reduction.count }))
                 } else {
                     Some(Err(ParseError {
-                        count: self.count,
-                        source: ParseErrorType::InvalidGoto {
-                            state: old_state,
+                        step: self.step,
+                        state: old_state,
+                        source: ParseErrorSource::InvalidGoto {
                             var: reduction.var
                         },
                     }))

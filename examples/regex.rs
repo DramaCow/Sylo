@@ -35,7 +35,24 @@ fn compile(cst: &CST, id: CSTNodeId) -> RegEx {
                 },
                 UNARY => {
                     let second = iter.next().unwrap();
-                    todo!()
+                    match first.to_node(cst) {
+                        CSTNode::Leaf(leaf) => {
+                            if leaf.token(cst).class == 10 {
+                                compile(cst, second).not()
+                            } else {
+                                panic!()
+                            }
+                        },
+                        CSTNode::Branch(branch) => {
+                            if branch.var == 5 {
+                                
+                                todo!()
+                                // compile(cst, first)
+                            } else {
+                                panic!()
+                            }
+                        },
+                    }
                 },
                 PARENTHESES => {
                     todo!()
@@ -69,8 +86,8 @@ fn main() {
     let def = parser_def! {
         lexer: {
             [skip] _ws: re::any(" \n\t\r").plus(),
-            singleq:    re::literal("'"),
-            doubleq:    re::literal("\""),
+            string:     re::literal("\"").then(&c.plus()).then(&re::literal("\"")),
+            char:       re::literal("'").then(&c).then(&re::literal("'")),
             range:      re::literal(".."),
             and:        re::literal("&"),
             or:         re::literal("|"),
@@ -79,9 +96,8 @@ fn main() {
             star:       re::literal("*"),
             plus:       re::literal("+"),
             not:        re::literal("!"),
-            open:       re::literal("("),
-            close:      re::literal(")"),
-            text:       c.plus(),
+            lparen:     re::literal("("),
+            rparen:     re::literal(")"),
         },
         parser: {
             // You can skip the first node if desired.
@@ -90,14 +106,16 @@ fn main() {
             Alt         : ConjOrSeqOrUnaryOrFactor_ AltPlus_,
             Conj        : SeqOrUnaryOrFactor_ ConjPlus_,
             Seq         : UnaryOrFactor_ SeqPlus_,
-            Unary       : Factor_ opt
-                        | Factor_ star
-                        | Factor_ plus
-                        | not Factor_,
-            Parentheses : open AltOrConjOrSeqOrUnaryOrFactor_ close,
-            Text        : doubleq text doubleq,
-            Char        : singleq text singleq,
-            Range       : Char range Char,
+            Unary       : Factor opt
+                        | Factor star
+                        | Factor plus
+                        | not Factor,
+            Factor      : Parentheses
+                        | string
+                        | char
+                        | Range,
+            Parentheses : lparen AltOrConjOrSeqOrUnaryOrFactor_ rparen,
+            Range       : char range char,
 
             // dummy variables
             [skip] AltPlus_                       : AltPlus_ or ConjOrSeqOrUnaryOrFactor_
@@ -108,38 +126,20 @@ fn main() {
                                                   | diff SeqOrUnaryOrFactor_,
             [skip] SeqPlus_                       : SeqPlus_ UnaryOrFactor_
                                                   | UnaryOrFactor_,
-            [skip] AltOrConjOrSeqOrUnaryOrFactor_ : Alt
-                                                  | ConjOrSeqOrUnaryOrFactor_,
-            [skip] ConjOrSeqOrUnaryOrFactor_      : Conj
-                                                  | SeqOrUnaryOrFactor_,
-            [skip] SeqOrUnaryOrFactor_            : Seq
-                                                  | UnaryOrFactor_,
-            [skip] UnaryOrFactor_                 : Unary
-                                                  | Factor_,
-            [skip] Factor_                        : Parentheses
-                                                  | Text
-                                                  | Char
-                                                  | Range,
+            [skip] AltOrConjOrSeqOrUnaryOrFactor_ : Alt | Conj | Seq | Unary | Factor,
+            [skip] ConjOrSeqOrUnaryOrFactor_      : Conj | Seq | Unary | Factor,
+            [skip] SeqOrUnaryOrFactor_            : Seq | Unary | Factor,
+            [skip] UnaryOrFactor_                 : Unary | Factor,
+            
         }
     };
 
-    std::fs::write("_dfa.dot", def.dot_lr1a()).unwrap();
+    std::fs::write("_dfa.dot", def.dot_dfa()).unwrap();
 
     let parser = def.compile().unwrap();
 
-    match parser.cst("(('A'..'Z' | 'a'..'z' | '_') ('A'..'Z' | 'a'..'z' | '0'..'9' | '_')*) - '_'+") {
-        Ok(cst) => {
-            std::fs::write("_graph.dot", cst.dot(&parser)).unwrap();
-            // let regex = compile(&cst, cst.root());
-            println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());
-        },
-        Err(LexError(_)) => {
-            
-        },
-        Err(SynError(error)) => {
-            println!("{}", error.count);
-        },
-    }
-    
-    
+    let cst = parser.cst("(('A'..'Z' | 'a'..'z' | '_') ('A'..'Z' | 'a'..'z' | '0'..'9' | '_')*) - '_'+").unwrap();
+    std::fs::write("_graph.dot", cst.dot(&parser)).unwrap();
+    // let regex = compile(&cst, cst.root());
+    println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());  
 }

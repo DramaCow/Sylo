@@ -118,8 +118,8 @@ impl CSTBuilder {
         self.frontier.push(FrontierElem::Node { index: self.nodes.len() - 1 });
     }
 
-    pub fn branch(&mut self, var: usize, num_children: usize) {
-        if let Some((first, _)) = self.make_children_list(num_children) {
+    pub fn branch(&mut self, var: usize, child_count: usize) {
+        if let Some((first, _)) = self.make_children_list(child_count) {
             self.nodes.push(CSTNode::Branch(CSTBranch { var, head: first }));
             self.frontier.push(FrontierElem::Node { index: self.nodes.len() - 1 });
         } else {
@@ -127,8 +127,8 @@ impl CSTBuilder {
         }
     }
 
-    pub fn list(&mut self, num_children: usize) {
-        if let Some((first, last)) = self.make_children_list(num_children) {
+    pub fn list(&mut self, child_count: usize) {
+        if let Some((first, last)) = self.make_children_list(child_count) {
             self.frontier.push(FrontierElem::List { first, last });
         } else {
             self.frontier.push(FrontierElem::Empty);
@@ -147,12 +147,12 @@ impl CSTBuilder {
 
     /// If a non-empty children list was created, returns first and last link indices,
     /// else returns None.
-    fn make_children_list(&mut self, num_children: usize) -> Option<(usize, usize)> {
-        if num_children == 0 {
+    fn make_children_list(&mut self, child_count: usize) -> Option<(usize, usize)> {
+        if child_count == 0 {
             return None;
         }
         
-        let mut count = num_children;
+        let mut count = child_count;
         
         // get output link index of last non-empty child 
         let last = loop {

@@ -56,14 +56,14 @@ fn parentheses_grammar_2() {
 
     let actions = parser.parse(input.iter().cloned()).collect::<Result<Vec<_>, _>>().unwrap();
 
-    assert_eq!(actions[0], super::Instruction::Shift { word: 0, index: 0 });
-    assert_eq!(actions[1], super::Instruction::Shift { word: 0, index: 1 });
-    assert_eq!(actions[2], super::Instruction::Shift { word: 1, index: 2 });
-    assert_eq!(actions[3], super::Instruction::Reduce { var: 1, count: 2 });
-    assert_eq!(actions[4], super::Instruction::Reduce { var: 0, count: 1 });
-    assert_eq!(actions[5], super::Instruction::Shift { word: 1, index: 3 });
-    assert_eq!(actions[6], super::Instruction::Reduce { var: 1, count: 3 });
-    assert_eq!(actions[7], super::Instruction::Reduce { var: 0, count: 1 });
+    assert_eq!(actions[0], super::Node::Word { word: 0, index: 0 });
+    assert_eq!(actions[1], super::Node::Word { word: 0, index: 1 });
+    assert_eq!(actions[2], super::Node::Word { word: 1, index: 2 });
+    assert_eq!(actions[3], super::Node::Var { var: 1, child_count: 2 });
+    assert_eq!(actions[4], super::Node::Var { var: 0, child_count: 1 });
+    assert_eq!(actions[5], super::Node::Word { word: 1, index: 3 });
+    assert_eq!(actions[6], super::Node::Var { var: 1, child_count: 3 });
+    assert_eq!(actions[7], super::Node::Var { var: 0, child_count: 1 });
     
     // println!("{:?}", parse.unwrap());
 }

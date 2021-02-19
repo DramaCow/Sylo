@@ -20,8 +20,8 @@ pub struct Parser {
 
 #[derive(Debug)]
 pub enum ParseError<'a> {
-    Lex(lex::ParseError<'a>),
-    Syn(syn::ParseError),
+    Lex(lex::ParseError),
+    Syn(Vec<Token<'a>>, syn::ParseError),
 }
 
 impl Parser {
@@ -42,17 +42,17 @@ impl Parser {
                     match res {
                         Ok(step) => {
                             match step {
-                                syn::Instruction::Shift { word, index } => builder.leaf(word, index),
-                                syn::Instruction::Reduce { var, count } => {
+                                syn::Node::Word { word, index } => builder.leaf(word, index),
+                                syn::Node::Var { var, child_count } => {
                                     match self.commands.get(var).unwrap() {
-                                        Command::Emit => builder.branch(var, count),
-                                        Command::Skip => builder.list(count),
+                                        Command::Emit => builder.branch(var, child_count),
+                                        Command::Skip => builder.list(child_count),
                                     };
                                 },
                             }
                         },
                         Err(error) => {
-                            return Err(ParseError::Syn(error));
+                            return Err(ParseError::Syn(tokens, error));
                         }
                     }
                 }

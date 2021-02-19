@@ -1,5 +1,6 @@
 use crate::lang::{lex, syn};
 use super::{Command, Parser};
+use crate::lang::re::DFA;
 use crate::lang::cfg::lr1::LR1A;
 
 pub struct ParserDef {
@@ -20,6 +21,12 @@ impl ParserDef {
             syn: self.syn_def.compile()?,
             commands: self.commands.to_vec(),
         })
+    }
+
+    #[must_use]
+    pub fn dot_dfa(&self) -> String {
+        let dfa = DFA::from(&self.lex_def.regexes);
+        dfa.dot()
     }
 
     #[must_use]

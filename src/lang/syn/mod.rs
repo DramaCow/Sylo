@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 pub use self::compile::{SynDef, CompileError};
-pub use self::parse::{Instruction, Parse, ParseError};
+pub use self::parse::{Node, Parse, ParseError};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Action {
@@ -38,20 +38,6 @@ impl SynAnalyzer {
     pub fn goto(&self, state: usize, var: usize) -> Option<usize> {
         self.gotos[state * self.var_count + var]
     }
-
-    // #[must_use]
-    // pub fn actions_row(&self, state: usize) -> &[Action] {
-    //     let low = state * (self.word_count + 1);
-    //     let high = (state + 1) * (self.word_count + 1);
-    //     &self.actions[low..high]
-    // }
-
-    // #[must_use]
-    // pub fn gotos_row(&self, state: usize) -> &[Option<usize>] {
-    //     let low = state * self.var_count;
-    //     let high = (state + 1) * self.var_count;
-    //     &self.gotos[low..high]
-    // }
 }
 
 // =================
