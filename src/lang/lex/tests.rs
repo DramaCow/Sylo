@@ -1,5 +1,4 @@
 use crate::lang::re;
-use super::parse::Token;
 
 // std::fs::write("_graph.dot", nfa.dot()).unwrap();
 
@@ -11,12 +10,13 @@ fn simple_lexer() {
     }.1.compile();
             
     let tokens = lexer.parse("Waltz, bad nymph, for quick jigs vex").collect::<Result<Vec<_>, _>>().unwrap();
-    
-    assert_eq!(tokens[0], Token { lexeme: "Waltz", class: 1 });
-    assert_eq!(tokens[1], Token { lexeme: "bad",   class: 1 });
-    assert_eq!(tokens[2], Token { lexeme: "nymph", class: 1 });
-    assert_eq!(tokens[3], Token { lexeme: "for",   class: 1 });
-    assert_eq!(tokens[4], Token { lexeme: "quick", class: 1 });
-    assert_eq!(tokens[5], Token { lexeme: "jigs",  class: 1 });
-    assert_eq!(tokens[6], Token { lexeme: "vex",   class: 1 });
+
+    assert_eq!(tokens[0].lexeme, "Waltz");
+    assert_eq!(tokens[1].lexeme, "bad");
+    assert_eq!(tokens[2].lexeme, "nymph");
+    assert_eq!(tokens[3].lexeme, "for");
+    assert_eq!(tokens[4].lexeme, "quick");
+    assert_eq!(tokens[5].lexeme, "jigs");
+    assert_eq!(tokens[6].lexeme, "vex");
+    assert!(tokens.iter().all(|token| token.class == 1));
 }

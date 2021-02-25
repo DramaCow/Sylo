@@ -41,6 +41,8 @@ where
     }
 }
 
+
+/// Iterates in order over two ordererd iterators.
 #[derive(Clone)]
 pub struct MergeBy<T, A, B, F>
 where

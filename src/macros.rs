@@ -100,8 +100,8 @@ macro_rules! syn_def {
 
 #[macro_export]
 macro_rules! parser_cmd {
-    (emit) => { $crate::lang::parser::Command::Emit };
-    (skip) => { $crate::lang::parser::Command::Skip };
+    (emit) => { $crate::lang::Command::Emit };
+    (skip) => { $crate::lang::Command::Skip };
 }
 
 #[macro_export]
@@ -121,7 +121,7 @@ macro_rules! parser_def {
     (@fin $lex_def:ident {$($grammar:tt)*} {$($commands:tt)*}) => {
         {
             let (syn_labels, __SYN_DEF__) = syn_def![@internal __WORD_COUNT__ ; $($grammar)*];
-            $crate::lang::parser::ParserDef {
+            $crate::lang::ParserDef {
                 lex_labels: $lex_def.0,
                 syn_labels,
                 lex_def: $lex_def.1,

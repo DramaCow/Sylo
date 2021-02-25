@@ -1,3 +1,5 @@
+//! Context free grammar.
+
 #![allow(non_snake_case)]
 
 pub mod lr1;
@@ -11,6 +13,7 @@ pub enum Symbol {
     Variable(usize), // aka. nonterminal
 }
 
+/// Barebones representation of a context free grammar.
 pub struct Grammar {
     symbols: Vec<Symbol>,
     alts:    Vec<usize>,  // start index of each alt in symbols
@@ -35,11 +38,13 @@ pub struct Alternatives<'a> {
 }
 
 impl Grammar {
+    #[allow(missing_docs)]
     #[must_use]
     pub fn rule_count(&self) -> usize {
         self.rules.len() - 1
     }
 
+    #[allow(missing_docs)]
     #[must_use]
     pub fn alt_count(&self) -> usize {
         self.alts.len() - 1

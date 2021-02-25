@@ -3,12 +3,14 @@ use super::{LexAnalyzer, Command};
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Token<'a> {
     pub lexeme: &'a str,
+    pub start_index: usize,
+    pub end_index: usize,
     pub class:  usize,
 }
 
 pub struct Parse<'a> {
     lex:   &'a LexAnalyzer,
-    text:  &'a str,
+    input: &'a str,
     index: usize,
 }
 
@@ -18,10 +20,10 @@ pub struct ParseError {
 }
 
 impl<'a> Parse<'a> {
-    pub(crate) fn new(lex: &'a LexAnalyzer, text: &'a str) -> Self {
+    pub(crate) fn new(lex: &'a LexAnalyzer, input: &'a str) -> Self {
         Self {
             lex,
-            text,
+            input,
             index: 0,
         }
     }
@@ -31,15 +33,15 @@ impl<'a> Iterator for Parse<'a> {
     type Item = Result<Token<'a>, ParseError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while self.index < self.text.len() {
+        while self.index < self.input.len() {
             let mut state = 0;
             let mut index = self.index;
             
             let mut last_accept_state = self.lex.sink();
             let mut last_accept_index = 0_usize;
 
-            // simulate dfa until hit the sink state or end of text
-            for byte in self.text[self.index..].bytes() {            
+            // simulate dfa until hit the sink state or end of input
+            for byte in self.input[self.index..].bytes() {            
                 if state == self.lex.sink() {
                     break;
                 }
@@ -59,7 +61,7 @@ impl<'a> Iterator for Parse<'a> {
                 self.index = index;
 
                 match self.lex.commands[class] {
-                    Command::Emit => return Some(Ok(Token { lexeme: &self.text[i..self.index], class })),
+                    Command::Emit => return Some(Ok(Token { lexeme: &self.input[i..self.index], start_index: i, end_index: self.index, class })),
                     Command::Skip => (),
                 };
             // landed on an accept state in the past
@@ -68,7 +70,7 @@ impl<'a> Iterator for Parse<'a> {
                 self.index = last_accept_index;
 
                 match self.lex.commands[class] {
-                    Command::Emit => return Some(Ok(Token { lexeme: &self.text[i..self.index], class })), 
+                    Command::Emit => return Some(Ok(Token { lexeme: &self.input[i..self.index], start_index: i, end_index: self.index, class })), 
                     Command::Skip => (),
                 };
             // failed to match anything

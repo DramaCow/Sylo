@@ -1,7 +1,10 @@
+//! TODO
+
 use crate::lang::lex::Token;
 use crate::debug::StringBuilder;
-use crate::lang::parser::Parser;
+use crate::lang::Parser;
 
+/// Concrete Syntax Tree.
 #[derive(Debug)]
 pub struct CST<'a> {
     tokens: Vec<Token<'a>>,

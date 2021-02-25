@@ -1,3 +1,5 @@
+//! Canonical LR(1) analysis tools.
+
 use std::collections::{BTreeSet, HashMap};
 use std::fmt;
 use crate::debug::StringBuilder;

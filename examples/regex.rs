@@ -3,7 +3,7 @@
 
 // use sylo::cst::{CSTNodeProxy, CSTVarNodeProxy, CSTWordNodeProxy};
 use sylo::lang::re::{self, RegEx};
-use sylo::lang::parser::ParseError::{Lex as LexError, Syn as SynError};
+use sylo::lang::ParseError::{Lex as LexError, Syn as SynError};
 use sylo::cst::{CST, CSTNode, CSTNodeId};
 use std::time::Instant;
 
@@ -133,8 +133,6 @@ fn main() {
             
         }
     };
-
-    std::fs::write("_dfa.dot", def.dot_dfa()).unwrap();
 
     let parser = def.compile().unwrap();
 

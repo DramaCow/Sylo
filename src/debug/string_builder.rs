@@ -35,11 +35,6 @@ impl StringBuilder {
         self.newline();
     }
 
-    #[must_use]
-    pub fn get_indent(&self) -> usize {
-        self.indent_count
-    }
-
     pub fn indent(&mut self) {
         self.indent_count += 4;
         self.indent = " ".repeat(self.indent_count);
@@ -50,25 +45,6 @@ impl StringBuilder {
             self.indent_count -= 4;
             self.indent = " ".repeat(self.indent_count);
         }
-    }
-
-    pub fn debug_write_slice<T: std::fmt::Debug>(&mut self, slice: &[T]) {
-        self.writeln("[");
-        self.indent();
-        {
-            let tab_size = self.get_indent();
-            let slice_fmt = slice.iter().map(|a| format!("{:?}", a)).collect::<Vec<_>>();
-            let cell_size = slice_fmt.iter().map(String::len).max().unwrap();
-            let cells_per_row = (80 - tab_size) / (cell_size + 2);
-            for row in slice_fmt.chunks(cells_per_row) {
-                for cell in row {
-                    self.write(&format!("{:padding$}, ", cell, padding=cell_size));
-                }
-                self.newline();
-            }
-        }
-        self.unindent();
-        self.write("]");
     }
 
     #[must_use]

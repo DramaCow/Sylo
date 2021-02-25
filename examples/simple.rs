@@ -8,8 +8,6 @@ use std::time::Instant;
 fn main() {
     let timer = Instant::now();
 
-    let c = re::basic_multilingual_plane();
-
     let def = parser_def! {
         lexer: {
             [skip] _ws: re::any(" ,").plus(),
@@ -27,8 +25,6 @@ fn main() {
                              | word
         }
     };
-
-    std::fs::write("_dfa.dot", def.dot_lr1a()).unwrap();
 
     let parser = def.compile().unwrap();
 
