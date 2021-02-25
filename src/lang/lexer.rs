@@ -1,10 +1,10 @@
 use super::{
     Command,
-    lex::{self, Token},
+    lex::{self, Parse},
 };
 
 pub struct LexerDef {
-    pub lex_labels: Vec<String>,
+    pub labels: Vec<String>,
     pub lex_def: lex::LexDef,
     pub commands: Vec<Command>,
 }
@@ -19,9 +19,16 @@ impl LexerDef {
     #[must_use]
     pub fn compile(&self) -> Lexer {
         Lexer {
-            labels: self.lex_labels.to_vec(),
+            labels: self.labels.to_vec(),
             lex: self.lex_def.compile(),
             commands: self.commands.to_vec(),
         }
+    }
+}
+
+impl Lexer {
+    #[must_use]
+    pub fn scan<'a>(&'a self, text: &'a str) -> Parse<'a> {
+        Parse::new(&self.lex, text)
     }
 }

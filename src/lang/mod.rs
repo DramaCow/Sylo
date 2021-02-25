@@ -12,6 +12,10 @@ pub enum Command {
 }
 
 mod lexer;
+pub use lexer::{
+    LexerDef,
+    Lexer,
+};
 
 mod parser;
 pub use parser::{

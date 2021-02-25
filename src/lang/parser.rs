@@ -1,22 +1,22 @@
 use super::{
     Command,
     lex::{self, Token},
+    LexerDef,
+    Lexer,
     syn,
 };
 use crate::cst::{CST, CSTBuilder};
 
 pub struct ParserDef {
-    pub lex_labels: Vec<String>,
+    pub lexer_def: LexerDef,
     pub syn_labels: Vec<String>,
-    pub lex_def: lex::LexDef,
     pub syn_def: syn::SynDef,
     pub commands: Vec<Command>,
 }
 
 pub struct Parser {
-    pub lex_labels: Vec<String>,
+    pub lexer: Lexer,
     pub syn_labels: Vec<String>,
-    lex: lex::LexAnalyzer,
     pub syn: syn::SynAnalyzer,
     commands: Vec<Command>
 }
@@ -31,9 +31,8 @@ impl ParserDef {
     /// # Errors
     pub fn compile(&self) -> Result<Parser, syn::CompileError> {
         Ok(Parser {
-            lex_labels: self.lex_labels.to_vec(),
+            lexer: self.lexer_def.compile(),
             syn_labels: self.syn_labels.to_vec(),
-            lex: self.lex_def.compile(),
             syn: self.syn_def.compile()?,
             commands: self.commands.to_vec(),
         })
@@ -43,7 +42,7 @@ impl ParserDef {
 impl Parser {
     /// # Errors
     pub fn tokenize<'a>(&'a self, text: &'a str) -> Result<Vec<Token>, lex::ParseError> {
-        self.lex.parse(text).collect()
+        self.lexer.scan(text).collect()
     }
 
     /// # Errors

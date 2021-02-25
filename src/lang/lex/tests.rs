@@ -4,12 +4,12 @@ use crate::lang::re;
 
 #[test]
 fn simple_lexer() {
-    let lexer = lex_def! {
+    let lexer = lexer_def! {
         [skip] _ws: re::any(" ,").plus(),
         word:       re::any("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz").plus()
-    }.1.compile();
+    }.compile();
             
-    let tokens = lexer.parse("Waltz, bad nymph, for quick jigs vex").collect::<Result<Vec<_>, _>>().unwrap();
+    let tokens = lexer.scan("Waltz, bad nymph, for quick jigs vex").collect::<Result<Vec<_>, _>>().unwrap();
 
     assert_eq!(tokens[0].lexeme, "Waltz");
     assert_eq!(tokens[1].lexeme, "bad");

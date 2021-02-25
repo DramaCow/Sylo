@@ -1,69 +1,57 @@
 #[macro_export]
-macro_rules! words {
-    (@accum $count:expr ; [$($body:tt)*] $label:ident , $($tail:tt)+) => {
-        $crate::words![@accum $count + 1_usize ; [$($body)* $label $count ;] $($tail)*]
-    };
-    (@accum $count:expr ; [$($body:tt)*] $label:ident $(,)?) => {
-        $crate::words![@fin $count + 1_usize ; $($body)* $label $count]
-    };
-    (@fin $count:expr ; $($label:ident $id:expr);+) => {
-        $(
-            #[allow(non_upper_case_globals)]
-            const $label: $crate::lang::cfg::Symbol = $crate::lang::cfg::Symbol::Terminal($id);
-        )+
-        const __WORD_COUNT__: usize = $count;
-    };
-    ($($labels:ident),*) => {
-        $crate::words![@accum 0_usize ; [] $($labels),*]
+macro_rules! lexer_def {
+    ($($([$command:ident])? $label:ident : $regex:expr),+ $(,)?) => {
+        $crate::_lexer_def_internal![@accum _ 0_usize ; [] $($([$command])? $label : $regex),+]
     };
 }
 
+// =================
+// === INTERNALS ===
+// =================
+
+#[doc(hidden)]
 #[macro_export]
-macro_rules! lex_def {
+macro_rules! _lexer_command {
+    (emit) => { $crate::lang::Command::Emit };
+    (skip) => { $crate::lang::Command::Skip };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _lexer_def_internal {
     (@accum $out:tt $count:expr ; [$($body:tt)*] $label:ident : $regex:expr , $($tail:tt)+) => {
-        $crate::lex_def![@accum $out $count + 1_usize ; [$($body)* $count , emit $label $regex;] $($tail)*]
+        $crate::_lexer_def_internal![@accum $out $count + 1_usize ; [$($body)* $count , emit $label $regex;] $($tail)*]
     };
     (@accum $out:tt $count:expr ; [$($body:tt)*] [$command:ident] $label:ident : $regex:expr , $($tail:tt)+) => {
-        $crate::lex_def![@accum $out $count + 1_usize ; [$($body)* $count , $command $label $regex ;] $($tail)*]
+        $crate::_lexer_def_internal![@accum $out $count + 1_usize ; [$($body)* $count , $command $label $regex ;] $($tail)*]
     };
     (@accum $out:tt $count:expr ; [$($body:tt)*] $label:ident : $regex:expr $(,)?) => {
-        $crate::lex_def![@fin $out $count + 1_usize ; $($body)* $count , emit $label $regex]
+        $crate::_lexer_def_internal![@fin $out $count + 1_usize ; $($body)* $count , emit $label $regex]
     };
     (@accum $out:tt $count:expr ; [$($body:tt)*] [$command:ident] $label:ident : $regex:expr $(,)?) => {
-        $crate::lex_def![@fin $out $count + 1_usize ; $($body)* $count , $command $label $regex]
+        $crate::_lexer_def_internal![@fin $out $count + 1_usize ; $($body)* $count , $command $label $regex]
     };
-    (@command emit) => { $crate::lang::lex::Command::Emit };
-    (@command skip) => { $crate::lang::lex::Command::Skip };
     (@fin _ $count:expr ; $($id:expr , $command:ident $label:ident $regex:expr);+) => {
-        {
-            let lex_def = $crate::lang::lex::LexDef {
+        $crate::lang::LexerDef {
+            labels: vec![$(stringify!($label).to_string()),+],
+            lex_def: $crate::lang::lex::LexDef {
                 regexes: vec![$($regex),+],
-                commands: vec![$($crate::lex_def![@command $command]),+],
-            };
-            (vec![$(stringify!($label).to_string()),+], lex_def)
+                commands: vec![$($crate::_lexer_command![$command]),+],
+            },
+            commands: vec![$($crate::_lexer_command![$command]),+]
         }
     };
     (@fin $out:ident $count:expr ; $($id:expr , $command:ident $label:ident $regex:expr);+) => {
-        let $out = {
-            let lex_def = $crate::lang::lex::LexDef {
-                regexes: vec![$($regex),+],
-                commands: vec![$($crate::lex_def![@command $command]),+],
-            };
-            (vec![$(stringify!($label).to_string()),+], lex_def)
-        };
-
         $(
             #[allow(non_upper_case_globals)]
             const $label: $crate::lang::cfg::Symbol = $crate::lang::cfg::Symbol::Terminal($id);
         )+
-
         const __WORD_COUNT__: usize = $count;
-    };
-    ($($body:tt)*) => {
-        $crate::lex_def![@accum _ 0_usize ; [] $($body)*]
+        let $out = _lexer_def_internal![@fin _ $count ; $($id , $command $label $regex);+];
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! syn_def {
     (@accum $n:expr ; $count:expr ; [$($body:tt)*] $label:ident : $($($symbol:ident)*)|* , $($tail:tt)+) => {
@@ -90,50 +78,48 @@ macro_rules! syn_def {
     (@internal $n:expr ; $($grammar:tt)*) => {
         $crate::syn_def![@accum $n ; 0_usize ; [] $($grammar)*]
     };
-    ({ $($labels:ident),* $(,)? } $(,)? $($grammar:tt)*) => {
-        {
-            $crate::words![$($labels),*];
-            $crate::syn_def![@internal __WORD_COUNT__ ; $($grammar)*]
-        }
-    };
 }
 
+#[doc(hidden)]
 #[macro_export]
-macro_rules! parser_cmd {
+macro_rules! _parser_command {
     (emit) => { $crate::lang::Command::Emit };
     (skip) => { $crate::lang::Command::Skip };
 }
 
 #[macro_export]
-macro_rules! parser_def {
-    (@accum $lex_def:ident {$($grammar:tt)*} {$($commands:tt)*} $label:ident : $($($symbol:ident)*)|* , $($tail:tt)+) => {
-        $crate::parser_def![@accum $lex_def {$($grammar)* $label : $($($symbol)*)|* ,} {$($commands)* parser_cmd![emit],} $($tail)+]
+macro_rules! _parser_def_internal {
+    (@accum $lexer_def:ident {$($grammar:tt)*} {$($commands:tt)*} $label:ident : $($($symbol:ident)*)|* , $($tail:tt)+) => {
+        $crate::_parser_def_internal![@accum $lexer_def {$($grammar)* $label : $($($symbol)*)|* ,} {$($commands)* $crate::_parser_command![emit],} $($tail)+]
     };
-    (@accum $lex_def:ident {$($grammar:tt)*} {$($commands:tt)*} [$command:ident] $label:ident : $($($symbol:ident)*)|* , $($tail:tt)+) => {
-        $crate::parser_def![@accum $lex_def {$($grammar)* $label : $($($symbol)*)|* ,} {$($commands)* parser_cmd![$command] ,} $($tail)+]
+    (@accum $lexer_def:ident {$($grammar:tt)*} {$($commands:tt)*} [$command:ident] $label:ident : $($($symbol:ident)*)|* , $($tail:tt)+) => {
+        $crate::_parser_def_internal![@accum $lexer_def {$($grammar)* $label : $($($symbol)*)|* ,} {$($commands)* $crate::_parser_command![$command] ,} $($tail)+]
     };
-    (@accum $lex_def:ident {$($grammar:tt)*} {$($commands:tt)*} $label:ident : $($($symbol:ident)*)|* $(,)?) => {
-        $crate::parser_def![@fin   $lex_def {$($grammar)* $label : $($($symbol)*)|*}   {$($commands)* parser_cmd![emit]}]
+    (@accum $lexer_def:ident {$($grammar:tt)*} {$($commands:tt)*} $label:ident : $($($symbol:ident)*)|* $(,)?) => {
+        $crate::_parser_def_internal![@fin   $lexer_def {$($grammar)* $label : $($($symbol)*)|*}   {$($commands)* $crate::_parser_command![emit]}]
     };
-    (@accum $lex_def:ident {$($grammar:tt)*} {$($commands:tt)*} [$command:ident] $label:ident : $($($symbol:ident)*)|* $(,)?) => {
-        $crate::parser_def![@fin   $lex_def {$($grammar)* $label : $($($symbol)*)|*}   {$($commands)* parser_cmd![$command]}]
+    (@accum $lexer_def:ident {$($grammar:tt)*} {$($commands:tt)*} [$command:ident] $label:ident : $($($symbol:ident)*)|* $(,)?) => {
+        $crate::_parser_def_internal![@fin   $lexer_def {$($grammar)* $label : $($($symbol)*)|*}   {$($commands)* $crate::_parser_command![$command]}]
     };
-    (@fin $lex_def:ident {$($grammar:tt)*} {$($commands:tt)*}) => {
+    (@fin $lexer_def:ident {$($grammar:tt)*} {$($commands:tt)*}) => {
         {
             let (syn_labels, __SYN_DEF__) = syn_def![@internal __WORD_COUNT__ ; $($grammar)*];
             $crate::lang::ParserDef {
-                lex_labels: $lex_def.0,
+                lexer_def: $lexer_def,
                 syn_labels,
-                lex_def: $lex_def.1,
                 syn_def: __SYN_DEF__,
                 commands: vec![$($commands)*]
             }
         }
     };
+}
+
+#[macro_export]
+macro_rules! parser_def {
     (lexer : { $($lexer:tt)* } , parser : { $($parser:tt)* } $(,)?) => {
         {
-            $crate::lex_def![@accum __LEX_DEF__ 0_usize ; [] $($lexer)*];
-            $crate::parser_def![@accum __LEX_DEF__ {} {} $($parser)*]
+            $crate::_lexer_def_internal![@accum __LEX_DEF__ 0_usize ; [] $($lexer)*];
+            $crate::_parser_def_internal![@accum __LEX_DEF__ {} {} $($parser)*]
         }
     };
 }

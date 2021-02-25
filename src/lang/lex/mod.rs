@@ -1,11 +1,6 @@
 pub use self::compile::LexDef;
 pub use self::parse::{Token, Parse, ParseError};
-
-#[derive(Debug, Clone)]
-pub enum Command {
-    Emit,
-    Skip,
-}
+use super::Command;
 
 pub struct LexAnalyzer {
     next:     Vec<usize>,

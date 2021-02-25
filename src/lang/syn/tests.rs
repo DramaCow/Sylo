@@ -1,14 +1,20 @@
+use crate::lang::cfg::{
+    GrammarBuilder,
+    Symbol::Terminal as Word,
+    Symbol::Variable as Var,
+};
+use super::SynDef;
 use std::iter::once;
 
 #[test]
 fn parentheses_grammar() {
-    let parser = syn_def! {
-        { open, close }
-        List : List Pair
-             | Pair,
-        Pair : open List close
-             | open close,
-    }.1.compile().unwrap();
+    let parser = SynDef {
+        grammar: GrammarBuilder::new(2)
+            .rule(&[&[Var(0), Var(1)], &[Var(1)]])
+            .rule(&[&[Word(0), Var(0), Word(1)], &[Word(0), Word(1)]])
+            .try_build().unwrap(),
+        word_count: 2,
+    }.compile().unwrap();
 
     // ad hoc ground truth
     let is_valid = |input: &[usize]| -> bool {
@@ -44,13 +50,13 @@ fn parentheses_grammar() {
 
 #[test]
 fn parentheses_grammar_2() {
-    let parser = syn_def! {
-        { open, close }
-        List : List Pair
-             | Pair,
-        Pair : open List close
-             | open close,
-    }.1.compile().unwrap();
+    let parser = SynDef {
+        grammar: GrammarBuilder::new(2)
+            .rule(&[&[Var(0), Var(1)], &[Var(1)]])
+            .rule(&[&[Word(0), Var(0), Word(1)], &[Word(0), Word(1)]])
+            .try_build().unwrap(),
+        word_count: 2,
+    }.compile().unwrap();
 
     let input = vec![0, 0, 1, 1];
 
