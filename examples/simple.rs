@@ -9,13 +9,13 @@ fn main() {
     let timer = Instant::now();
 
     let def = parser_def! {
-        lexer: {
+        {
             [skip] _ws: re::any(" ,").plus(),
             word:       re::range('a', 'z').plus(),
             period:     re::literal("."),
             ellipses:   re::literal("..."),
         },
-        parser: {
+        {
             Paragraph        : Sentences,
             [skip] Sentences : Sentences Sentence
                              | Sentence,

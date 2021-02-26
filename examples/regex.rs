@@ -84,7 +84,7 @@ fn main() {
         .or(&re::literal("\\\""));
 
     let def = parser_def! {
-        lexer: {
+        {
             [skip] _ws: re::any(" \n\t\r").plus(),
             string:     re::literal("\"").then(&c.plus()).then(&re::literal("\"")),
             char:       re::literal("'").then(&c).then(&re::literal("'")),
@@ -99,7 +99,7 @@ fn main() {
             lparen:     re::literal("("),
             rparen:     re::literal(")"),
         },
-        parser: {
+        {
             // You can skip the first node if desired.
             [skip] Expr_ : AltOrConjOrSeqOrUnaryOrFactor_,
 
