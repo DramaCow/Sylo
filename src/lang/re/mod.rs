@@ -4,7 +4,7 @@ mod unicode;
 mod dfa;
 
 use self::char_set::CharSet;
-use self::regex::{RENode, RENodeRef};
+use self::regex::RENode;
 
 pub use self::regex::RegEx;
 pub use self::dfa::DFA;

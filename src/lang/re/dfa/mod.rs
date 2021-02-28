@@ -2,7 +2,7 @@ use std::ops::Deref;
 use std::collections::{HashSet, HashMap, BTreeMap};
 use std::iter::once;
 
-use super::{CharSet, RegEx, RENode, RENodeRef};
+use super::{CharSet, RegEx, RENode};
 use crate::debug::StringBuilder;
 
 pub struct DFA {
@@ -17,7 +17,7 @@ pub struct DFAState {
 
 impl From<&RegEx> for DFA {
     fn from(regex: &RegEx) -> Self {
-        DFABuilder::build(&RENodeRefVec::new(vec![regex.root.clone()]))
+        DFABuilder::build(&RegExVec::new(vec![regex.clone()]))
     }
 }
 
@@ -26,7 +26,7 @@ where
     T: IntoIterator<Item = &'a RegEx>,
 {
     fn from(regexes: T) -> Self {
-        DFABuilder::build(&RENodeRefVec::new(regexes.into_iter().map(|regex| regex.root.clone()).collect()))
+        DFABuilder::build(&RegExVec::new(regexes.into_iter().cloned().collect()))
      }
 }
 
@@ -135,46 +135,46 @@ impl DFAState {
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct RENodeRefVec {
-    vec: Vec<RENodeRef>,
+struct RegExVec {
+    vec: Vec<RegEx>,
 }
 
-impl Deref for RENodeRefVec {
-    type Target = [RENodeRef];
+impl Deref for RegExVec {
+    type Target = [RegEx];
     fn deref(&self) -> &Self::Target {
         &*self.vec
     }
 }
 
-impl RENodeRefVec {
-    fn new(nodes: Vec<RENodeRef>) -> Self {
+impl RegExVec {
+    fn new(nodes: Vec<RegEx>) -> Self {
         Self { vec: nodes }
     }
 
     fn sink(size: usize) -> Self {
-        let none = RENodeRef::new(RENode::None);
+        let none = RegEx::none();
         Self { vec: vec![none; size] }
     }
 
-    fn deriv(&self, a: u8) -> RENodeRefVec {
+    fn deriv(&self, a: u8) -> RegExVec {
         Self { vec: self.vec.iter().map(|node| node.deriv(a)).collect() }
     }
 
     fn class(&self) -> Option<usize> {
-        self.vec.iter().position(|node| node.is_nullable())
+        self.vec.iter().position(RegEx::is_nullable)
     }
 }
 
 struct DFABuilder {
     states: Vec<DFAState>,
-    re2idx: BTreeMap<RENodeRefVec, usize>,
+    re2idx: BTreeMap<RegExVec, usize>,
 }
 
 impl DFABuilder {
-    fn build(start: &RENodeRefVec) -> DFA {
+    fn build(start: &RegExVec) -> DFA {
         // s0 = sink state
         let states = vec![DFAState::sink()];
-        let re2idx = once((RENodeRefVec::sink(start.len()), 0_usize)).collect();
+        let re2idx = once((RegExVec::sink(start.len()), 0_usize)).collect();
         
         let mut builder = Self { states, re2idx };
         
@@ -188,20 +188,20 @@ impl DFABuilder {
         }
     }
 
-    fn add_state(&mut self, q: &RENodeRefVec) -> usize {
+    fn add_state(&mut self, q: &RegExVec) -> usize {
         let idx = self.states.len();
         self.re2idx.insert(q.clone(), idx);
         self.states.push(DFAState::new(HashMap::new(), q.class()));
         idx
     }
 
-    fn explore(&mut self, q: &RENodeRefVec, i: usize) {
+    fn explore(&mut self, q: &RegExVec, i: usize) {
         for set in approx_deriv_classes_vec(q) {
             self.goto(q, i, &set);
         }
     }
 
-    fn goto(&mut self, q: &RENodeRefVec, i: usize, set: &CharSet) {
+    fn goto(&mut self, q: &RegExVec, i: usize, set: &CharSet) {
         let c = set.min().unwrap();
         let qc = &q.deriv(c);
 
@@ -229,12 +229,12 @@ fn cross<'a, B: IntoIterator<Item = &'a CharSet>>(set1: &HashSet<CharSet>, set2:
 }
 
 // TODO: memoize
-fn approx_deriv_classes(root: &RENodeRef) -> HashSet<CharSet> {
+fn approx_deriv_classes(root: &RegEx) -> HashSet<CharSet> {
     let mut stack = vec![root];
     let mut charsets: HashSet<CharSet> = once(CharSet::universe()).collect();
     
     while let Some(node) = stack.pop() {
-        match node.as_ref() {
+        match &*node.root {
             RENode::None | RENode::Epsilon => {
                 // Do nothing. C(eps) = {universe}, so C(r) ^ C(eps) = C(r).
             },
@@ -269,7 +269,7 @@ fn approx_deriv_classes(root: &RENodeRef) -> HashSet<CharSet> {
     charsets
 }
 
-fn approx_deriv_classes_vec(root: &RENodeRefVec) -> HashSet<CharSet> {
+fn approx_deriv_classes_vec(root: &RegExVec) -> HashSet<CharSet> {
     root.iter().fold(once(CharSet::universe()).collect(), |acc, x| {
         cross(&acc, &approx_deriv_classes(x))
     })
