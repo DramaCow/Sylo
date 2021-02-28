@@ -1,7 +1,7 @@
 mod regex;
 mod char_set;
-mod dfa;
 mod unicode;
+mod dfa;
 
 use self::char_set::CharSet;
 use self::regex::{RENode, RENodeRef};

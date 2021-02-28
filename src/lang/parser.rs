@@ -9,14 +9,14 @@ use crate::cst::{CST, CSTBuilder};
 
 pub struct ParserDef {
     pub lexer_def: LexerDef,
-    pub syn_labels: Vec<String>,
+    pub var_names: Vec<String>,
     pub syn_def: syn::SynDef,
     pub commands: Vec<Command>,
 }
 
 pub struct Parser {
     pub lexer: Lexer,
-    pub syn_labels: Vec<String>,
+    pub var_names: Vec<String>,
     pub syn: syn::SynAnalyzer,
     commands: Vec<Command>
 }
@@ -32,7 +32,7 @@ impl ParserDef {
     pub fn compile(&self) -> Result<Parser, syn::CompileError> {
         Ok(Parser {
             lexer: self.lexer_def.compile(),
-            syn_labels: self.syn_labels.to_vec(),
+            var_names: self.var_names.to_vec(),
             syn: self.syn_def.compile()?,
             commands: self.commands.to_vec(),
         })

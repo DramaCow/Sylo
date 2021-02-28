@@ -99,35 +99,3 @@ impl LexAnalyzer {
         self.next[256 * id + symbol as usize]
     }
 }
-
-// fn text_summary(prefix: &str, suffix: &str, (pn, sn): (usize, usize)) -> String {
-//     fn upto<I: Iterator<Item=char>>(iter: I, n: usize) -> (usize, usize) {
-//         let mut count = 0_usize;
-//         let mut len = 0_usize;
-//         let mut iter = iter;
-    
-//         for _ in 0..n {
-//             if let Some(chr) = iter.next() {
-//                 count += 1;
-//                 len += chr.len_utf8();
-//             } else {
-//                 break;
-//             }
-//         }
-    
-//         (count, len)
-//     }
-
-//     let (pcount, plen) = upto(prefix.chars().rev(), pn);
-//     let (scount, slen) = upto(suffix.chars(), sn);
-
-//     if pcount < pn && scount < sn {
-//         format!("{}{}", prefix, suffix)
-//     } else if pcount >= pn && scount < sn {
-//         format!("..{}{}", &prefix[prefix.len()-plen..], suffix)
-//     } else if pcount < pn && scount >= sn {
-//         format!("{}{}..", prefix, &suffix[..slen])
-//     } else {
-//         format!("..{}{}..", &prefix[prefix.len()-plen..], &suffix[..slen])
-//     }
-// }

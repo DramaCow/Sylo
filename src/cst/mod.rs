@@ -46,7 +46,7 @@ impl CST<'_> {
 
     #[must_use]
     pub fn dot(&self, parser: &Parser) -> String {
-        dot_with_labelling_internal(self, |word| &self.tokens[word].lexeme, |var| &parser.syn_labels[var])
+        dot_with_labelling_internal(self, |word| &self.tokens[word].lexeme, |var| &parser.var_names[var])
     }
 }
 

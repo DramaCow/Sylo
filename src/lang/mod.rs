@@ -2,6 +2,8 @@
 
 pub mod re;
 pub mod cfg;
+// pub mod dfa;
+pub mod lr1;
 pub mod lex;
 pub mod syn;
 
@@ -10,6 +12,11 @@ pub enum Command {
     Skip,
     Emit,
 }
+
+mod vocabulary;
+pub use vocabulary::{
+    Vocabulary,
+};
 
 mod lexer;
 pub use lexer::{

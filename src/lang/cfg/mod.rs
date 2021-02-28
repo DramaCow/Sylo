@@ -2,10 +2,8 @@
 
 #![allow(non_snake_case)]
 
-pub mod lr1;
-pub use self::first::First;
-
 mod first;
+pub use self::first::First;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Symbol {

@@ -1,4 +1,5 @@
-use crate::lang::cfg::{Grammar, Symbol, lr1::{self, LR1A}};
+use crate::lang::cfg::{Grammar, Symbol};
+use crate::lang::lr1::{self, LR1A};
 use super::{SynAnalyzer, Action, Reduction};
 
 pub struct SynDef {

@@ -43,7 +43,7 @@ macro_rules! _lexer_def_internal {
     };
     (@ _ $count:expr ; $($id:expr , $command:ident $label:ident $regex:expr);+) => {
         $crate::lang::LexerDef {
-            labels: vec![$(stringify!($label).to_string()),+],
+            vocab: $crate::lang::Vocabulary::new(vec![$(stringify!($label).to_string()),+]),
             lex_def: $crate::lang::lex::LexDef {
                 regexes: vec![$($regex),+],
                 commands: vec![$($crate::_lexer_command![$command]),+],
@@ -95,7 +95,7 @@ macro_rules! _parser_def_internal {
             };
             $crate::lang::ParserDef {
                 lexer_def: $lexer_def,
-                syn_labels: vec![$(stringify!($label).to_string()),+],
+                var_names: vec![$(stringify!($label).to_string()),+],
                 syn_def,
                 commands: vec![$($crate::_parser_command![$command]),+],
             }
