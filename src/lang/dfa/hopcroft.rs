@@ -1,5 +1,5 @@
 use std::collections::{BTreeSet, HashSet, HashMap};
-use super::{DFA, DFAState};
+use super::{DFA, State};
 
 pub fn minimize(dfa: &DFA) -> DFA {
     // Since the accept state must always be reachable by some input string
@@ -14,7 +14,7 @@ pub fn minimize(dfa: &DFA) -> DFA {
     let partition = equivalence_classes(dfa);
 
     let mut states = Vec::with_capacity(partition.len());
-    states.push(DFAState::sink());
+    states.push(State::sink());
 
     for set in partition.iter().skip(1) {
         let mut next = HashMap::new();
@@ -29,7 +29,7 @@ pub fn minimize(dfa: &DFA) -> DFA {
             }
         }
 
-        states.push(DFAState::new(next, set.iter().filter_map(|&id| dfa.states[id].class).min()));
+        states.push(State::new(next, set.iter().filter_map(|&id| dfa.states[id].class).min()));
     }
 
     DFA { states }
@@ -123,7 +123,7 @@ impl InvDFA {
     }
 }
 
-fn alphabet(states: &[DFAState]) -> Vec<u8> {
+fn alphabet(states: &[State]) -> Vec<u8> {
     let mut iter = states.iter().map(|state| state.next.keys());
     let alph = iter.next().unwrap().cloned().collect::<HashSet<_>>();
     let alph = iter.fold(alph, |mut alph, keys| {

@@ -1,8 +1,11 @@
 //! Parser generator internals.
 
+#[macro_use]
+mod macros;
+
 pub mod re;
 pub mod cfg;
-// pub mod dfa;
+pub mod dfa;
 pub mod lr1;
 pub mod lex;
 pub mod syn;

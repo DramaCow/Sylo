@@ -1,4 +1,5 @@
-use crate::lang::re::{RegEx, DFA};
+use crate::lang::re::RegEx;
+use crate::lang::dfa::DFA;
 use super::{LexAnalyzer, Command};
 
 pub struct LexDef {

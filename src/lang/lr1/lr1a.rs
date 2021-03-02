@@ -66,9 +66,9 @@ impl<'a> LR1ABuilder<'a> {
     }
 
     fn build(self) -> LR1A {   
-        // Last rule the start
         let initial_items = Rc::new(
             self.closure(
+                // NOTE: the last rule in the grammar is the implicit start
                 &once(Item {
                     rule: self.grammar.rule_count() - 1,
                     alt: self.grammar.alt_count() - 1,
@@ -81,10 +81,12 @@ impl<'a> LR1ABuilder<'a> {
         let mut itemsets = vec![initial_items.clone()];
         let mut gotos: Vec<HashMap<Symbol, usize>> = vec![HashMap::new()];
 
-        // Item sets we've seen so far.
+        // Item sets we've seen so far mapped to indices in itemsets vector.
         let mut table: HashMap<_, usize> = once((initial_items.clone(), 0)).collect();
+
+        // Queue of itemsets to process.
         // NOTE: A stack could be used here instead; but by using a queue,
-        //       the iteration step of the outer-most loop will correspond
+        //       the iteration step of the outer-most loop (i) will correspond
         //       to the index of the item set in CC we are currently
         //       transitioning from.
         let mut queue: VecDeque<_> = once(initial_items).collect();
@@ -102,17 +104,17 @@ impl<'a> LR1ABuilder<'a> {
                         continue;
                     }
                     
-                    // Previously processed items in item_set (those before
-                    // iter2) are guaranteed to not contribute to the output
-                    // item set. As such, goto is only required to process
-                    // from iter2 onwards.
+                    // NOTE: Previously processed items in item_set (those before
+                    //       iter2) are guaranteed to not contribute to the output
+                    //       item set. As such, goto is only required to process
+                    //       from iter2 onwards.
                     let temp = self.goto(iter2, &x);
                     
+                    // Check if temp is already in itemsets. If not, we
+                    // add to itemsets and push on to process queue.
                     let j = if let Some(&index) = table.get(&temp) {
                         index
                     } else {
-                        // If temp hasn't been seen yet, add to CC and
-                        // mark to be processed.
                         let new_index = itemsets.len();
                         let temp_rc = Rc::new(temp);
 

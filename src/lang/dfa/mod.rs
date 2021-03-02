@@ -1,15 +1,14 @@
-use std::ops::Deref;
 use std::collections::{HashSet, HashMap, BTreeMap};
 use std::iter::once;
 
-use super::{CharSet, RegEx, RENode};
+use crate::lang::re::{CharSet, RegEx, Operator};
 use crate::debug::StringBuilder;
 
 pub struct DFA {
-    states: Vec<DFAState>,
+    states: Vec<State>,
 }
 
-pub struct DFAState {
+pub struct State {
     pub class: Option<usize>,
     pub next: HashMap<u8, usize>,
     _private: (),
@@ -27,7 +26,7 @@ where
 {
     fn from(regexes: T) -> Self {
         DFABuilder::build(&RegExVec::new(regexes.into_iter().cloned().collect()))
-     }
+    }
 }
 
 impl DFA {
@@ -57,7 +56,7 @@ impl DFA {
     }
 
     #[must_use]
-    pub fn states(&self) -> &[DFAState] {
+    pub fn states(&self) -> &[State] {
         &self.states
     }
 
@@ -120,7 +119,7 @@ impl DFA {
 // === INTERNALS ===
 // =================
 
-impl DFAState {
+impl State {
     fn new(next: HashMap<u8, usize>, class: Option<usize>) -> Self {
         Self {
             class,
@@ -135,46 +134,37 @@ impl DFAState {
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct RegExVec {
-    vec: Vec<RegEx>,
-}
-
-impl Deref for RegExVec {
-    type Target = [RegEx];
-    fn deref(&self) -> &Self::Target {
-        &*self.vec
-    }
-}
+struct RegExVec(Vec<RegEx>);
 
 impl RegExVec {
     fn new(nodes: Vec<RegEx>) -> Self {
-        Self { vec: nodes }
+        Self(nodes)
     }
 
     fn sink(size: usize) -> Self {
         let none = RegEx::none();
-        Self { vec: vec![none; size] }
+        Self(vec![none; size])
     }
 
     fn deriv(&self, a: u8) -> RegExVec {
-        Self { vec: self.vec.iter().map(|node| node.deriv(a)).collect() }
+        Self(self.0.iter().map(|node| node.deriv(a)).collect())
     }
 
     fn class(&self) -> Option<usize> {
-        self.vec.iter().position(RegEx::is_nullable)
+        self.0.iter().position(RegEx::is_nullable)
     }
 }
 
 struct DFABuilder {
-    states: Vec<DFAState>,
+    states: Vec<State>,
     re2idx: BTreeMap<RegExVec, usize>,
 }
 
 impl DFABuilder {
     fn build(start: &RegExVec) -> DFA {
         // s0 = sink state
-        let states = vec![DFAState::sink()];
-        let re2idx = once((RegExVec::sink(start.len()), 0_usize)).collect();
+        let states = vec![State::sink()];
+        let re2idx = once((RegExVec::sink(start.0.len()), 0_usize)).collect();
         
         let mut builder = Self { states, re2idx };
         
@@ -191,7 +181,7 @@ impl DFABuilder {
     fn add_state(&mut self, q: &RegExVec) -> usize {
         let idx = self.states.len();
         self.re2idx.insert(q.clone(), idx);
-        self.states.push(DFAState::new(HashMap::new(), q.class()));
+        self.states.push(State::new(HashMap::new(), q.class()));
         idx
     }
 
@@ -234,18 +224,18 @@ fn approx_deriv_classes(root: &RegEx) -> HashSet<CharSet> {
     let mut charsets: HashSet<CharSet> = once(CharSet::universe()).collect();
     
     while let Some(node) = stack.pop() {
-        match &*node.root {
-            RENode::None | RENode::Epsilon => {
+        match node.operator() {
+            Operator::None | Operator::Epsilon => {
                 // Do nothing. C(eps) = {universe}, so C(r) ^ C(eps) = C(r).
             },
-            RENode::Set(set) => {
+            Operator::Set(set) => {
                 // TODO: set cannot be empty?
                 if !set.is_empty() && !set.is_universe() {
                     let cset = &set.complement();
                     charsets = cross(&charsets, vec![set, cset].into_iter());
                 }
             },
-            RENode::Cat(children) => {
+            Operator::Cat(children) => {
                 let mut tail = &children[..];
                 while let Some(head) = tail.first() {
                     stack.push(head);
@@ -255,10 +245,10 @@ fn approx_deriv_classes(root: &RegEx) -> HashSet<CharSet> {
                     tail = &tail[1..];
                 }
             },
-            RENode::Star(child) | RENode::Not(child) => {
+            Operator::Star(child) | Operator::Not(child) => {
                 stack.push(child);
             },
-            RENode::Or(children) | RENode::And(children) => {
+            Operator::Or(children) | Operator::And(children) => {
                 for child in children {
                     stack.push(child);
                 }
@@ -270,7 +260,7 @@ fn approx_deriv_classes(root: &RegEx) -> HashSet<CharSet> {
 }
 
 fn approx_deriv_classes_vec(root: &RegExVec) -> HashSet<CharSet> {
-    root.iter().fold(once(CharSet::universe()).collect(), |acc, x| {
+    root.0.iter().fold(once(CharSet::universe()).collect(), |acc, x| {
         cross(&acc, &approx_deriv_classes(x))
     })
 }

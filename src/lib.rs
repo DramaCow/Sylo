@@ -6,9 +6,8 @@
 // #![warn(missing_docs)]
 
 #[macro_use]
-mod macros;
-
 pub mod lang;
+
 pub mod cst;
 
 pub(crate) mod iter;

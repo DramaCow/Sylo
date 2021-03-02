@@ -1,13 +1,9 @@
 mod regex;
 mod char_set;
 mod unicode;
-mod dfa;
 
-use self::char_set::CharSet;
-use self::regex::RENode;
-
-pub use self::regex::RegEx;
-pub use self::dfa::DFA;
+pub use self::char_set::CharSet;
+pub use self::regex::{RegEx, Operator};
 pub use self::unicode::{basic_latin, basic_multilingual_plane, non_compatibility_char};
 
 /// Constructs a `RegEx` that recognizes some input string only.
@@ -73,3 +69,9 @@ pub fn range(from: char, to: char) -> RegEx {
     range32(from as u32, to as u32, false)
 }
 
+// =================
+// === INTERNALS ===
+// =================
+
+#[cfg(test)]
+mod tests;
