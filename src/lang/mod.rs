@@ -7,8 +7,8 @@ pub mod re;
 pub mod cfg;
 pub mod dfa;
 pub mod lr1;
+pub mod lr;
 pub mod lex;
-pub mod syn;
 
 #[derive(Clone)]
 pub enum Command {

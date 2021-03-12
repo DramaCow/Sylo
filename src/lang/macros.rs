@@ -89,14 +89,10 @@ macro_rules! _parser_def_internal {
                 #[allow(non_upper_case_globals)]
                 const $label: $crate::lang::cfg::Symbol = $crate::lang::cfg::Symbol::Variable($id); 
             )+
-            let syn_def = $crate::lang::syn::SynDef {
-                grammar: $crate::lang::cfg::GrammarBuilder::new(__WORD_COUNT__)$(.rule($rule))+.try_build().unwrap(),
-                word_count: __WORD_COUNT__,
-            };
             $crate::lang::ParserDef {
                 lexer_def: $lexer_def,
                 var_names: vec![$(stringify!($label).to_string()),+],
-                syn_def,
+                grammar: $crate::lang::cfg::GrammarBuilder::new()$(.rule($rule))+.try_build().unwrap(),
                 commands: vec![$($crate::_parser_command![$command]),+],
             }
         }

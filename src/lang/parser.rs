@@ -3,37 +3,39 @@ use super::{
     lex::{self, Token},
     LexerDef,
     Lexer,
-    syn,
+    cfg::Grammar,
+    lr,
+    lr1,
 };
 use crate::cst::{CST, CSTBuilder};
 
 pub struct ParserDef {
     pub lexer_def: LexerDef,
     pub var_names: Vec<String>,
-    pub syn_def: syn::SynDef,
+    pub grammar: Grammar,
     pub commands: Vec<Command>,
 }
 
 pub struct Parser {
     pub lexer: Lexer,
     pub var_names: Vec<String>,
-    pub syn: syn::SynAnalyzer,
+    pub syn: lr1::UncompressedTable,
     commands: Vec<Command>
 }
 
 #[derive(Debug)]
 pub enum ParseError<'a> {
     Lex(lex::ParseError),
-    Syn(Vec<Token<'a>>, syn::ParseError),
+    Syn(Vec<Token<'a>>, lr::ParseError),
 }
 
 impl ParserDef {
     /// # Errors
-    pub fn compile(&self) -> Result<Parser, syn::CompileError> {
+    pub fn compile(&self) -> Result<Parser, lr1::ConstructionError> {
         Ok(Parser {
             lexer: self.lexer_def.compile(),
             var_names: self.var_names.to_vec(),
-            syn: self.syn_def.compile()?,
+            syn: lr1::UncompressedTable::new(&self.grammar)?,
             commands: self.commands.to_vec(),
         })
     }
@@ -53,12 +55,12 @@ impl Parser {
             Ok(tokens) => {
                 let mut builder = CSTBuilder::new();
         
-                for res in self.syn.parse(tokens.iter().map(|token| token.class)) {
+                for res in lr::Parse::new(&self.syn, tokens.iter().map(|token| token.class)) {
                     match res {
                         Ok(step) => {
                             match step {
-                                syn::Node::Word { word, index } => builder.leaf(word, index),
-                                syn::Node::Var { var, child_count } => {
+                                lr::Node::Word { word, index } => builder.leaf(word, index),
+                                lr::Node::Var { var, child_count } => {
                                     match self.commands.get(var).unwrap() {
                                         Command::Emit => builder.branch(var, child_count),
                                         Command::Skip => builder.list(child_count),

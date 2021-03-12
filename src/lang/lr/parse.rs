@@ -1,4 +1,7 @@
-use super::{SynAnalyzer, Action};
+use super::{
+    Action,
+    ParsingTable,
+};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Node {
@@ -6,9 +9,9 @@ pub enum Node {
     Var { var: usize, child_count: usize },
 }
 
-pub struct Parse<'a, I: Iterator<Item=usize>> {
-    syn:           &'a SynAnalyzer,
-    words:         I,
+pub struct Parse<'a, T, I> {
+    table:         &'a T,
+    input:         I,
     step:          usize,
     curr_word:     Option<usize>,
     next_action:   Action,
@@ -21,28 +24,35 @@ pub struct ParseError {
     pub state: usize,
     pub source: ParseErrorSource,
 }
-
+  
 #[derive(Debug)]
 pub enum ParseErrorSource {
     InvalidAction { word: Option<usize> },
     InvalidGoto   { var: usize },
 }
 
-impl<'a, I: Iterator<Item=usize>> Parse<'a, I> {
+impl<'a, T, I> Parse<'a, T, I>
+where
+    T: ParsingTable,
+{
     #[must_use]
-    pub fn new(syn: &'a SynAnalyzer, words: I) -> Self {
+    pub fn new(table: &'a T, input: I) -> Self {
         Self {
-            syn,
-            words,
+            table,
+            input,
             step:          0, // only really useful for debugging, not strictly necessary
             curr_word:     None,
-            next_action:   Action::Shift(0),
+            next_action:   Action::Shift(T::START_STATE),
             state_history: Vec::new(),
         }
     }
 }
 
-impl<'a, I: Iterator<Item=usize>> Iterator for Parse<'a, I> {
+impl<'a, T, I> Iterator for Parse<'a, T, I>
+where
+    T: ParsingTable,
+    I: Iterator<Item=usize>,
+{
     type Item = Result<Node, ParseError>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -63,8 +73,8 @@ impl<'a, I: Iterator<Item=usize>> Iterator for Parse<'a, I> {
                 let prev_word = self.curr_word;
                 
                 // pre-load next action
-                self.curr_word = self.words.next();
-                self.next_action = self.syn.action(state, self.curr_word);
+                self.curr_word = self.input.next();
+                self.next_action = self.table.action(state, self.curr_word);
                 self.state_history.push(state);
 
                 if let Some(word) = prev_word {
@@ -77,7 +87,7 @@ impl<'a, I: Iterator<Item=usize>> Iterator for Parse<'a, I> {
             },
             Action::Reduce(alt) => {
                 // lookup which variable and how many frontier elements are consumed
-                let reduction = &self.syn.reductions[alt];
+                let reduction = self.table.reduction(alt);
 
                 // consume part of frontier
                 for _ in 0..reduction.count {
@@ -87,8 +97,8 @@ impl<'a, I: Iterator<Item=usize>> Iterator for Parse<'a, I> {
                 // state is rewinded to before words associated with reduction
                 let old_state = *self.state_history.last().unwrap();
 
-                if let Some(state) = self.syn.goto(old_state, reduction.var) {
-                    self.next_action = self.syn.action(state, self.curr_word);
+                if let Some(state) = self.table.goto(old_state, reduction.var) {
+                    self.next_action = self.table.action(state, self.curr_word);
                     self.state_history.push(state);
                     Some(Ok(Node::Var { var: reduction.var, child_count: reduction.count }))
                 } else {
