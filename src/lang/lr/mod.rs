@@ -7,8 +7,7 @@ pub use self::table::{
 
 mod parse;
 pub use self::parse::{
-    Node,
+    ParseTreeNode,
     Parse,
     ParseError,
-    ParseErrorSource,
 };

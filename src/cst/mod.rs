@@ -94,9 +94,8 @@ struct Link {
     next: Option<usize>,
 }
 
-pub(crate) struct CSTBuilder {
-    nodes: Vec<CSTNode>,
-    links: Vec<Link>,
+pub(crate) struct CSTBuilder<'a> {
+    cst: CST<'a>,
     frontier: Vec<FrontierElem>,
 }
 
@@ -106,25 +105,25 @@ enum FrontierElem {
     Empty,                              // Any variables that contain no children are ignored
 }
 
-impl CSTBuilder {
+impl<'a> CSTBuilder<'a> {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            nodes: Vec::new(),
-            links: Vec::new(),
+            cst: CST { tokens: Vec::new(), nodes: Vec::new(), links: Vec::new() },
             frontier: Vec::new(),
         }
     }
 
-    pub fn leaf(&mut self, word: usize, index: usize) {
-        self.nodes.push(CSTNode::Leaf(CSTLeaf { word, index }));
-        self.frontier.push(FrontierElem::Node { index: self.nodes.len() - 1 });
+    pub fn leaf(&mut self, token: Token<'a>) {
+        self.cst.nodes.push(CSTNode::Leaf(CSTLeaf { word: token.class, index: self.cst.tokens.len() }));
+        self.cst.tokens.push(token);
+        self.frontier.push(FrontierElem::Node { index: self.cst.nodes.len() - 1 });
     }
 
     pub fn branch(&mut self, var: usize, child_count: usize) {
         if let Some((first, _)) = self.make_children_list(child_count) {
-            self.nodes.push(CSTNode::Branch(CSTBranch { var, head: first }));
-            self.frontier.push(FrontierElem::Node { index: self.nodes.len() - 1 });
+            self.cst.nodes.push(CSTNode::Branch(CSTBranch { var, head: first }));
+            self.frontier.push(FrontierElem::Node { index: self.cst.nodes.len() - 1 });
         } else {
             self.frontier.push(FrontierElem::Empty);
         }
@@ -139,13 +138,9 @@ impl CSTBuilder {
     }
 
     #[must_use]
-    pub fn build<'a>(self, tokens: Vec<Token<'a>>) -> CST<'a> {
+    pub fn build(self) -> CST<'a> {
         // TODO: check tree is valid before returning
-        CST {
-            tokens,
-            nodes: self.nodes,
-            links: self.links,
-        }
+        self.cst
     }
 
     /// If a non-empty children list was created, returns first and last link indices,
@@ -160,7 +155,7 @@ impl CSTBuilder {
         // get output link index of last non-empty child 
         let last = loop {
             match self.frontier.last().unwrap() {
-                FrontierElem::Node { index: _ }       => break self.links.len(), // final link will be the next created link
+                FrontierElem::Node { index: _ }       => break self.cst.links.len(), // final link will be the next created link
                 FrontierElem::List { first: _, last } => break *last,            // final link will be poached from list
                 FrontierElem::Empty => {
                     self.frontier.pop();
@@ -179,11 +174,11 @@ impl CSTBuilder {
         for _ in 0..count {
             match self.frontier.pop().unwrap() {
                 FrontierElem::Node { index } => {
-                    self.links.push(Link { index, next });
-                    next = Some(self.links.len() - 1);
+                    self.cst.links.push(Link { index, next });
+                    next = Some(self.cst.links.len() - 1);
                 },
                 FrontierElem::List { first, last } => {
-                    self.links[last].next = next;
+                    self.cst.links[last].next = next;
                     next = Some(first);
                 },
                 FrontierElem::Empty => (),

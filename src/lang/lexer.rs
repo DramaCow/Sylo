@@ -1,7 +1,7 @@
 use super::{
     Vocabulary,
     Command,
-    lex::{self, Parse},
+    lex::{self, Scan},
 };
 
 pub struct LexerDef {
@@ -27,9 +27,9 @@ impl LexerDef {
     }
 }
 
-impl Lexer {
+impl<'a> Lexer {
     #[must_use]
-    pub fn scan<'a>(&'a self, text: &'a str) -> Parse<'a> {
-        Parse::new(&self.lex, text)
+    pub fn scan(&'a self, text: &'a str) -> Scan<'a> {
+        Scan::new(&self.lex, text)
     }
 }

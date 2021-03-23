@@ -4,7 +4,7 @@ use crate::lang::cfg::{
     Symbol::Variable as Var,
 };
 use super::UncompressedTable;
-use crate::lang::lr;
+use crate::lang::lr::{ParseTreeNode, Parse};
 
 use std::iter::once;
 
@@ -37,13 +37,14 @@ fn parentheses_grammar() {
         }
     };
 
-    for input in &all_sentences(2, 12) {
-        let valid = is_valid(input);
-        let parse = lr::Parse::new(&parser, input.iter().cloned()).collect::<Result<Vec<_>, _>>();
+    for sentence in all_sentences(2, 12) {
+        let input = sentence.iter().cloned().map(Ok::<_,()>);
+        let valid = is_valid(&sentence);
+        let parse = Parse::new(&parser, input, |a: &usize| *a).collect::<Result<Vec<_>, _>>();
 
         assert!(parse.is_ok() == valid, 
             "Input {:?} is {}",
-            input.iter().map(|i| (&["(", ")"])[*i]).collect::<String>(),
+            sentence.iter().map(|&i| (&["(", ")"])[i]).collect::<String>(),
             if valid { "valid" } else { "invalid" }
         );
     }
@@ -58,18 +59,18 @@ fn parentheses_grammar_2() {
 
     let parser = UncompressedTable::new(&grammar).unwrap();
 
-    let input = vec![0, 0, 1, 1];
+    let input = vec![0, 0, 1, 1].into_iter().map(Ok::<_,()>);
 
-    let actions = lr::Parse::new(&parser, input.iter().cloned()).collect::<Result<Vec<_>, _>>().unwrap();
+    let nodes = Parse::new(&parser, input, |a: &usize| *a).collect::<Result<Vec<_>, _>>().unwrap();
 
-    assert_eq!(actions[0], lr::Node::Word { word: 0, index: 0 });
-    assert_eq!(actions[1], lr::Node::Word { word: 0, index: 1 });
-    assert_eq!(actions[2], lr::Node::Word { word: 1, index: 2 });
-    assert_eq!(actions[3], lr::Node::Var { var: 1, child_count: 2 });
-    assert_eq!(actions[4], lr::Node::Var { var: 0, child_count: 1 });
-    assert_eq!(actions[5], lr::Node::Word { word: 1, index: 3 });
-    assert_eq!(actions[6], lr::Node::Var { var: 1, child_count: 3 });
-    assert_eq!(actions[7], lr::Node::Var { var: 0, child_count: 1 });
+    assert_eq!(nodes[0], ParseTreeNode::Word(0));
+    assert_eq!(nodes[1], ParseTreeNode::Word(0));
+    assert_eq!(nodes[2], ParseTreeNode::Word(1));
+    assert_eq!(nodes[3], ParseTreeNode::Var { var: 1, child_count: 2 });
+    assert_eq!(nodes[4], ParseTreeNode::Var { var: 0, child_count: 1 });
+    assert_eq!(nodes[5], ParseTreeNode::Word(1));
+    assert_eq!(nodes[6], ParseTreeNode::Var { var: 1, child_count: 3 });
+    assert_eq!(nodes[7], ParseTreeNode::Var { var: 0, child_count: 1 });
 }
 
 // =================

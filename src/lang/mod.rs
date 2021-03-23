@@ -31,5 +31,5 @@ mod parser;
 pub use parser::{
     ParserDef,
     Parser,
-    ParseError,
+    // ParseError,
 };

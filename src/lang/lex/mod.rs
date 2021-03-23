@@ -1,5 +1,5 @@
 pub use self::compile::LexDef;
-pub use self::parse::{Token, Parse, ParseError};
+pub use self::scan::{Token, Scan, ScanError};
 use super::Command;
 
 pub struct LexAnalyzer {
@@ -8,19 +8,12 @@ pub struct LexAnalyzer {
     commands: Vec<Command>,
 }
 
-impl LexAnalyzer {
-    #[must_use]
-    pub fn parse<'a>(&'a self, text: &'a str) -> Parse<'a> {
-        Parse::new(&self, text)
-    }
-}
-
 // =================
 // === INTERNALS ===
 // =================
 
 mod compile;
-mod parse;
+mod scan;
 
 #[cfg(test)]
 mod tests;

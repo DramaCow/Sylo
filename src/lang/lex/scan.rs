@@ -1,6 +1,6 @@
 use super::{LexAnalyzer, Command};
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Token<'a> {
     pub lexeme: &'a str,
     pub start_index: usize,
@@ -8,18 +8,18 @@ pub struct Token<'a> {
     pub class:  usize,
 }
 
-pub struct Parse<'a> {
+pub struct Scan<'a> {
     lex:   &'a LexAnalyzer,
     input: &'a str,
     index: usize,
 }
 
 #[derive(Debug)]
-pub struct ParseError {
+pub struct ScanError {
     pos: usize,
 }
 
-impl<'a> Parse<'a> {
+impl<'a> Scan<'a> {
     pub(crate) fn new(lex: &'a LexAnalyzer, input: &'a str) -> Self {
         Self {
             lex,
@@ -29,8 +29,8 @@ impl<'a> Parse<'a> {
     }
 }
 
-impl<'a> Iterator for Parse<'a> {
-    type Item = Result<Token<'a>, ParseError>;
+impl<'a> Iterator for Scan<'a> {
+    type Item = Result<Token<'a>, ScanError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while self.index < self.input.len() {
@@ -78,7 +78,7 @@ impl<'a> Iterator for Parse<'a> {
                 let i = self.index;
                 self.index = usize::MAX; // forces next iteration to return None
 
-                return Some(Err(ParseError { pos: i }));
+                return Some(Err(ScanError { pos: i }));
             }
         };
         
