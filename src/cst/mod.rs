@@ -7,7 +7,7 @@ use crate::lang::Parser;
 /// Concrete Syntax Tree.
 #[derive(Debug)]
 pub struct CST<'a> {
-    tokens: Vec<Token<'a>>,
+    tokens: Vec<Token<'a, str>>,
     nodes: Vec<CSTNode>, // first = first leaf, last = tree root
     links: Vec<Link>,
 }
@@ -45,8 +45,8 @@ impl CST<'_> {
     }
 
     #[must_use]
-    pub fn dot(&self, parser: &Parser) -> String {
-        dot_with_labelling_internal(self, |word| &self.tokens[word].lexeme, |var| &parser.var_names[var])
+    pub fn dot(&self, parser: &Parser, text: &str) -> String {
+        dot_with_labelling_internal(self, |word| &text[self.tokens[word].span.clone()], |var| &parser.var_names[var])
     }
 }
 
@@ -54,13 +54,6 @@ impl CSTNodeId {
     #[must_use]
     pub fn to_node<'a>(&self, cst: &'a CST) -> &'a CSTNode {
         &cst.nodes[self.0]
-    }
-}
-
-impl CSTLeaf {
-    #[must_use]
-    pub fn token<'a>(&self, cst: &'a CST) -> &Token<'a> {
-        &cst.tokens[self.index]
     }
 }
 
@@ -114,7 +107,7 @@ impl<'a> CSTBuilder<'a> {
         }
     }
 
-    pub fn leaf(&mut self, token: Token<'a>) {
+    pub fn leaf(&mut self, token: Token<'a, str>) {
         self.cst.nodes.push(CSTNode::Leaf(CSTLeaf { word: token.class, index: self.cst.tokens.len() }));
         self.cst.tokens.push(token);
         self.frontier.push(FrontierElem::Node { index: self.cst.nodes.len() - 1 });

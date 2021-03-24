@@ -19,7 +19,7 @@ pub struct ParserDef {
 pub struct Parser {
     pub lexer: Lexer,
     pub var_names: Vec<String>,
-    pub syn: lr1::UncompressedTable,
+    pub syn: lr1::ArrayParsingTable,
     commands: Vec<Command>
 }
 
@@ -29,7 +29,7 @@ impl ParserDef {
         Ok(Parser {
             lexer: self.lexer_def.compile(),
             var_names: self.var_names.to_vec(),
-            syn: lr1::UncompressedTable::new(&self.grammar)?,
+            syn: lr1::ArrayParsingTable::new(&self.grammar)?,
             commands: self.commands.to_vec(),
         })
     }
@@ -37,14 +37,12 @@ impl ParserDef {
 
 impl<'a> Parser {
     /// # Errors
-    pub fn tokenize(&'a self, text: &'a str) -> Result<Vec<Token>, ScanError> {
-        self.lexer.scan(text).collect()
-    }
-
-    /// # Errors
     #[must_use]
-    pub fn parse(&'a self, text: &'a str) -> Parse<lr1::UncompressedTable, Scan<'a>, Token, impl Fn(&Token<'a>) -> usize> {
-        Parse::new(&self.syn, self.lexer.scan(text), |token: &Token| token.class)
+    pub fn parse<I>(&'a self, input: &'a I) -> Parse<lr1::ArrayParsingTable, Scan<'a, I>, Token<'a, I>, impl Fn(&Token<'a, I>) -> usize>
+    where
+        I: AsRef<[u8]> + ?Sized
+    {
+        Parse::new(&self.syn, self.lexer.scan(input), |token: &Token<'a, I>| token.class)
     }
 
     /// # Errors

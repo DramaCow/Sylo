@@ -29,7 +29,10 @@ impl LexerDef {
 
 impl<'a> Lexer {
     #[must_use]
-    pub fn scan(&'a self, text: &'a str) -> Scan<'a> {
-        Scan::new(&self.lex, text)
+    pub fn scan<I>(&'a self, input: &'a I) -> Scan<'a, I>
+    where
+        I: AsRef<[u8]> + ?Sized
+    {
+        Scan::new(&self.lex, input)
     }
 }

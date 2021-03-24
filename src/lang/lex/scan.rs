@@ -1,16 +1,23 @@
+use std::ops::Range;
+use std::marker::PhantomData;
 use super::{LexAnalyzer, Command};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Token<'a> {
-    pub lexeme: &'a str,
-    pub start_index: usize,
-    pub end_index: usize,
-    pub class:  usize,
+pub struct Token<'a, I>
+where
+    I: AsRef<[u8]> + ?Sized
+{
+    pub span: Range<usize>,
+    pub class: usize,
+    _phantom: PhantomData<&'a I>,
 }
 
-pub struct Scan<'a> {
+pub struct Scan<'a, I>
+where
+    I: ?Sized
+{
     lex:   &'a LexAnalyzer,
-    input: &'a str,
+    input: &'a I,
     index: usize,
 }
 
@@ -19,8 +26,11 @@ pub struct ScanError {
     pos: usize,
 }
 
-impl<'a> Scan<'a> {
-    pub(crate) fn new(lex: &'a LexAnalyzer, input: &'a str) -> Self {
+impl<'a, I> Scan<'a, I>
+where
+    I: AsRef<[u8]> + ?Sized
+{
+    pub(crate) fn new(lex: &'a LexAnalyzer, input: &'a I) -> Self {
         Self {
             lex,
             input,
@@ -29,11 +39,14 @@ impl<'a> Scan<'a> {
     }
 }
 
-impl<'a> Iterator for Scan<'a> {
-    type Item = Result<Token<'a>, ScanError>;
+impl<'a, I> Iterator for Scan<'a, I> 
+where
+    I: AsRef<[u8]> + ?Sized
+{
+    type Item = Result<Token<'a, I>, ScanError>;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        while self.index < self.input.len() {
+    fn next(&mut self) -> Option<Self::Item> {       
+        while self.index < self.input.as_ref().len() {
             let mut state = 0;
             let mut index = self.index;
             
@@ -41,7 +54,7 @@ impl<'a> Iterator for Scan<'a> {
             let mut last_accept_index = 0_usize;
 
             // simulate dfa until hit the sink state or end of input
-            for byte in self.input[self.index..].bytes() {            
+            for byte in self.input.as_ref()[self.index..].iter().copied() {            
                 if state == self.lex.sink() {
                     break;
                 }
@@ -61,7 +74,7 @@ impl<'a> Iterator for Scan<'a> {
                 self.index = index;
 
                 match self.lex.commands[class] {
-                    Command::Emit => return Some(Ok(Token { lexeme: &self.input[i..self.index], start_index: i, end_index: self.index, class })),
+                    Command::Emit => return Some(Ok(Token { span: i..self.index, class, _phantom: PhantomData })),
                     Command::Skip => (),
                 };
             // landed on an accept state in the past
@@ -70,7 +83,7 @@ impl<'a> Iterator for Scan<'a> {
                 self.index = last_accept_index;
 
                 match self.lex.commands[class] {
-                    Command::Emit => return Some(Ok(Token { lexeme: &self.input[i..self.index], start_index: i, end_index: self.index, class })), 
+                    Command::Emit => return Some(Ok(Token { span: i..self.index, class, _phantom: PhantomData })), 
                     Command::Skip => (),
                 };
             // failed to match anything

@@ -8,15 +8,17 @@ fn simple_lexer() {
         [skip] _ws: re::any(" ,").plus(),
         word:       re::any("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz").plus()
     }.compile();
-            
-    let tokens = lexer.scan("Waltz, bad nymph, for quick jigs vex").collect::<Result<Vec<_>, _>>().unwrap();
+    
+    let text = "Waltz, bad nymph, for quick jigs vex";
 
-    assert_eq!(tokens[0].lexeme, "Waltz");
-    assert_eq!(tokens[1].lexeme, "bad");
-    assert_eq!(tokens[2].lexeme, "nymph");
-    assert_eq!(tokens[3].lexeme, "for");
-    assert_eq!(tokens[4].lexeme, "quick");
-    assert_eq!(tokens[5].lexeme, "jigs");
-    assert_eq!(tokens[6].lexeme, "vex");
+    let tokens = lexer.scan(text).collect::<Result<Vec<_>, _>>().unwrap();
+
+    assert_eq!(&text[tokens[0].span.clone()], "Waltz");
+    assert_eq!(&text[tokens[1].span.clone()], "bad");
+    assert_eq!(&text[tokens[2].span.clone()], "nymph");
+    assert_eq!(&text[tokens[3].span.clone()], "for");
+    assert_eq!(&text[tokens[4].span.clone()], "quick");
+    assert_eq!(&text[tokens[5].span.clone()], "jigs");
+    assert_eq!(&text[tokens[6].span.clone()], "vex");
     assert!(tokens.iter().all(|token| token.class == 1));
 }
