@@ -70,10 +70,9 @@ impl<'a> LR1ABuilder<'a> {
             self.closure(
                 // NOTE: the last rule in the grammar is the implicit start
                 &once(Item {
-                    rule: self.grammar.rule_count() - 1,
                     alt: self.grammar.alt_count() - 1,
                     pos: 0,
-                    successor: None
+                    lookahead: None
                 }).collect()
             )
         );
@@ -161,18 +160,18 @@ impl<'a> LR1ABuilder<'a> {
             done = true;
 
             for item in &items {
-                if let Some(Symbol::Variable(rule)) = item.symbol_at_dot(&self.grammar) {
+                if let Some(Symbol::Variable(var)) = item.symbol_at_dot(&self.grammar) {
                     match item.symbol_after_dot(&self.grammar) {
                         None => {
-                            for alt in self.grammar.rule(rule).alt_indices() {
-                                if new_items.insert(Item { rule, alt, pos: 0, successor: item.successor }) {
+                            for alt in self.grammar.rule(var).alt_indices() {
+                                if new_items.insert(Item { alt, pos: 0, lookahead: item.lookahead }) {
                                     done = false;
                                 }
                             }
                         },
                         Some(Symbol::Terminal(a)) => {
-                            for alt in self.grammar.rule(rule).alt_indices() {
-                                if new_items.insert(Item { rule, alt, pos: 0, successor: Some(a) }) {
+                            for alt in self.grammar.rule(var).alt_indices() {
+                                if new_items.insert(Item { alt, pos: 0, lookahead: Some(a) }) {
                                     done = false;
                                 }
                             }
@@ -182,17 +181,17 @@ impl<'a> LR1ABuilder<'a> {
 
                             // NOTE: if first contains epsilon, it is guaranteed to be at index 0
                             if first_A[0].is_some() {
-                                for &successor in first_A {
-                                    for alt in self.grammar.rule(rule).alt_indices() {
-                                        if new_items.insert(Item { rule, alt, pos: 0, successor }) {
+                                for &lookahead in first_A {
+                                    for alt in self.grammar.rule(var).alt_indices() {
+                                        if new_items.insert(Item { alt, pos: 0, lookahead }) {
                                             done = false;
                                         }
                                     }
                                 }
                             } else {
-                                for &successor in first_A[1..].iter().chain(once(&item.successor)) {
-                                    for alt in self.grammar.rule(rule).alt_indices() {
-                                        if new_items.insert(Item { rule, alt, pos: 0, successor }) {
+                                for &lookahead in first_A[1..].iter().chain(once(&item.lookahead)) {
+                                    for alt in self.grammar.rule(var).alt_indices() {
+                                        if new_items.insert(Item { alt, pos: 0, lookahead }) {
                                             done = false;
                                         }
                                     }
@@ -221,7 +220,7 @@ impl<'a> LR1ABuilder<'a> {
     }
 }
 
-fn format_item<F, G, T, U>(grammar: &Grammar, item: &Item, word_labelling: F, var_labelling: G) -> String
+fn format_item<F, G, T, U>(grammar: &Grammar, var: usize, item: &Item, word_labelling: F, var_labelling: G) -> String
     where F: Fn(usize) -> T,
           G: Fn(usize) -> U,
           T: std::fmt::Display,
@@ -230,7 +229,7 @@ fn format_item<F, G, T, U>(grammar: &Grammar, item: &Item, word_labelling: F, va
     let alt = &grammar.alt(item.alt);
 
     format!("[{} &rarr; {}&bull;{}, {}]", 
-        var_labelling(item.rule),
+        var_labelling(var),
         if item.pos == 0 { "".to_string() } else { 
             alt[..item.pos].iter().map(|symbol| match symbol {
                 Symbol::Terminal(a) => format!("{}", word_labelling(*a)),
@@ -243,7 +242,7 @@ fn format_item<F, G, T, U>(grammar: &Grammar, item: &Item, word_labelling: F, va
                 Symbol::Variable(A) => format!("{}", var_labelling(*A)),
             }).collect::<Vec<_>>().join(" ")
         },
-        item.successor.map_or("$".to_string(), |a| format!("{}", word_labelling(a)))
+        item.lookahead.map_or("$".to_string(), |a| format!("{}", word_labelling(a)))
     )
 }
 
@@ -254,6 +253,8 @@ fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, lr1a: &LR1A, word_
           T: std::fmt::Display,
           U: std::fmt::Display,
 {
+    let alt2var: Vec<_> = grammar.rules().enumerate().flat_map(|(i, rule)| rule.alts().map(|_| i).collect::<Vec<_>>()).collect();
+
     let mut dot = StringBuilder::new();
 
     dot.writeln("digraph CC {");
@@ -271,7 +272,7 @@ fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, lr1a: &LR1A, word_
             dot.indent();
             dot.writeln(&format!("<tr><td align=\"center\"><b>s{}</b></td></tr>", id));
             for item in &state.items {
-                dot.writeln(&format!("<tr><td align=\"left\">{}</td></tr>", format_item(grammar, item, word_labelling, var_labelling)));
+                dot.writeln(&format!("<tr><td align=\"left\">{}</td></tr>", format_item(grammar, alt2var[item.alt], item, word_labelling, var_labelling)));
             }
             dot.unindent();
             dot.writeln("</table>>];");

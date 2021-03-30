@@ -37,7 +37,7 @@ pub struct Alternatives<'a> {
 
 impl Grammar {
     #[must_use]
-    pub fn rule_count(&self) -> usize {
+    pub fn var_count(&self) -> usize {
         self.rules.len() - 1
     }
 
@@ -164,7 +164,7 @@ impl GrammarBuilder {
             for (j, alt) in rule.alts().enumerate() {
                 for (k, symbol) in alt.iter().enumerate() {
                     if let Symbol::Variable(A) = symbol {
-                        if *A >= self.grammar.rule_count() { 
+                        if *A >= self.grammar.var_count() { 
                             return Err(GrammarBuildError::InvalidVariable {
                                 rule: i,
                                 alt: j,

@@ -1,11 +1,10 @@
 use super::{
     Command,
-    lex::{Token, Scan, ScanError},
+    lex::{Token, Scan, ScanError, ArrayScanningTable},
     LexerDef,
     Lexer,
     cfg::Grammar,
-    lr::{ParseTreeNode, Parse, ParseError},
-    lr1,
+    lr::{ParseTreeNode, Parse, ParseError, ArrayParsingTable, ConstructionError},
 };
 use crate::cst::{CST, CSTBuilder};
 
@@ -19,17 +18,17 @@ pub struct ParserDef {
 pub struct Parser {
     pub lexer: Lexer,
     pub var_names: Vec<String>,
-    pub syn: lr1::ArrayParsingTable,
+    pub syn: ArrayParsingTable,
     commands: Vec<Command>
 }
 
 impl ParserDef {
     /// # Errors
-    pub fn compile(&self) -> Result<Parser, lr1::ConstructionError> {
+    pub fn compile(&self) -> Result<Parser, ConstructionError> {
         Ok(Parser {
             lexer: self.lexer_def.compile(),
             var_names: self.var_names.to_vec(),
-            syn: lr1::ArrayParsingTable::new(&self.grammar)?,
+            syn: ArrayParsingTable::new(&self.grammar)?,
             commands: self.commands.to_vec(),
         })
     }
@@ -38,7 +37,7 @@ impl ParserDef {
 impl<'a> Parser {
     /// # Errors
     #[must_use]
-    pub fn parse<I>(&'a self, input: &'a I) -> Parse<lr1::ArrayParsingTable, Scan<'a, I>, Token<'a, I>, impl Fn(&Token<'a, I>) -> usize>
+    pub fn parse<I>(&'a self, input: &'a I) -> Parse<ArrayParsingTable, Scan<'a, ArrayScanningTable, I>, Token<'a, I>, impl Fn(&Token<'a, I>) -> usize>
     where
         I: AsRef<[u8]> + ?Sized
     {

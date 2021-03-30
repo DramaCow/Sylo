@@ -1,7 +1,5 @@
 use crate::lang::re;
 
-// std::fs::write("_graph.dot", nfa.dot()).unwrap();
-
 #[test]
 fn simple_lexer() {
     let lexer = lexer_def! {

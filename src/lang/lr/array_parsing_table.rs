@@ -1,14 +1,16 @@
 #![allow(non_snake_case)]
 
-use crate::lang::cfg::{Grammar, Symbol};
-use crate::lang::lr::{Action, Reduction, ParsingTable};
-use super::{Item, LR1A};
+use crate::lang::{
+    cfg::{Grammar, Symbol},
+    lr1::{Item, LR1A},
+    lr::{Action, Reduction, ParsingTable},
+};
 
 #[derive(Debug)]
 pub struct ArrayParsingTable {
-    actions:    Vec<Action>,    /// lookup what action to perform given state and word
+    actions:    Vec<Action>,        /// lookup what action to perform given state and word
     gotos:      Vec<Option<usize>>, /// lookup what state should be transitioned to after reduction
-    reductions: Vec<Reduction>, // alt --> rule and number of symbols
+    reductions: Vec<Reduction>,     // alt --> rule and number of symbols
     word_count: usize,
     var_count:  usize,
 }
@@ -28,11 +30,15 @@ impl ArrayParsingTable {
         
         // let num_words  = word_count + 1; // +1 for eof
         let num_words  = grammar.max_word().map_or(0, |word| word + 1) + 1; // +1 for eof
-        let num_vars   = grammar.rule_count() - 1; // implicit start variable not needed in goto table
+        let num_vars   = grammar.var_count() - 1; // implicit start variable not needed in goto table
         let num_states = lr1a.states().len();
         
         let mut actions: Vec<Action>  = vec![Action::Invalid; num_words * num_states];
         let mut gotos: Vec<Option<usize>> = vec![None; num_vars * num_states];
+
+        let reductions: Vec<_> = grammar.rules().enumerate().flat_map(|(i, rule)| {
+            rule.alts().map(|alt| Reduction { var: i, count: alt.len() }).collect::<Vec<_>>()
+        }).collect();
 
         for (i, state) in lr1a.states().iter().enumerate() {
             for item in &state.items {
@@ -55,8 +61,8 @@ impl ArrayParsingTable {
                     } else {
                         *action = Action::Shift(state.next[symbol]);
                     }
-                } else if item.rule < num_vars || item.successor.is_some() { // TODO: second check not necessary?
-                    let index = i * num_words + item.successor.map_or(0, |a| a + 1);
+                } else if reductions[item.alt].var < num_vars || item.lookahead.is_some() { // TODO: second check not necessary?
+                    let index = i * num_words + item.lookahead.map_or(0, |a| a + 1);
                     let action = actions.get_mut(index).unwrap();
 
                     // check for any conflict
@@ -79,10 +85,6 @@ impl ArrayParsingTable {
                 gotos[i * num_vars + A] = state.next.get(&var).cloned();
             }
         }
-
-        let reductions = grammar.rules().enumerate().flat_map(|(i, rule)| {
-            rule.alts().map(|alt| Reduction { var: i, count: alt.len() }).collect::<Vec<_>>()
-        }).collect();
 
         Ok(Self {
             actions,

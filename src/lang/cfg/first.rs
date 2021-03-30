@@ -45,8 +45,7 @@ impl First {
 
 /// Constructs the first sets for each unique variable in grammar.
 fn compute_var_firsts(grammar: &Grammar) -> Vec<BTreeSet<Option<usize>>> {
-    let num_vars = grammar.rule_count();
-    let mut first = vec![BTreeSet::<Option<usize>>::new(); num_vars];
+    let mut first = vec![BTreeSet::<Option<usize>>::new(); grammar.var_count()];
 
     let mut done = false;
     while !done {

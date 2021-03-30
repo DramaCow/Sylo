@@ -22,8 +22,8 @@ macro_rules! parser_def {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! _lexer_command {
-    (emit) => { $crate::lang::Command::Emit };
-    (skip) => { $crate::lang::Command::Skip };
+    (emit) => { $crate::lang::lex::Command::Emit };
+    (skip) => { $crate::lang::lex::Command::Skip };
 }
 
 #[doc(hidden)]
@@ -44,10 +44,7 @@ macro_rules! _lexer_def_internal {
     (@ _ $count:expr ; $($id:expr , $command:ident $label:ident $regex:expr);+) => {
         $crate::lang::LexerDef {
             vocab: $crate::lang::Vocabulary::new(vec![$(stringify!($label).to_string()),+]),
-            lex_def: $crate::lang::lex::LexDef {
-                regexes: vec![$($regex),+],
-                commands: vec![$($crate::_lexer_command![$command]),+],
-            },
+            regexes: vec![$($regex),+],
             commands: vec![$($crate::_lexer_command![$command]),+]
         }
     };

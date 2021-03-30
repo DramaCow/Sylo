@@ -1,19 +1,21 @@
-pub use self::compile::LexDef;
-pub use self::scan::{Token, Scan, ScanError};
-use super::Command;
+mod table;
+pub use self::table::ScanningTable;
 
-pub struct LexAnalyzer {
-    next:     Vec<usize>,
-    classes:  Vec<Option<usize>>,
-    commands: Vec<Command>,
+mod scan;
+pub use self::scan::{Token, Scan, ScanError};
+
+mod array_scanning_table;
+pub use self::array_scanning_table::ArrayScanningTable;
+
+#[derive(Clone, Copy)]
+pub enum Command {
+    Skip,
+    Emit,
 }
 
 // =================
 // === INTERNALS ===
 // =================
-
-mod compile;
-mod scan;
 
 #[cfg(test)]
 mod tests;

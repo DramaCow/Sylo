@@ -11,3 +11,12 @@ pub use self::parse::{
     Parse,
     ParseError,
 };
+
+mod array_parsing_table;
+pub use self::array_parsing_table::{
+    ArrayParsingTable,
+    ConstructionError,
+};
+
+#[cfg(test)]
+mod tests;
