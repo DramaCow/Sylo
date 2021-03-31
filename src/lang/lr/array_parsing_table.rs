@@ -2,7 +2,7 @@
 
 use crate::lang::{
     cfg::{Grammar, Symbol},
-    lr1::{Item, LR1A},
+    lr1::{LR1Item, LR1ABuilder},
     lr::{Action, Reduction, ParsingTable},
 };
 
@@ -18,7 +18,7 @@ pub struct ArrayParsingTable {
 #[derive(Debug)]
 pub struct ConstructionError {
     state: usize,
-    item: Item,
+    item: LR1Item,
     action1: Action,
     action2: Action,
 }
@@ -26,7 +26,7 @@ pub struct ConstructionError {
 impl ArrayParsingTable {
     /// # Errors
     pub fn new(grammar: &Grammar) -> Result<Self, ConstructionError> {
-        let lr1a = LR1A::from(grammar);
+        let lr1a = LR1ABuilder::new(grammar).build();
         
         // let num_words  = word_count + 1; // +1 for eof
         let num_words  = grammar.max_word().map_or(0, |word| word + 1) + 1; // +1 for eof
@@ -42,8 +42,8 @@ impl ArrayParsingTable {
 
         for (i, state) in lr1a.states().iter().enumerate() {
             for item in &state.items {
-                if !item.is_complete(grammar) {
-                    let symbol = &item.symbol_at_dot(grammar).unwrap();
+                if !item.lr0_item.is_complete(grammar) {
+                    let symbol = &item.lr0_item.symbol_at_dot(grammar).unwrap();
                     let index = match symbol {
                         Symbol::Terminal(a) => i * num_words + a + 1,
                         Symbol::Variable(_) => continue,
@@ -61,19 +61,19 @@ impl ArrayParsingTable {
                     } else {
                         *action = Action::Shift(state.next[symbol]);
                     }
-                } else if reductions[item.alt].var < num_vars || item.lookahead.is_some() { // TODO: second check not necessary?
+                } else if reductions[item.lr0_item.alt].var < num_vars || item.lookahead.is_some() { // TODO: second check not necessary?
                     let index = i * num_words + item.lookahead.map_or(0, |a| a + 1);
                     let action = actions.get_mut(index).unwrap();
 
                     // check for any conflict
                     if let Action::Invalid = action {
-                        *action = Action::Reduce(item.alt);
+                        *action = Action::Reduce(item.lr0_item.alt);
                     } else {
                         return Err(ConstructionError { 
                             state: i,
                             item: *item,
                             action1: *action,
-                            action2: Action::Reduce(item.alt),
+                            action2: Action::Reduce(item.lr0_item.alt),
                         });
                     }
                 } else {
