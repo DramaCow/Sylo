@@ -1,7 +1,7 @@
 /// Information on how to display lexical symbols.
 #[derive(Clone)]
 pub struct Vocabulary {
-    symbolic_names: Vec<String>,
+    pub symbolic_names: Vec<String>,
 }
 
 impl Vocabulary {

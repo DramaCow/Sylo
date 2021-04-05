@@ -34,7 +34,7 @@ impl LR1A {
             if var < var_names.len() {
                 format!("{}", var_names[var])
             } else {
-                "***START***".to_string()
+                "S'".to_string()
             }
         };
 

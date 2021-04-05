@@ -13,6 +13,12 @@ impl LR0Item {
     }
 
     #[must_use]
+    pub fn is_kernel_item(&self, grammar: &Grammar) -> bool {
+        // is the start rule or dot not at start
+        self.alt == grammar.alt_count() - 1 || self.pos > 0
+    }
+
+    #[must_use]
     pub fn is_complete(&self, grammar: &Grammar) -> bool {
         self.pos >= grammar.alt(self.alt).len()
     }

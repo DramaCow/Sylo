@@ -34,7 +34,7 @@ impl LR0A {
             if var < var_names.len() {
                 format!("{}", var_names[var])
             } else {
-                "***START***".to_string()
+                "S'".to_string()
             }
         };
 
@@ -54,7 +54,7 @@ fn format_item<F, G, T, U>(grammar: &Grammar, var: usize, item: &LR0Item, word_l
 {
     let alt = &grammar.alt(item.alt);
 
-    format!("[{} &rarr; {}&bull;{}]", 
+    format!("[{} &rarr; {}&bull;{}]",
         var_labelling(var),
         if item.pos == 0 { "".to_string() } else { 
             alt[..item.pos].iter().map(|symbol| match symbol {
@@ -96,8 +96,13 @@ fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, lr0a: &LR0A, word_
             dot.writeln("<<table border=\"1\" cellborder=\"0\">");
             dot.indent();
             dot.writeln(&format!("<tr><td align=\"center\"><b>s{}</b></td></tr>", id));
+            
             for item in &state.items {
-                dot.writeln(&format!("<tr><td align=\"left\">{}</td></tr>", format_item(grammar, alt2var[item.alt], item, word_labelling, var_labelling)));
+                if item.is_kernel_item(&grammar) {
+                    dot.writeln(&format!("<tr><td align=\"left\">{}</td></tr>", format_item(grammar, alt2var[item.alt], item, word_labelling, var_labelling)));   
+                } else {
+                    dot.writeln(&format!("<tr><td bgcolor=\"grey\" align=\"left\">{}</td></tr>", format_item(grammar, alt2var[item.alt], item, word_labelling, var_labelling)));
+                }
             }
             dot.unindent();
             dot.writeln("</table>>];");
