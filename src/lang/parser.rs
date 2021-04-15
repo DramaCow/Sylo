@@ -3,7 +3,7 @@ use super::{
     LexerDef,
     Lexer,
     cfg::{Grammar, Symbol},
-    lr::{Event, Parse, ParseError, Precedence, ArrayParsingTable, ConstructionError},
+    lr::{Event, Parse, ParseError, Precedence, ArrayParsingTable, Conflict},
 };
 use crate::cst::{CST, CSTBuilder};
 
@@ -52,11 +52,11 @@ impl ParserDef {
     }
 
     /// # Errors
-    pub fn compile(&self) -> Result<Parser, ConstructionError> {
+    pub fn compile(&self) -> Result<Parser, Conflict> {
         Ok(Parser {
             lexer: self.lexer_def.compile(),
             var_names: self.var_names.to_vec(),
-            parsing_table: ArrayParsingTable::new(&self.grammar, &self.token_precedence, &self.production_precedence)?,
+            parsing_table: ArrayParsingTable::with_precedence(&self.grammar, &self.token_precedence, &self.production_precedence)?,
         })
     }
 }

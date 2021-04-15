@@ -21,7 +21,7 @@ pub use self::precedence::{
 mod array_parsing_table;
 pub use self::array_parsing_table::{
     ArrayParsingTable,
-    ConstructionError,
+    Conflict,
 };
 
 #[cfg(test)]

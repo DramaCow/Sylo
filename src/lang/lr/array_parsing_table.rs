@@ -16,76 +16,44 @@ pub struct ArrayParsingTable {
 }
 
 #[derive(Debug)]
-pub enum ConstructionError {
+pub enum Conflict {
     ShiftReduce { word: usize, alt: usize },
     ReduceReduce { alt1: usize, alt2: usize },
 }
 
 impl ArrayParsingTable {
+    /// No conflicts allowed.
+    /// 
     /// # Errors
-    pub fn new(grammar: &Grammar, token_precedence: &[Option<Precedence>], production_precedence: &[Option<Precedence>]) -> Result<Self, ConstructionError> {
-        let lr1a = LR1ABuilder::new(grammar).build();
-        
-        let word_count = grammar.max_word().map_or(0, |word| word + 1) + 1; // +1 for eof
-        let var_count  = grammar.var_count() - 1; // implicit start variable not needed in goto table
-        let num_states = lr1a.states().len();
-        
-        let reductions: Vec<_> = grammar.rules().enumerate().flat_map(|(i, rule)| {
-            rule.alts().map(|alt| Reduction { var: i, count: alt.len() }).collect::<Vec<_>>()
-        }).collect();
+    pub fn new(grammar: &Grammar) -> Result<Self, Conflict> {
+        table_construction(grammar, |conflict: Conflict| { Err(conflict) })
+    }
 
-        let mut actions: Vec<Action>  = vec![Action::Invalid; word_count * num_states];
-        let mut gotos: Vec<Option<usize>> = vec![None; var_count * num_states];
-
-        for (i, state) in lr1a.states().iter().enumerate() {
-            for item in &state.items {
-                if !item.lr0_item.is_complete(grammar) {
-                    let symbol = item.lr0_item.symbol_at_dot(grammar).unwrap();
-                    let word = match symbol {
-                        Symbol::Terminal(a) => a,
-                        Symbol::Variable(_) => continue,
-                    };
-                    let index = i * word_count + word + 1;
-                    let action = actions.get_mut(index).unwrap();
-
-                    // check for shift-reduce conflict
-                    if let Action::Reduce(alt) = *action {
-                        return Err(ConstructionError::ShiftReduce { word, alt });
-                    } else {
-                        *action = Action::Shift(state.next[&symbol]);
-                    }
-                } else if reductions[item.lr0_item.alt].var < var_count || item.lookahead.is_some() { // TODO: second check not necessary?
-                    let index = i * word_count + item.lookahead.map_or(0, |a| a + 1);
-                    let action = actions.get_mut(index).unwrap();
-                    
-                    // check for any conflict
-                    match *action {
-                        Action::Reduce(alt1) => {
-                            return Err(ConstructionError::ReduceReduce { alt1, alt2: item.lr0_item.alt });
-                        }
-                        Action::Shift(word) => {
-                            return Err(ConstructionError::ShiftReduce { word, alt: item.lr0_item.alt });
-                        }
-                        _ => {
-                            *action = Action::Reduce(item.lr0_item.alt);
-                        }
-                    }
-                } else {
-                    actions[i * word_count] = Action::Accept;
+    /// # Errors
+    pub fn with_shift_priority(grammar: &Grammar) -> Result<Self, Conflict> {
+        table_construction(grammar, |conflict: Conflict| {
+            match conflict {
+                Conflict::ShiftReduce { word, .. } => {
+                    Ok(Action::Shift(word))
+                }
+                Conflict::ReduceReduce { .. } => {
+                    Err(conflict)
                 }
             }
+        })
+    }
 
-            for (var, A) in (0..var_count).map(|A| (Symbol::Variable(A), A)) {
-                gotos[i * var_count + A] = state.next.get(&var).cloned();
+    /// # Errors
+    pub fn with_precedence(grammar: &Grammar, token_precedence: &[Option<Precedence>], production_precedence: &[Option<Precedence>]) -> Result<Self, Conflict> {
+        table_construction(grammar, |conflict: Conflict| {
+            match conflict {
+                Conflict::ShiftReduce { word, alt } => {
+                    todo!()
+                }
+                Conflict::ReduceReduce { alt1, alt2 } => {
+                    todo!()
+                }
             }
-        }
-
-        Ok(Self {
-            actions,
-            gotos,
-            reductions,
-            word_count: word_count - 1, // subtract the eof symbol
-            var_count: var_count,
         })
     }
 }
@@ -105,4 +73,81 @@ impl ParsingTable for ArrayParsingTable {
     fn reduction(&self, alt: usize) -> Reduction {
         self.reductions[alt]
     }
+}
+
+// =================
+// === INTERNALS ===
+// =================
+
+/// # Errors
+fn table_construction<F>(grammar: &Grammar, mut conflict_resolution: F) -> Result<ArrayParsingTable, Conflict>
+where
+    F: FnMut(Conflict) -> Result<Action, Conflict>,
+{
+    let lr1a = LR1ABuilder::new(grammar).build();
+    
+    let word_count = grammar.max_word().map_or(0, |word| word + 1) + 1; // +1 for eof
+    let var_count  = grammar.var_count() - 1; // implicit start variable not needed in goto table
+    let num_states = lr1a.states().len();
+    
+    let reductions: Vec<_> = grammar.rules().enumerate().flat_map(|(i, rule)| {
+        rule.alts().map(|alt| Reduction { var: i, count: alt.len() }).collect::<Vec<_>>()
+    }).collect();
+
+    let mut actions: Vec<Action>  = vec![Action::Invalid; word_count * num_states];
+    let mut gotos: Vec<Option<usize>> = vec![None; var_count * num_states];
+
+    for (i, state) in lr1a.states().iter().enumerate() {
+        for item in &state.items {
+            if !item.lr0_item.is_complete(grammar) {
+                let symbol = item.lr0_item.symbol_at_dot(grammar).unwrap();
+                let word = match symbol {
+                    Symbol::Terminal(a) => a,
+                    Symbol::Variable(_) => continue,
+                };
+                let index = i * word_count + word + 1;
+                let action = actions.get_mut(index).unwrap();
+
+                // check for shift-reduce conflict
+                if let Action::Reduce(alt) = *action {
+                    *action = conflict_resolution(Conflict::ShiftReduce { word, alt })?;
+                    // return Err(Conflict::ShiftReduce { word, alt });
+                } else {
+                    *action = Action::Shift(state.next[&symbol]);
+                }
+            } else if reductions[item.lr0_item.alt].var < var_count || item.lookahead.is_some() { // TODO: second check not necessary?
+                let index = i * word_count + item.lookahead.map_or(0, |a| a + 1);
+                let action = actions.get_mut(index).unwrap();
+                
+                // check for any conflict
+                match *action {
+                    Action::Reduce(alt1) => {
+                        *action = conflict_resolution(Conflict::ReduceReduce { alt1, alt2: item.lr0_item.alt })?;
+                        // return Err(Conflict::ReduceReduce { alt1, alt2: item.lr0_item.alt });
+                    }
+                    Action::Shift(word) => {
+                        *action = conflict_resolution(Conflict::ShiftReduce { word, alt: item.lr0_item.alt })?;
+                        // return Err(Conflict::ShiftReduce { word, alt: item.lr0_item.alt });
+                    }
+                    _ => {
+                        *action = Action::Reduce(item.lr0_item.alt);
+                    }
+                }
+            } else {
+                actions[i * word_count] = Action::Accept;
+            }
+        }
+
+        for (var, A) in (0..var_count).map(|A| (Symbol::Variable(A), A)) {
+            gotos[i * var_count + A] = state.next.get(&var).cloned();
+        }
+    }
+
+    Ok(ArrayParsingTable {
+        actions,
+        gotos,
+        reductions,
+        word_count: word_count - 1, // subtract the eof symbol
+        var_count: var_count,
+    })
 }
