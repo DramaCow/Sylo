@@ -16,13 +16,13 @@ fn main() {
             ellipses:   re::literal("..."),
         },
         {
-            Paragraph        : Sentences,
-            [skip] Sentences : Sentences Sentence
-                             | Sentence,
-            Sentence         : Words period
-                             | Words ellipses,
-            [skip] Words     : Words word
-                             | word
+            Paragraph : Sentences,
+            Sentences : Sentences Sentence
+                      | Sentence,
+            Sentence  : Words period
+                      | Words ellipses,
+            Words     : Words word
+                      | word
         }
     };
 

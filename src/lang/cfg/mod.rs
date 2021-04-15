@@ -5,7 +5,7 @@
 mod first;
 pub use self::first::First;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Symbol {
     Terminal(usize),
     Variable(usize), // aka. nonterminal
@@ -62,6 +62,15 @@ impl Grammar {
             grammar: self,
             alt_first: low,
             alt_last: high,
+        }
+    }
+
+    #[must_use]
+    pub fn alts(&self) -> Alternatives {
+        Alternatives {
+            grammar: self,
+            alt: 0,
+            last_alt: self.alt_count(),
         }
     }
 

@@ -110,6 +110,11 @@ impl<'a> LR1ABuilder<'a> {
 type ItemSet = BTreeSet<LR1Item>;
 
 impl LR1ABuilder<'_> {
+    /// Performs the following:
+    /// * for item `i` with variable `B` at dot:
+    /// * * for production with `B` on lhs:
+    /// * * * for symbol `b` in :
+    /// * * * * add item that is the production with dot at start and lookahead `b`
     fn closure(&self, old_items: &ItemSet) -> ItemSet {
         let mut items     = old_items.clone();
         let mut new_items = old_items.clone();

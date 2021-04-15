@@ -13,12 +13,6 @@ pub mod lr1;
 pub mod lr;
 pub mod lex;
 
-#[derive(Clone)]
-pub enum Command {
-    Skip,
-    Emit,
-}
-
 mod vocabulary;
 pub use vocabulary::{
     Vocabulary,

@@ -4,7 +4,7 @@ use crate::lang::cfg::{
     Symbol::Variable as Var,
 };
 use super::ArrayParsingTable;
-use crate::lang::lr::{ParseTreeNode, Parse};
+use crate::lang::lr::{Event, Parse};
 
 use std::iter::once;
 
@@ -15,7 +15,7 @@ fn parentheses_grammar() {
         .rule(&[&[Word(0), Var(0), Word(1)], &[Word(0), Word(1)]])
         .try_build().unwrap();
 
-    let parser = ArrayParsingTable::new(&grammar).unwrap();
+    let parser = ArrayParsingTable::new(&grammar, &[None, None], &[None, None]).unwrap();
 
     // ad hoc ground truth
     let is_valid = |input: &[usize]| -> bool {
@@ -57,20 +57,20 @@ fn parentheses_grammar_2() {
         .rule(&[&[Word(0), Var(0), Word(1)], &[Word(0), Word(1)]])
         .try_build().unwrap();
 
-    let parser = ArrayParsingTable::new(&grammar).unwrap();
+    let parser = ArrayParsingTable::new(&grammar, &[None, None], &[None, None]).unwrap();
 
     let input = vec![0, 0, 1, 1].into_iter().map(Ok::<_,()>);
 
     let nodes = Parse::new(&parser, input, |a: &usize| *a).collect::<Result<Vec<_>, _>>().unwrap();
 
-    assert_eq!(nodes[0], ParseTreeNode::Word(0));
-    assert_eq!(nodes[1], ParseTreeNode::Word(0));
-    assert_eq!(nodes[2], ParseTreeNode::Word(1));
-    assert_eq!(nodes[3], ParseTreeNode::Var { var: 1, child_count: 2 });
-    assert_eq!(nodes[4], ParseTreeNode::Var { var: 0, child_count: 1 });
-    assert_eq!(nodes[5], ParseTreeNode::Word(1));
-    assert_eq!(nodes[6], ParseTreeNode::Var { var: 1, child_count: 3 });
-    assert_eq!(nodes[7], ParseTreeNode::Var { var: 0, child_count: 1 });
+    assert_eq!(nodes[0], Event::Shift(0));
+    assert_eq!(nodes[1], Event::Shift(0));
+    assert_eq!(nodes[2], Event::Shift(1));
+    assert_eq!(nodes[3], Event::Reduce { var: 1, child_count: 2, production: 3 });
+    assert_eq!(nodes[4], Event::Reduce { var: 0, child_count: 1, production: 1 });
+    assert_eq!(nodes[5], Event::Shift(1));
+    assert_eq!(nodes[6], Event::Reduce { var: 1, child_count: 3, production: 2 });
+    assert_eq!(nodes[7], Event::Reduce { var: 0, child_count: 1, production: 1 });
 }
 
 // =================

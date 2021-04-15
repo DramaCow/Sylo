@@ -7,10 +7,16 @@ macro_rules! lexer_def {
 
 #[macro_export]
 macro_rules! parser_def {
-    ({ $($([$lexcmd:ident])? $lexlbl:ident : $regex:expr),+ $(,)? } , { $($([$syncmd:ident])? $synlbl:ident : $($($symbol:ident)*)|*),+ $(,)? } $(,)?) => {
+    ({ $($([$lexcmd:ident])? $lexlbl:ident : $regex:expr),+ $(,)? } , $({ $(% $assoc:ident $($token:ident)+)* },)? { $($([$syncmd:ident])? $synlbl:ident : $($($symbol:ident)*)|*),+ $(,)? } $(,)?) => {
         {
             $crate::_lexer_def_internal![__LEX_DEF__ 0_usize ; [] $($([$lexcmd])? $lexlbl : $regex),+];
-            $crate::_parser_def_internal![__LEX_DEF__ 0_usize ; [] $($([$syncmd])? $synlbl : $($($symbol)*)|*),+]
+            let mut parser_def = $crate::_parser_def_internal![__LEX_DEF__ 0_usize ; [] $($([$syncmd])? $synlbl : $($($symbol)*)|*),+];
+            $(
+                let mut __TOKEN_PRECEDENCE__: Vec<Option<$crate::lang::lr::Precedence>> = vec![None; __WORD_COUNT__];
+                $crate::_precedence_internal![__TOKEN_PRECEDENCE__ 0_usize ; [] $(% $assoc $($token)+)*];
+                parser_def.attach_precedence(__TOKEN_PRECEDENCE__);
+            )?
+            parser_def
         }
     };
 }
@@ -60,38 +66,46 @@ macro_rules! _lexer_def_internal {
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! _parser_command {
-    (emit) => { $crate::lang::Command::Emit };
-    (skip) => { $crate::lang::Command::Skip };
+macro_rules! _precedence_internal {
+    ($token_precedence:ident $count:expr ; [ $($body:tt)* ] % $assoc:ident $($token:ident)+ % $($tail:tt)+) => {
+        $crate::_precedence_internal![$token_precedence $count + 1_usize ; [ $($body)* $count , $assoc $($token)+ ; ] % $($tail)+]
+    };
+    ($token_precedence:ident $count:expr ; [ $($body:tt)* ] % $assoc:ident $($token:ident)+) => {
+        $crate::_precedence_internal![@ $token_precedence $($body)* $count , $assoc $($token)+]
+    };
+    (@ $token_precedence:ident $($id:expr , $assoc:ident $($token:ident)+);+) => {
+        {
+            $(
+                $(
+                    if let $crate::lang::cfg::Symbol::Terminal(a) = $token {
+                        $token_precedence[a] = Some($crate::lang::lr::Precedence::left($id));
+                    }
+                )+
+            )+
+        }
+    };
 }
 
 #[doc(hidden)]
 #[macro_export]
 macro_rules! _parser_def_internal {
     ($lexer_def:ident $count:expr ; [$($body:tt)*] $label:ident : $($($symbol:ident)*)|* , $($tail:tt)+) => {
-        $crate::_parser_def_internal![$lexer_def $count + 1_usize ; [$($body)* $count , emit $label &[$(&[$($symbol),*]),*] ;] $($tail)+]
-    };
-    ($lexer_def:ident $count:expr ; [$($body:tt)*] [$command:ident] $label:ident : $($($symbol:ident)*)|* , $($tail:tt)+) => {
-        $crate::_parser_def_internal![$lexer_def $count + 1_usize ; [$($body)* $count , $command $label &[$(&[$($symbol),*]),*] ;] $($tail)+]
+        $crate::_parser_def_internal![$lexer_def $count + 1_usize ; [$($body)* $count , $label &[$(&[$($symbol),*]),*] ;] $($tail)+]
     };
     ($lexer_def:ident $count:expr ; [$($body:tt)*] $label:ident : $($($symbol:ident)*)|* $(,)?) => {
-        $crate::_parser_def_internal![@ $lexer_def $($body)* $count , emit $label &[$(&[$($symbol),*]),*]]
+        $crate::_parser_def_internal![@ $lexer_def $($body)* $count , $label &[$(&[$($symbol),*]),*]]
     };
-    ($lexer_def:ident $count:expr ; [$($body:tt)*] [$command:ident] $label:ident : $($($symbol:ident)*)|* $(,)?) => {
-        $crate::_parser_def_internal![@ $lexer_def $($body)* $count , $command $label &[$(&[$($symbol),*]),*]]
-    };
-    (@ $lexer_def:ident $($id:expr , $command:ident $label:ident $rule:expr);+) => {
+    (@ $lexer_def:ident $($id:expr , $label:ident $rule:expr);+) => {
         {
             $(
                 #[allow(non_upper_case_globals)]
                 const $label: $crate::lang::cfg::Symbol = $crate::lang::cfg::Symbol::Variable($id); 
             )+
-            $crate::lang::ParserDef {
-                lexer_def: $lexer_def,
-                var_names: vec![$(stringify!($label).to_string()),+],
-                grammar: $crate::lang::cfg::GrammarBuilder::new()$(.rule($rule))+.try_build().unwrap(),
-                commands: vec![$($crate::_parser_command![$command]),+],
-            }
+            $crate::lang::ParserDef::new(
+                $lexer_def,
+                vec![$(stringify!($label).to_string()),+],
+                $crate::lang::cfg::GrammarBuilder::new()$(.rule($rule))+.try_build().unwrap(),
+            )
         }
     };
 }

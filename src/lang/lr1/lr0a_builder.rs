@@ -20,8 +20,12 @@ impl<'a> LR0ABuilder<'a> {
 
     #[must_use]
     pub fn build(self) -> LR0A {   
-        // NOTE: the last rule in the grammar is the implicit start
-        let initial_items = Rc::new(self.closure(&once(LR0Item::new(self.grammar.alt_count() - 1, 0)).collect()));
+        let initial_items = Rc::new(
+            self.closure(
+                // NOTE: the last rule in the grammar is the implicit start
+                &once(LR0Item::new(self.grammar.alt_count() - 1, 0)).collect()
+            )
+        );
 
         let mut itemsets = vec![initial_items.clone()];
         let mut gotos: Vec<HashMap<Symbol, usize>> = vec![HashMap::new()];

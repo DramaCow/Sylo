@@ -2,7 +2,11 @@ mod table;
 pub use self::table::ScanningTable;
 
 mod scan;
-pub use self::scan::{Token, Scan, ScanError};
+pub use self::scan::{
+    Token,
+    Scan,
+    ScanError
+};
 
 mod array_scanning_table;
 pub use self::array_scanning_table::ArrayScanningTable;

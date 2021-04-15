@@ -7,9 +7,15 @@ pub use self::table::{
 
 mod parse;
 pub use self::parse::{
-    ParseTreeNode,
+    Event,
     Parse,
     ParseError,
+};
+
+mod precedence;
+pub use self::precedence::{
+    Precedence,
+    Associativity,
 };
 
 mod array_parsing_table;

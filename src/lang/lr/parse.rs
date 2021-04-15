@@ -5,9 +5,9 @@ use super::{
 };
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum ParseTreeNode<T> {
-    Word(T),
-    Var { var: usize, child_count: usize },
+pub enum Event<T> {
+    Shift(T),
+    Reduce { var: usize, child_count: usize, production: usize },
 }
 
 pub struct Parse<'a, P, I, T, F> {
@@ -52,7 +52,7 @@ where
     I: Iterator<Item=Result<T, E>>,
     F: Fn(&T) -> usize,
 {
-    type Item = Result<ParseTreeNode<T>, ParseError<E>>;
+    type Item = Result<Event<T>, ParseError<E>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.next_action {
@@ -76,15 +76,15 @@ where
 
                 if let Some(word) = curr_word {
                     self.step += 1;
-                    Some(Ok(ParseTreeNode::Word(word)))
+                    Some(Ok(Event::Shift(word)))
                 } else {
                     // occurs on first and last iterations
                     self.next()
                 }
             },
-            Action::Reduce(alt) => {
+            Action::Reduce(production) => {
                 // lookup which variable and how many frontier elements are consumed
-                let reduction = self.table.reduction(alt);
+                let reduction = self.table.reduction(production);
 
                 // consume part of frontier
                 for _ in 0..reduction.count {
@@ -97,9 +97,10 @@ where
                 if let Some(state) = self.table.goto(old_state, reduction.var) {
                     self.next_action = self.table.action(state, self.next_word.as_ref().map(&self.f));
                     self.state_history.push(state);
-                    Some(Ok(ParseTreeNode::Var {
+                    Some(Ok(Event::Reduce {
                         var: reduction.var,
-                        child_count: reduction.count
+                        child_count: reduction.count,
+                        production,
                     }))
                 } else {
                     Some(Err(ParseError::InvalidGoto {
