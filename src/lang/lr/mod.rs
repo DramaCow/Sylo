@@ -14,6 +14,8 @@ pub use self::parse::{
 
 mod precedence;
 pub use self::precedence::{
+    PrecedenceGrammar,
+    PrecedenceGrammarBuilder,
     Precedence,
     Associativity,
 };
