@@ -10,13 +10,11 @@ macro_rules! parser_def {
     ({ $($([$lexcmd:ident])? $lexlbl:ident : $regex:expr),+ $(,)? } , $({ $(% $assoc:ident $($token:ident)+)* },)? { $($([$syncmd:ident])? $synlbl:ident : $($($symbol:ident)*)|*),+ $(,)? } $(,)?) => {
         {
             $crate::_lexer_def_internal![__LEX_DEF__ 0_usize ; [] $($([$lexcmd])? $lexlbl : $regex),+];
-            let mut parser_def = $crate::_parser_def_internal![__LEX_DEF__ 0_usize ; [] $($([$syncmd])? $synlbl : $($($symbol)*)|*),+];
+            let mut __PARSER_DEF__ = $crate::_parser_def_internal![__LEX_DEF__ 0_usize ; [] $($([$syncmd])? $synlbl : $($($symbol)*)|*),+];
             $(
-                let mut __TOKEN_PRECEDENCE__: Vec<Option<$crate::lang::lr::Precedence>> = vec![None; __WORD_COUNT__];
-                $crate::_precedence_internal![__TOKEN_PRECEDENCE__ 0_usize ; [] $(% $assoc $($token)+)*];
-                parser_def.attach_precedence(__TOKEN_PRECEDENCE__);
+                $crate::_precedence_internal![__PARSER_DEF__ 0_usize ; [] $(% $assoc $($token)+)*];
             )?
-            parser_def
+            __PARSER_DEF__
         }
     };
 }
@@ -67,18 +65,18 @@ macro_rules! _lexer_def_internal {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! _precedence_internal {
-    ($token_precedence:ident $count:expr ; [ $($body:tt)* ] % $assoc:ident $($token:ident)+ % $($tail:tt)+) => {
-        $crate::_precedence_internal![$token_precedence $count + 1_usize ; [ $($body)* $count , $assoc $($token)+ ; ] % $($tail)+]
+    ($parser_def:ident $count:expr ; [ $($body:tt)* ] % $assoc:ident $($token:ident)+ % $($tail:tt)+) => {
+        $crate::_precedence_internal![$parser_def $count + 1_usize ; [ $($body)* $count , $assoc $($token)+ ; ] % $($tail)+]
     };
-    ($token_precedence:ident $count:expr ; [ $($body:tt)* ] % $assoc:ident $($token:ident)+) => {
-        $crate::_precedence_internal![@ $token_precedence $($body)* $count , $assoc $($token)+]
+    ($parser_def:ident $count:expr ; [ $($body:tt)* ] % $assoc:ident $($token:ident)+) => {
+        $crate::_precedence_internal![@ $parser_def $($body)* $count , $assoc $($token)+]
     };
-    (@ $token_precedence:ident $($id:expr , $assoc:ident $($token:ident)+);+) => {
+    (@ $parser_def:ident $($id:expr , $assoc:ident $($token:ident)+);+) => {
         {
             $(
                 $(
                     if let $crate::lang::cfg::Symbol::Terminal(a) = $token {
-                        $token_precedence[a] = Some($crate::lang::lr::Precedence::left($id));
+                        $parser_def.set_token_precedence(a, $crate::lang::Precedence { level: $id, associativity: $crate::lang::Associativity::Left });
                     }
                 )+
             )+
@@ -101,7 +99,7 @@ macro_rules! _parser_def_internal {
                 #[allow(non_upper_case_globals)]
                 const $label: $crate::lang::cfg::Symbol = $crate::lang::cfg::Symbol::Variable($id); 
             )+
-            $crate::lang::ParserDef::new(
+            $crate::lang::ParserBuilder::new(
                 $lexer_def,
                 vec![$(stringify!($label).to_string()),+],
                 $crate::lang::cfg::GrammarBuilder::new()$(.rule($rule))+.try_build().unwrap(),

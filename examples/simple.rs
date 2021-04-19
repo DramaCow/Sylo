@@ -26,7 +26,7 @@ fn main() {
         }
     };
 
-    let parser = def.compile().unwrap();
+    let parser = def.build().unwrap();
 
     let text = "never gonna give you up. never gonna let you down...";
 

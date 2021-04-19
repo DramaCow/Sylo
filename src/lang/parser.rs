@@ -1,18 +1,31 @@
 use super::{
-    lex::{Token, Scan, ScanError, ArrayScanningTable},
     LexerDef,
     Lexer,
+    lex::{Token, Scan, ScanError, ArrayScanningTable},
     cfg::{Grammar, Symbol},
-    lr::{Event, Parse, ParseError, Precedence, ArrayParsingTable, Conflict},
+    lr::{Event, Parse, ParseError, ArrayParsingTable, Conflict},
 };
 use crate::cst::{CST, CSTBuilder};
 
-pub struct ParserDef {
+pub struct ParserBuilder {
     pub lexer_def: LexerDef,
     pub var_names: Vec<String>,
     pub grammar: Grammar,
     pub token_precedence: Vec<Option<Precedence>>,
     pub production_precedence: Vec<Option<Precedence>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Precedence {
+    pub level: usize,
+    pub associativity: Associativity,
+}
+
+#[derive(Debug, Clone)]
+pub enum Associativity {
+    Left,
+    Right,
+    Nonassoc,
 }
 
 pub struct Parser {
@@ -21,38 +34,47 @@ pub struct Parser {
     pub parsing_table: ArrayParsingTable,
 }
 
-impl ParserDef {
+impl ParserBuilder {
     #[must_use]
     pub fn new(lexer_def: LexerDef, var_names: Vec<String>, grammar: Grammar) -> Self {
         let word_count = grammar.max_word().map_or(0, |word| word + 1);
+        let production_count = grammar.alt_count();
+
         Self {
             lexer_def,
             var_names,
             grammar,
             token_precedence: vec![None; word_count],
-            production_precedence: Vec::new(),
+            production_precedence: vec![None; production_count],
         }
     }
 
-    pub fn attach_precedence(&mut self, token_precedence: Vec<Option<Precedence>>) {
-        self.token_precedence = token_precedence;
-        
-        // Production precedence is defaulted to the precedence of the rightmost token.
-        // If this is None, then the production precedence is also None.
-        self.production_precedence = self.grammar.alts().map(|alt| {
-            let word = alt.iter().rev().find_map(|&symbol| {
-                if let Symbol::Terminal(a) = symbol {
-                    Some(a)
-                } else {
-                    None
-                }
-            });
-            self.token_precedence[word?].clone()
-        }).collect();
+    pub fn set_token_precedence(&mut self, word: usize, precedence: Precedence) -> &mut Self {
+        self.token_precedence[word] = Some(precedence);
+        self
+    }
+
+    pub fn set_production_precedence(&mut self, production: usize, precedence: Precedence) -> &mut Self {
+        self.production_precedence[production] = Some(precedence);
+        self
     }
 
     /// # Errors
-    pub fn compile(&self) -> Result<Parser, Conflict> {
+    pub fn build(mut self) -> Result<Parser, Conflict> {
+        // In case where no production precedence has been specified, production precedence
+        // is defaulted to the precedence of the rightmost token (that has some precedence).
+        for (i, alt) in self.grammar.rules().flat_map(|rule| rule.alts()).enumerate() {
+            if self.production_precedence[i].is_none() {
+                self.production_precedence[i] = alt.iter().rev().find_map(|&symbol| {
+                    if let Symbol::Terminal(a) = symbol {
+                        self.token_precedence[a].clone()
+                    } else {
+                        None
+                    }
+                });
+            }
+        }
+
         Ok(Parser {
             lexer: self.lexer_def.compile(),
             var_names: self.var_names.to_vec(),

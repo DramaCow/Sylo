@@ -12,14 +12,6 @@ pub use self::parse::{
     ParseError,
 };
 
-mod precedence;
-pub use self::precedence::{
-    PrecedenceGrammar,
-    PrecedenceGrammarBuilder,
-    Precedence,
-    Associativity,
-};
-
 mod array_parsing_table;
 pub use self::array_parsing_table::{
     ArrayParsingTable,

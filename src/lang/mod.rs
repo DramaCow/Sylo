@@ -26,7 +26,9 @@ pub use lexer::{
 
 mod parser;
 pub use parser::{
-    ParserDef,
     Parser,
+    ParserBuilder,
+    Precedence,
+    Associativity,
     // ParseError,
 };

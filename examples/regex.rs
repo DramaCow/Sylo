@@ -3,7 +3,6 @@
 
 use sylo::lang::{
     re,
-    lr::Precedence,
     lr1::LR1ABuilder,
 };
 use std::time::Instant;
@@ -60,7 +59,7 @@ fn main() {
     std::fs::write("_graph.dot", lr1a.dot(&def.grammar, &def.lexer_def.vocab.symbolic_names, &def.var_names, true)).unwrap();
 
 
-    let parser = def.compile().unwrap();
+    let parser = def.build().unwrap();
     println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());  
 
     let timer2 = Instant::now();
