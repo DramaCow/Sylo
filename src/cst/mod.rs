@@ -1,6 +1,6 @@
 //! TODO
 
-use crate::lang::lex::Token;
+use crate::lang::re::Token;
 use crate::debug::StringBuilder;
 use crate::lang::Parser;
 

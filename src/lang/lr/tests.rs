@@ -13,7 +13,7 @@ fn parentheses_grammar() {
     let grammar = GrammarBuilder::new()
         .rule(&[&[Var(0), Var(1)], &[Var(1)]])
         .rule(&[&[Word(0), Var(0), Word(1)], &[Word(0), Word(1)]])
-        .try_build().unwrap();
+        .build().unwrap();
 
     let parser = ArrayParsingTable::new(&grammar).unwrap();
 
@@ -55,7 +55,7 @@ fn parentheses_grammar_2() {
     let grammar = GrammarBuilder::new()
         .rule(&[&[Var(0), Var(1)], &[Var(1)]])
         .rule(&[&[Word(0), Var(0), Word(1)], &[Word(0), Word(1)]])
-        .try_build().unwrap();
+        .build().unwrap();
 
     let parser = ArrayParsingTable::new(&grammar).unwrap();
 

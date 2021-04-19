@@ -5,13 +5,7 @@ mod macros;
 
 pub mod re;
 pub mod cfg;
-
-pub mod dfa;
-// pub mod lr0;
-pub mod lr1;
-
 pub mod lr;
-pub mod lex;
 
 mod vocabulary;
 pub use vocabulary::{
@@ -32,3 +26,10 @@ pub use parser::{
     Associativity,
     // ParseError,
 };
+
+// =================
+// === INTERNALS ===
+// =================
+
+#[cfg(test)]
+mod tests;

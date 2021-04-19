@@ -1,4 +1,8 @@
-use super::Command;
+#[derive(Clone, Copy)]
+pub enum Command {
+    Skip,
+    Emit,
+}
 
 pub trait ScanningTable {
     const START_STATE: usize = 0;

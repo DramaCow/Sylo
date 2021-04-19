@@ -1,10 +1,7 @@
 #![allow(non_snake_case)]
 
-use crate::lang::{
-    cfg::{Grammar, Symbol},
-    lr1::{LR1ABuilder},
-    lr::{Action, Reduction, ParsingTable},
-};
+use crate::lang::cfg::{Grammar, Symbol};
+use super::{LR1ABuilder, Action, Reduction, ParsingTable};
 
 #[derive(Debug)]
 pub struct ArrayParsingTable {
@@ -16,8 +13,14 @@ pub struct ArrayParsingTable {
 }
 
 #[derive(Debug)]
+pub struct ConstructionError {
+    state: usize,
+    conflict: Conflict,
+}
+
+#[derive(Debug)]
 pub enum Conflict {
-    ShiftReduce { word: usize, alt: usize },
+    ShiftReduce { word: usize, next_state: usize, alt: usize },
     ReduceReduce { alt1: usize, alt2: usize },
 }
 
@@ -25,12 +28,12 @@ impl ArrayParsingTable {
     /// No conflicts allowed.
     /// 
     /// # Errors
-    pub fn new(grammar: &Grammar) -> Result<Self, Conflict> {
+    pub fn new(grammar: &Grammar) -> Result<Self, ConstructionError> {
         Self::with_conflict_resolution(grammar, |conflict: Conflict| { Err(conflict) })
     }
 
     /// # Errors
-    fn with_conflict_resolution<F>(grammar: &Grammar, mut conflict_resolution: F) -> Result<Self, Conflict>
+    pub fn with_conflict_resolution<F>(grammar: &Grammar, mut conflict_resolution: F) -> Result<Self, ConstructionError>
     where
         F: FnMut(Conflict) -> Result<Action, Conflict>,
     {
@@ -41,7 +44,7 @@ impl ArrayParsingTable {
         let num_states = lr1a.states().len();
         
         let reductions: Vec<_> = grammar.rules().enumerate().flat_map(|(i, rule)| {
-            rule.alts().map(|alt| Reduction { var: i, count: alt.len() }).collect::<Vec<_>>()
+            rule.alts().map(move |alt| Reduction { var: i, count: alt.len() })
         }).collect();
 
         let mut actions: Vec<Action>  = vec![Action::Invalid; word_count * num_states];
@@ -55,29 +58,29 @@ impl ArrayParsingTable {
                         Symbol::Terminal(a) => a,
                         Symbol::Variable(_) => continue,
                     };
-                    let index = i * word_count + word + 1;
-                    let action = actions.get_mut(index).unwrap();
+                    let action = actions.get_mut(i * word_count + word + 1).unwrap();
+                    let next_state = state.next[&symbol];
 
-                    // check for shift-reduce conflict
+                    // Note: shift-shift conflicts cannot occur
                     if let Action::Reduce(alt) = *action {
-                        *action = conflict_resolution(Conflict::ShiftReduce { word, alt })?;
-                        // return Err(Conflict::ShiftReduce { word, alt });
+                        *action = conflict_resolution(Conflict::ShiftReduce { word, next_state, alt })
+                            .map_err(|conflict| ConstructionError { state: i, conflict })?;
                     } else {
-                        *action = Action::Shift(state.next[&symbol]);
+                        *action = Action::Shift(next_state);
                     }
                 } else if reductions[item.lr0_item.alt].var < var_count || item.lookahead.is_some() { // TODO: second check not necessary?
-                    let index = i * word_count + item.lookahead.map_or(0, |a| a + 1);
-                    let action = actions.get_mut(index).unwrap();
+                    let column = item.lookahead.map_or(0, |a| a + 1);
+                    let action = actions.get_mut(i * word_count + column).unwrap();
                     
-                    // check for any conflict
                     match *action {
-                        Action::Reduce(alt1) => {
-                            *action = conflict_resolution(Conflict::ReduceReduce { alt1, alt2: item.lr0_item.alt })?;
-                            // return Err(Conflict::ReduceReduce { alt1, alt2: item.lr0_item.alt });
+                        Action::Shift(state) => {
+                            let word = column - 1;
+                            *action = conflict_resolution(Conflict::ShiftReduce { word, next_state: state, alt: item.lr0_item.alt })
+                                .map_err(|conflict| ConstructionError { state: i, conflict })?;
                         }
-                        Action::Shift(word) => {
-                            *action = conflict_resolution(Conflict::ShiftReduce { word, alt: item.lr0_item.alt })?;
-                            // return Err(Conflict::ShiftReduce { word, alt: item.lr0_item.alt });
+                        Action::Reduce(alt1) => {
+                            *action = conflict_resolution(Conflict::ReduceReduce { alt1, alt2: item.lr0_item.alt })
+                                .map_err(|conflict| ConstructionError { state: i, conflict })?;
                         }
                         _ => {
                             *action = Action::Reduce(item.lr0_item.alt);

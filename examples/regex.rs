@@ -2,8 +2,10 @@
 #[macro_use] extern crate sylo;
 
 use sylo::lang::{
+    Precedence,
+    Associativity,
     re,
-    lr1::LR1ABuilder,
+    lr::LR1ABuilder,
 };
 use std::time::Instant;
 
@@ -14,7 +16,7 @@ fn main() {
     .or(&re::literal("\\\\"))
     .or(&re::literal("\\\""));
     
-    let def = parser_def! {
+    let mut def = parser_def! {
         {
             /* 0*/ [skip] _ws: re::any(" \n\t\r").plus(),
             /* 1*/ string:     re::literal("\"").then(&c.plus()).then(&re::literal("\"")),
@@ -35,24 +37,23 @@ fn main() {
             %left and diff
         },
         {
-            Expr : Expr or   Expr
-                 | Expr and  Expr
-                 | Expr diff Expr
-                //  | Expr Expr
-                 | Expr opt
-                 | Expr star
-                 | Expr plus
-                 | not Expr
-                 | lparen Expr rparen
-                 | string
-                 | char
-                 | char range char,
+            /* 0*/ Expr : Expr or   Expr
+            /* 1*/      | Expr and  Expr
+            /* 2*/      | Expr diff Expr
+            /* 3*/      | Expr Expr
+            /* 4*/      | Expr opt
+            /* 5*/      | Expr star
+            /* 6*/      | Expr plus
+            /* 7*/      | not Expr
+            /* 8*/      | lparen Expr rparen
+            /* 9*/      | string
+            /*10*/      | char
+            /*11*/      | char range char,
         }
     };
 
-    println!("{:?}", def.token_precedence);
-    println!("{:?}", def.production_precedence);
-
+    def.set_production_precedence(3, Precedence { level: 2, associativity: Associativity::Left }); // associativity doesn't matter for this production
+    
     let timer = Instant::now();
 
     let lr1a = LR1ABuilder::new(&def.grammar).build();
@@ -63,7 +64,7 @@ fn main() {
     println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());  
 
     let timer2 = Instant::now();
-    let text = "(('A'..'Z' | 'a'..'z' | '_') ('A'..'Z' | 'a'..'z' | '0'..'9' | '_')*) - '_'+";
+    let text = "('A'..'Z' | 'a'..'z' | '_') ('A'..'Z' | 'a'..'z' | '0'..'9' | '_')* - '_'+";
     let cst = parser.cst(text).unwrap();
     println!("CST built in {:?}.", timer2.elapsed());
     

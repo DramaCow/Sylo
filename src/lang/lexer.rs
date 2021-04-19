@@ -1,7 +1,6 @@
 use super::{
     Vocabulary,
-    re::{RegEx},
-    lex::{Command, ArrayScanningTable, Scan},
+    re::{RegEx, Command, ArrayScanningTable, Scan},
 };
 
 pub struct LexerDef {

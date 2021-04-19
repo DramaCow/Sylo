@@ -1,8 +1,4 @@
-use crate::lang::{
-    re::RegEx,
-    dfa::DFA,
-    lex::{ScanningTable, Command},
-};
+use super::{RegEx, DFA, ScanningTable, Command};
 
 pub struct ArrayScanningTable {
     next:     Vec<usize>,

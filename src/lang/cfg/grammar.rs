@@ -151,7 +151,7 @@ impl GrammarBuilder {
     }
 
     /// # Errors
-    pub fn try_build(mut self) -> Result<Grammar, GrammarBuildError> {
+    pub fn build(mut self) -> Result<Grammar, GrammarBuildError> {
         // Iterates through each rule and checks to see
         // if each variable is valid. If not, user receives 
         // error corresponding to the first erroneous symbol.

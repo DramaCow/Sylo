@@ -1,9 +1,9 @@
 use super::{
     LexerDef,
     Lexer,
-    lex::{Token, Scan, ScanError, ArrayScanningTable},
+    re::{Token, Scan, ScanError, ArrayScanningTable},
     cfg::{Grammar, Symbol},
-    lr::{Event, Parse, ParseError, ArrayParsingTable, Conflict},
+    lr::{Event, Parse, ParseError, ArrayParsingTable, ConstructionError, Conflict, Action},
 };
 use crate::cst::{CST, CSTBuilder};
 
@@ -21,7 +21,7 @@ pub struct Precedence {
     pub associativity: Associativity,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Associativity {
     Left,
     Right,
@@ -60,7 +60,7 @@ impl ParserBuilder {
     }
 
     /// # Errors
-    pub fn build(mut self) -> Result<Parser, Conflict> {
+    pub fn build(mut self) -> Result<Parser, ConstructionError> {
         // In case where no production precedence has been specified, production precedence
         // is defaulted to the precedence of the rightmost token (that has some precedence).
         for (i, alt) in self.grammar.rules().flat_map(|rule| rule.alts()).enumerate() {
@@ -78,8 +78,25 @@ impl ParserBuilder {
         Ok(Parser {
             lexer: self.lexer_def.compile(),
             var_names: self.var_names.to_vec(),
-            parsing_table: ArrayParsingTable::new(&self.grammar)?,
-            // parsing_table: ArrayParsingTable::with_precedence(&self.grammar, &self.token_precedence, &self.production_precedence)?,
+            parsing_table: ArrayParsingTable::with_conflict_resolution(&self.grammar, |conflict| {
+                match conflict {
+                    Conflict::ShiftReduce { word, next_state, alt } => {
+                        // let tok  = if let Some(tok) = self.token_precedence[word].as_ref() { tok } else { return Err(conflict) };
+                        // let prod = if let Some(prod) = self.production_precedence[alt].as_ref() { prod } else { return Err(conflict) };
+                        let tok  = if let Some(tok) = self.token_precedence[word].as_ref() { tok } else { return Ok(Action::Shift(next_state)) };
+                        let prod = if let Some(prod) = self.production_precedence[alt].as_ref() { prod } else { return Ok(Action::Shift(next_state)) };
+
+                        if prod.level > tok.level || (prod.level == tok.level && prod.associativity == Associativity::Left) {
+                            Ok(Action::Reduce(alt))
+                        } else {
+                            Ok(Action::Shift(next_state))
+                        }
+                    }
+                    Conflict::ReduceReduce { .. } => {
+                        Err(conflict)
+                    }
+                }
+            })?,
         })
     }
 }

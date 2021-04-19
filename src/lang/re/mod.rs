@@ -1,10 +1,34 @@
 mod regex;
-mod char_set;
-mod unicode;
+pub use self::regex::{
+    RegEx,
+    Operator,
+};
 
-pub use self::char_set::CharSet;
-pub use self::regex::{RegEx, Operator};
-pub use self::unicode::{basic_latin, basic_multilingual_plane, non_compatibility_char};
+mod unicode;
+pub use self::unicode::{
+    basic_latin,
+    basic_multilingual_plane,
+    non_compatibility_char,
+};
+
+mod dfa;
+pub use self::dfa::DFA;
+
+mod table;
+pub use self::table::{
+    ScanningTable,
+    Command,
+};
+
+mod scan;
+pub use self::scan::{
+    Token,
+    Scan,
+    ScanError
+};
+
+mod array_scanning_table;
+pub use self::array_scanning_table::ArrayScanningTable;
 
 /// Constructs a `RegEx` that recognizes some input string only.
 #[must_use]
@@ -72,6 +96,9 @@ pub fn range(from: char, to: char) -> RegEx {
 // =================
 // === INTERNALS ===
 // =================
+
+mod char_set;
+use self::char_set::CharSet;
 
 #[cfg(test)]
 mod tests;

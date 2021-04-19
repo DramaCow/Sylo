@@ -3,7 +3,7 @@
 
 use sylo::lang::{
     re,
-    lr1::LR0ABuilder,
+    lr::LR0ABuilder,
 };
 use std::time::Instant;
 

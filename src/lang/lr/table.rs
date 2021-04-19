@@ -2,8 +2,8 @@
 pub enum Action {
     Invalid,
     Accept,
-    Shift(usize),
-    Reduce(usize),
+    Shift(usize),  //< shift to a *state*
+    Reduce(usize), //< reduce via a *production*
 }
 
 #[derive(Debug, Clone, Copy)]

@@ -26,8 +26,8 @@ macro_rules! parser_def {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! _lexer_command {
-    (emit) => { $crate::lang::lex::Command::Emit };
-    (skip) => { $crate::lang::lex::Command::Skip };
+    (emit) => { $crate::lang::re::Command::Emit };
+    (skip) => { $crate::lang::re::Command::Skip };
 }
 
 #[doc(hidden)]
@@ -102,7 +102,7 @@ macro_rules! _parser_def_internal {
             $crate::lang::ParserBuilder::new(
                 $lexer_def,
                 vec![$(stringify!($label).to_string()),+],
-                $crate::lang::cfg::GrammarBuilder::new()$(.rule($rule))+.try_build().unwrap(),
+                $crate::lang::cfg::GrammarBuilder::new()$(.rule($rule))+.build().unwrap(),
             )
         }
     };
