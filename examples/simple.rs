@@ -31,7 +31,7 @@ fn main() {
     let text = "never gonna give you up. never gonna let you down...";
 
     let cst = parser.cst(text).unwrap();
-    std::fs::write("_graph.dot", cst.dot(&parser, text)).unwrap();
+    std::fs::write("_graph.dot", cst.dot(&parser)).unwrap();
 
     println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());
 }

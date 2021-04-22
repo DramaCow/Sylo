@@ -27,6 +27,8 @@ pub use parser::{
     // ParseError,
 };
 
+pub mod c_render;
+
 // =================
 // === INTERNALS ===
 // =================

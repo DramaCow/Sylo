@@ -1,9 +1,9 @@
 use super::{RegEx, DFA, ScanningTable, Command};
 
 pub struct ArrayScanningTable {
-    next:     Vec<usize>,
-    classes:  Vec<Option<usize>>,
-    commands: Vec<Command>,
+    pub(crate) next:     Vec<usize>,
+    pub(crate) classes:  Vec<Option<usize>>,
+    pub(crate) commands: Vec<Command>,
 }
 
 impl ArrayScanningTable {
@@ -25,7 +25,7 @@ impl ArrayScanningTable {
         
         let classes = dfa.states().iter().skip(1)
             .map(|state| state.class)
-            .chain(vec![None]) // <-- sink states class
+             .chain(vec![None]) // <-- sink states class
             .collect();
         
         Self {

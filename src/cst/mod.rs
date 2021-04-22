@@ -1,121 +1,45 @@
 //! TODO
 
-use crate::lang::re::Token;
 use crate::debug::StringBuilder;
 use crate::lang::Parser;
 
 /// Concrete Syntax Tree.
 #[derive(Debug)]
 pub struct CST<'a> {
-    tokens: Vec<Token<'a, str>>,
-    nodes: Vec<CSTNode>, // first = first leaf, last = tree root
+    lexemes: Vec<&'a str>,
+    nodes: Vec<Node>, // first = first leaf, last = tree root
     links: Vec<Link>,
 }
 
-#[derive(Clone, Copy)]
-pub struct CSTNodeId(usize);
-
-#[derive(Debug)]
-pub enum CSTNode {
-    Leaf(CSTLeaf),
-    Branch(CSTBranch),
-}
-
-#[derive(Debug)]
-pub struct CSTLeaf {
-    #[deprecated] pub word: usize,
-    index: usize,
-}
-
-#[derive(Debug)]
-pub struct CSTBranch {
-    pub var: usize,
-    head: usize,
-}
-
-pub struct CSTChildren<'a> {
-    cst: &'a CST<'a>,
-    next_link_index: Option<usize>,
-}
-
-impl CST<'_> {
-    #[must_use]
-    pub fn root(&self) -> CSTNodeId {
-        CSTNodeId(self.nodes.len() - 1)
-    }
-
-    #[must_use]
-    pub fn dot(&self, parser: &Parser, text: &str) -> String {
-        dot_with_labelling_internal(self, |word| &text[self.tokens[word].span.clone()], |var| &parser.var_names[var])
-    }
-}
-
-impl CSTNodeId {
-    #[must_use]
-    pub fn to_node<'a>(&self, cst: &'a CST) -> &'a CSTNode {
-        &cst.nodes[self.0]
-    }
-}
-
-impl CSTBranch {
-    #[must_use]
-    pub fn children<'a>(&self, cst: &'a CST) -> CSTChildren<'a> {
-        CSTChildren { cst, next_link_index: Some(self.head) }
-    }
-}
-
-impl Iterator for CSTChildren<'_> {
-    type Item = CSTNodeId;
-    
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(i) = self.next_link_index {
-            self.next_link_index = self.cst.links[i].next;
-            Some(CSTNodeId(self.cst.links[i].index))
-        } else {
-            None
-        }
-    }
-}
-
-// =================
-// === INTERNALS ===
-// =================
-
-#[derive(Debug)]
-struct Link {
-    index: usize,
-    next: Option<usize>,
-}
-
-pub(crate) struct CSTBuilder<'a> {
+pub struct CSTBuilder<'a> {
     cst: CST<'a>,
     frontier: Vec<FrontierElem>,
 }
 
-enum FrontierElem {
-    Node { index: usize },              // Used by non-skip variables w/ children 
-    List { first: usize, last: usize }, // Used by skip variables
-    Empty,                              // Any variables that contain no children are ignored
+impl Default for CSTBuilder<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<'a> CSTBuilder<'a> {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            cst: CST { tokens: Vec::new(), nodes: Vec::new(), links: Vec::new() },
+            cst: CST { lexemes: Vec::new(), nodes: Vec::new(), links: Vec::new() },
             frontier: Vec::new(),
         }
     }
 
-    pub fn leaf(&mut self, token: Token<'a, str>) {
-        self.cst.nodes.push(CSTNode::Leaf(CSTLeaf { word: token.class, index: self.cst.tokens.len() }));
-        self.cst.tokens.push(token);
+    pub fn leaf(&mut self, word: usize, lexeme: &'a str) {
+        self.cst.nodes.push(Node::Leaf { word, index: self.cst.lexemes.len() });
+        self.cst.lexemes.push(lexeme);
         self.frontier.push(FrontierElem::Node { index: self.cst.nodes.len() - 1 });
     }
 
     pub fn branch(&mut self, var: usize, child_count: usize) {
         if let Some((first, _)) = self.make_children_list(child_count) {
-            self.cst.nodes.push(CSTNode::Branch(CSTBranch { var, head: first }));
+            self.cst.nodes.push(Node::Branch { var, head: first });
             self.frontier.push(FrontierElem::Node { index: self.cst.nodes.len() - 1 });
         } else {
             self.frontier.push(FrontierElem::Empty);
@@ -135,7 +59,38 @@ impl<'a> CSTBuilder<'a> {
         // TODO: check tree is valid before returning
         self.cst
     }
+}
 
+impl CST<'_> {
+    #[must_use]
+    pub fn dot(&self, parser: &Parser) -> String {
+        dot_with_labelling_internal(self, |word| self.lexemes[word], |var| &parser.var_names[var])
+    }
+}
+
+// =================
+// === INTERNALS ===
+// =================
+
+#[derive(Debug)]
+enum Node {
+    Leaf { #[deprecated] word: usize, index: usize },
+    Branch { var: usize, head: usize },
+}
+
+#[derive(Debug)]
+struct Link {
+    index: usize,
+    next: Option<usize>,
+}
+
+enum FrontierElem {
+    Node { index: usize },              // Used by non-skip variables w/ children 
+    List { first: usize, last: usize }, // Used by skip variables
+    Empty,                              // Any variables that contain no children are ignored
+}
+
+impl CSTBuilder<'_> {
     /// If a non-empty children list was created, returns first and last link indices,
     /// else returns None.
     fn make_children_list(&mut self, child_count: usize) -> Option<(usize, usize)> {
@@ -190,23 +145,23 @@ fn dot_with_labelling_internal<F, G, T, U>(cst: &CST, word_labelling: F, var_lab
 {
     let mut dot = StringBuilder::new();
 
-    dot.writeln("digraph CC {");
-    dot.indent();
+    dot.writeln("digraph CC {")
+       .indent();
 
     // nodes
     for (id, node) in cst.nodes.iter().enumerate() {
-        match node {
-            CSTNode::Leaf(leaf) => dot.writeln(&format!("s{}[label=\"{}\", shape=none];", id, word_labelling(leaf.index))),
-            CSTNode::Branch(branch)  => dot.writeln(&format!("s{}[label=\"{}\", shape=oval];", id, var_labelling(branch.var))),
-        }
+        match *node {
+            Node::Leaf { word: _, index } => dot.writeln(&format!("s{}[label=\"{}\", shape=none];", id, word_labelling(index))),
+            Node::Branch { var, .. } => dot.writeln(&format!("s{}[label=\"{}\", shape=oval];", id, var_labelling(var))),
+        };
     }
     dot.newline();
 
     // edges
     let mut stack = vec![cst.nodes.len() - 1];
     while let Some(id) = stack.pop() {
-        if let CSTNode::Branch(branch) = &cst.nodes[id] {
-            let mut index = branch.head;
+        if let Node::Branch { var: _, head } = cst.nodes[id] {
+            let mut index = head;
             loop {
                 let link = &cst.links[index];
                 dot.writeln(&format!("s{}->s{};", id, link.index));
@@ -222,20 +177,20 @@ fn dot_with_labelling_internal<F, G, T, U>(cst: &CST, word_labelling: F, var_lab
     dot.newline();
 
     // place leaves on same level
-    dot.writeln("{");
-    dot.indent();
-    dot.writeln("rank=max;");
-    dot.newline();
+    dot.writeln("{")
+       .indent()
+       .writeln("rank=max;")
+       .newline();
     for (id, node) in cst.nodes.iter().enumerate() {
-        if let CSTNode::Leaf(_) = node {
-            dot.writeln(&format!("s{}; ", id))
+        if let Node::Leaf { .. } = node {
+            dot.writeln(&format!("s{}; ", id));
         }
     }
-    dot.unindent();
-    dot.writeln("}");
 
-    dot.unindent();
-    dot.write("}");
+    dot.unindent()
+       .writeln("}")
+       .unindent()
+       .write("}");
 
     dot.build()
 }

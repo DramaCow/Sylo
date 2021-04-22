@@ -9,3 +9,7 @@ publish = false
 
 [lib]
 proc-macro = false
+
+#[dependencies.tera]
+#version = "1"
+#default-features = false # Turn off tera's dependencies

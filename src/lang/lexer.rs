@@ -10,8 +10,8 @@ pub struct LexerDef {
 }
 
 pub struct Lexer {
-    vocab: Vocabulary,
-    table: ArrayScanningTable,
+    pub(super) vocab: Vocabulary,
+    pub(super) table: ArrayScanningTable,
 }
 
 impl LexerDef {

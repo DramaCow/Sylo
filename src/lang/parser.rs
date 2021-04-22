@@ -117,7 +117,7 @@ impl<'a> Parser {
 
         for res in self.parse(text) {
             match res? {
-                Event::Shift(token) => builder.leaf(token),
+                Event::Shift(token) => builder.leaf(token.class, &text[token.span]),
                 Event::Reduce { var, child_count, production: _ } => builder.branch(var, child_count),
             }
         }
