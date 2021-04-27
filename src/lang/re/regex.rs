@@ -6,8 +6,10 @@ use std::fmt::Formatter;
 use std::fmt::Error;
 use std::fmt::Debug;
 
-use crate::iter::IteratorExtensions;
-use crate::debug::StringBuilder;
+use crate::utils::{
+    StringBuilder,
+    iter::IteratorExtensions,
+};
 use super::CharSet;
 
 /// Regular expression object. Internally, represented by an

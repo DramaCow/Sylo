@@ -4,7 +4,7 @@ use crate::lang::cfg::{Grammar, Symbol};
 use super::{LR1ABuilder, Action, Reduction, ParsingTable};
 
 #[derive(Debug)]
-pub struct ArrayParsingTable {
+pub struct LR1Table {
     actions:    Vec<Action>,        /// lookup what action to perform given state and word
     gotos:      Vec<Option<usize>>, /// lookup what state should be transitioned to after reduction
     reductions: Vec<Reduction>,     // alt --> rule and number of symbols
@@ -24,7 +24,7 @@ pub enum Conflict {
     ReduceReduce { alt1: usize, alt2: usize },
 }
 
-impl ArrayParsingTable {
+impl LR1Table {
     /// No conflicts allowed.
     /// 
     /// # Errors
@@ -106,7 +106,7 @@ impl ArrayParsingTable {
     }
 }
 
-impl ParsingTable for ArrayParsingTable {
+impl ParsingTable for LR1Table {
     fn action(&self, state: usize, word: Option<usize>) -> Action {
         word.map_or_else(
             || self.actions[state * (self.word_count + 1)],

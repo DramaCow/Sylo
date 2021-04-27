@@ -27,8 +27,8 @@ pub use self::scan::{
     ScanError
 };
 
-mod array_scanning_table;
-pub use self::array_scanning_table::ArrayScanningTable;
+mod lex_table;
+pub use self::lex_table::LexTable;
 
 /// Constructs a `RegEx` that recognizes some input string only.
 #[must_use]

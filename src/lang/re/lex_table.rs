@@ -1,12 +1,12 @@
 use super::{RegEx, DFA, ScanningTable, Command};
 
-pub struct ArrayScanningTable {
+pub struct LexTable {
     pub(crate) next:     Vec<usize>,
     pub(crate) classes:  Vec<Option<usize>>,
     pub(crate) commands: Vec<Command>,
 }
 
-impl ArrayScanningTable {
+impl LexTable {
     #[must_use]
     pub fn new<'a, T, C>(regexes: T, commands: C) -> Self
     where
@@ -36,7 +36,7 @@ impl ArrayScanningTable {
     }
 }
 
-impl ScanningTable for ArrayScanningTable {
+impl ScanningTable for LexTable {
     fn step(&self, state: usize, symbol: u8) -> usize {
         self.next[256 * state + symbol as usize]
     }

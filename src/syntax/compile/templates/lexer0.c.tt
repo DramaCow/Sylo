@@ -1,10 +1,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define NEXT_CHAR(CHAR) \
-    uint8_t CHAR = this->input[this->index]; \
-    if (++this->index == this->length) goto done;
-
 struct { name } \{
     const uint8_t *const input;
     const size_t length;
@@ -37,15 +33,15 @@ struct { name }_Item \{
     };
 };
 
-inline struct { name }_Item { name }_Item_newToken(enum { name }_TokenType type, size_t span_start, size_t span_end) \{
+static inline struct { name }_Item { name }_Item_newToken(enum { name }_TokenType type, size_t span_start, size_t span_end) \{
     return (struct { name }_Item) \{ .tag = OK, .token = \{ type, span_start, span_end } };
 }
 
-inline struct { name }_Item { name }_Item_newError(size_t pos) \{
+static inline struct { name }_Item { name }_Item_newError(size_t pos) \{
     return (struct { name }_Item) \{ .tag = ERR, .error = pos };
 }
 
-inline struct { name }_Item { name }_Item_newNone() \{
+static inline struct { name }_Item { name }_Item_newNone() \{
     return (struct { name }_Item) \{ .tag = NONE };
 }
 
@@ -53,9 +49,13 @@ struct { name } { name }_new(const uint8_t *input, size_t length) \{
     return (struct { name }) \{ .input = input, .length = length, .index = 0 };
 }
 
-struct { name }_Item { name }_next(struct { name } *this) \{
+struct { name }_Item { name }_next(struct { name } *const this) \{
+    if (this->index >= this->length) \{
+        return { name }_Item_newNone();
+    }
+
     size_t start_index = this->index;
     enum { name }_TokenType last_accept_ttype = TT_ERROR;
-    size_t last_accept_index = 0;
+    size_t last_accept_index;
 
     // *** LEXER TABLE START ***

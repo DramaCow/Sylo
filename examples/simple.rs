@@ -8,7 +8,7 @@ use std::time::Instant;
 fn main() {
     let timer = Instant::now();
 
-    let def = parser_def! {
+    let def = parser! {
         {
             [skip] _ws: re::any(" ,").plus(),
             word:       re::range('a', 'z').plus(),

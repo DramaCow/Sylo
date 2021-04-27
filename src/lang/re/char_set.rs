@@ -1,4 +1,4 @@
-use crate::iter::IteratorExtensions;
+use crate::utils::iter::IteratorExtensions;
 use std::iter::once;
 use std::cmp::{min, max, Ordering::{Less, Greater}};
 use std::slice;

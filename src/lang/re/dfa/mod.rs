@@ -2,7 +2,7 @@ use std::collections::{HashSet, HashMap, BTreeMap};
 use std::iter::once;
 
 use crate::lang::re::{CharSet, RegEx, Operator};
-use crate::debug::StringBuilder;
+use crate::utils::StringBuilder;
 
 pub struct DFA {
     states: Vec<State>,

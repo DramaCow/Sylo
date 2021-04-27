@@ -2,7 +2,7 @@ use crate::lang::re;
 
 #[test]
 fn simple_lexer() {
-    let lexer = lexer_def! {
+    let lexer = lexer! {
         [skip] _ws: re::any(" ,").plus(),
         word:       re::any("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz").plus()
     }.compile();

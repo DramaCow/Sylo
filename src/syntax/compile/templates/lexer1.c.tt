@@ -7,13 +7,11 @@
             return { name }_Item_newError(pos);
         } else if (last_accept_ttype == TT_SKIP) \{
             this->index = last_accept_index;
-            return { name }_Item_newNone();
+            return { name }_next(this);
         } else \{
             this->index = last_accept_index;
             return { name }_Item_newToken(last_accept_ttype, start_index, last_accept_index);
         }
-    done:
-        return (struct { name }_Item) \{ .tag = NONE };
 }
 
 int main() \{

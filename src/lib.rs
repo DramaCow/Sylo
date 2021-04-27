@@ -5,9 +5,8 @@
 #![allow(clippy::similar_names)]
 // #![warn(missing_docs)]
 
+pub(crate) mod utils;
+
 #[macro_use]
 pub mod lang;
-pub mod cst;
-
-pub(crate) mod iter;
-pub(crate) mod debug;
+pub mod syntax;

@@ -1,7 +1,7 @@
 //! TODO
 
-use crate::debug::StringBuilder;
-use crate::lang::Parser;
+use super::Parser;
+use crate::utils::StringBuilder;
 
 /// Concrete Syntax Tree.
 #[derive(Debug)]

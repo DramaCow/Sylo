@@ -12,9 +12,9 @@ pub use self::parse::{
     ParseError,
 };
 
-mod array_parsing_table;
-pub use self::array_parsing_table::{
-    ArrayParsingTable,
+mod lr1_table;
+pub use self::lr1_table::{
+    LR1Table,
     ConstructionError,
     Conflict,
 };

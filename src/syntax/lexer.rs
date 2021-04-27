@@ -1,7 +1,5 @@
-use super::{
-    Vocabulary,
-    re::{RegEx, Command, ArrayScanningTable, Scan},
-};
+use super::Vocabulary;
+use crate::lang::re::{RegEx, Command, LexTable, Scan};
 
 pub struct LexerDef {
     pub vocab: Vocabulary,
@@ -11,7 +9,7 @@ pub struct LexerDef {
 
 pub struct Lexer {
     pub(super) vocab: Vocabulary,
-    pub(super) table: ArrayScanningTable,
+    pub(super) table: LexTable,
 }
 
 impl LexerDef {
@@ -19,14 +17,14 @@ impl LexerDef {
     pub fn compile(&self) -> Lexer {
         Lexer {
             vocab: self.vocab.clone(),
-            table: ArrayScanningTable::new(&self.regexes, self.commands.iter().copied()),
+            table: LexTable::new(&self.regexes, self.commands.iter().copied()),
         }
     }
 }
 
 impl<'a> Lexer {
     #[must_use]
-    pub fn scan<I>(&'a self, input: &'a I) -> Scan<'a, ArrayScanningTable, I>
+    pub fn scan<I>(&'a self, input: &'a I) -> Scan<'a, LexTable, I>
     where
         I: AsRef<[u8]> + ?Sized
     {

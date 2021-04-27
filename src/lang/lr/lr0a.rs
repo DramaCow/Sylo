@@ -2,7 +2,7 @@
 
 use std::collections::{BTreeSet, HashMap};
 use crate::lang::cfg::{Grammar, Symbol};
-use crate::debug::StringBuilder;
+use crate::utils::StringBuilder;
 use super::LR0Item;
 
 pub struct LR0A {

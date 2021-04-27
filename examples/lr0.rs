@@ -10,7 +10,7 @@ use std::time::Instant;
 fn main() {
     let timer = Instant::now();
 
-    let def = parser_def! {
+    let def = parser! {
         {
             id:     re::range('a', 'z').plus(),
             lparen: re::literal("("),

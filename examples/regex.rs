@@ -2,10 +2,12 @@
 #[macro_use] extern crate sylo;
 
 use sylo::lang::{
-    Precedence,
-    Associativity,
     re,
     lr::LR1ABuilder,
+};
+use sylo::syntax::{
+    Precedence,
+    Associativity,
 };
 use std::time::Instant;
 
@@ -16,11 +18,11 @@ fn main() {
     .or(&re::literal("\\\\"))
     .or(&re::literal("\\\""));
     
-    let mut def = parser_def! {
+    let mut def = parser! {
         {
             /* 0*/ [skip] _ws: re::any(" \n\t\r").plus(),
             /* 1*/ string:     re::literal("\"").then(&c.plus()).then(&re::literal("\"")),
-            /* 2*/ char:       re::literal("'").then(&c).then(&re::literal("'")),
+            /* 2*/ CHAR:       re::literal("'").then(&c).then(&re::literal("'")),
             /* 3*/ range:      re::literal(".."),
             /* 4*/ and:        re::literal("&"),
             /* 5*/ or:         re::literal("|"),
@@ -47,8 +49,8 @@ fn main() {
             /* 7*/      | not Expr
             /* 8*/      | lparen Expr rparen
             /* 9*/      | string
-            /*10*/      | char
-            /*11*/      | char range char,
+            /*10*/      | CHAR
+            /*11*/      | CHAR range CHAR,
         }
     };
 
@@ -61,7 +63,7 @@ fn main() {
 
     let parser = def.build().unwrap();
     println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());  
-    println!("{}", sylo::lang::c_render::render_lexer(&parser.lexer, "MyLexer").unwrap());
+    println!("{}", sylo::syntax::compile::c_render::render_lexer(&parser.lexer, "MyLexer").unwrap());
 
     let timer2 = Instant::now();
     let text = "('A'..'Z' | 'a'..'z' | '_') ('A'..'Z' | 'a'..'z' | '0'..'9' | '_')* - '_'+";
