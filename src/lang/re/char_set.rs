@@ -145,8 +145,8 @@ impl CharSet {
     pub fn union(&self, other: &Self) -> Self {
         // TODO: refactor. Using merge_by() results in more comparisons that necessary.
 
-        let iter1 = self.intervals.iter().cloned();
-        let iter2 = other.intervals.iter().cloned();
+        let iter1 = self.intervals.iter().copied();
+        let iter2 = other.intervals.iter().copied();
 
         let mut iter = iter1.merge_by(iter2, |i1, i2| {
             if i1.0 <= i2.0 { Less } else { Greater }

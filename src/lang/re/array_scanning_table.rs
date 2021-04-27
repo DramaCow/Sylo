@@ -17,15 +17,15 @@ impl ArrayScanningTable {
         
         let nrows = dfa.states().len() - 1; // excluding sink
         let mut next = vec![nrows; 256 * nrows];
-        for (row, state) in dfa.states().iter().skip(1).enumerate() {
+        for (i, state) in dfa.states().iter().skip(1).enumerate() {
             for (&symbol, &dest) in &state.next {
-                next[256 * row + symbol as usize] = dest - 1;
+                next[256 * i + symbol as usize] = dest - 1;
             }
         }
         
         let classes = dfa.states().iter().skip(1)
             .map(|state| state.class)
-             .chain(vec![None]) // <-- sink states class
+            .chain(vec![None]) // <-- sink states class
             .collect();
         
         Self {

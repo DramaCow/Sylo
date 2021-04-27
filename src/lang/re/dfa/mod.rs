@@ -60,38 +60,38 @@ impl DFA {
         &self.states
     }
 
-    #[must_use]
-    pub fn dot(&self) -> String {
+    /// # Errors
+    pub fn dot(&self) -> Result<String, std::fmt::Error> {
         let mut obj = StringBuilder::new();
 
-        obj.writeln("digraph DFA {");
+        writeln!(obj, "digraph DFA {{")?;
         obj.indent();
 
-        obj.writeln("rankdir=LR;");
+        writeln!(obj, "rankdir=LR;")?;
         obj.newline();
 
-        obj.writeln("node[shape=point]; q;");
-        obj.writeln("node[shape=invhouse]; s0[label=\"\"];");
+        writeln!(obj, "node[shape=point]; q;")?;
+        writeln!(obj, "node[shape=invhouse]; s0[label=\"\"];")?;
         obj.newline();
 
-        obj.writeln("node[shape=doublecircle];");
+        writeln!(obj, "node[shape=doublecircle];")?;
         for (a, state) in self.states().iter().enumerate().skip(1) {
             if let Some(class) = state.class {
-                obj.writeln(&format!("s{}[label=\"{}\"];", a, class));
+                writeln!(obj, "s{}[label=\"{}\"];", a, class)?;
             }
         }
         obj.newline();
 
-        obj.writeln("node[shape=circle];");
+        writeln!(obj, "node[shape=circle];")?;
         for (a, state) in self.states().iter().enumerate().skip(1) {
             if state.class.is_none() {
-                obj.writeln(&format!("s{}[label=\"\"];", a));
+                writeln!(obj, "s{}[label=\"\"];", a)?;
             }
         }
         
         obj.newline();
-        obj.writeln(&format!("s0->s0[label=\"{:?}\"];", CharSet::universe()));
-        obj.writeln("q->s1;");
+        writeln!(obj, "s0->s0[label=\"{:?}\"];", CharSet::universe())?;
+        writeln!(obj, "q->s1;")?;
 
         for (a, state) in self.states().iter().enumerate().skip(1) {
             let mut inv: HashMap<usize, Vec<u8>>= HashMap::new();
@@ -104,14 +104,14 @@ impl DFA {
                 for symbol in symbols {
                     set = set.union(&CharSet::point(*symbol));
                 }
-                obj.writeln(&format!("s{}->s{}[label=\"{:?}\"];", a, b, set));
+                writeln!(obj, "s{}->s{}[label=\"{:?}\"];", a, b, set)?;
             }
         }
 
         obj.unindent();
-        obj.writeln("}");
+        writeln!(obj, "}}")?;
 
-        obj.build()
+        Ok(obj.build())
     }
 }
 

@@ -62,8 +62,8 @@ impl<'a> CSTBuilder<'a> {
 }
 
 impl CST<'_> {
-    #[must_use]
-    pub fn dot(&self, parser: &Parser) -> String {
+    /// # Errors
+    pub fn dot(&self, parser: &Parser) -> Result<String, std::fmt::Error> {
         dot_with_labelling_internal(self, |word| self.lexemes[word], |var| &parser.var_names[var])
     }
 }
@@ -74,7 +74,7 @@ impl CST<'_> {
 
 #[derive(Debug)]
 enum Node {
-    Leaf { #[deprecated] word: usize, index: usize },
+    Leaf { word: usize, index: usize },
     Branch { var: usize, head: usize },
 }
 
@@ -137,7 +137,8 @@ impl CSTBuilder<'_> {
     }
 }
 
-fn dot_with_labelling_internal<F, G, T, U>(cst: &CST, word_labelling: F, var_labelling: G) -> String
+/// # Errors
+fn dot_with_labelling_internal<F, G, T, U>(cst: &CST, word_labelling: F, var_labelling: G) -> Result<String, std::fmt::Error>
     where F: Fn(usize) -> T,
           G: Fn(usize) -> U,
           T: std::fmt::Display,
@@ -145,14 +146,14 @@ fn dot_with_labelling_internal<F, G, T, U>(cst: &CST, word_labelling: F, var_lab
 {
     let mut dot = StringBuilder::new();
 
-    dot.writeln("digraph CC {")
-       .indent();
+    writeln!(dot, "digraph CC {{")?;
+    dot.indent();
 
     // nodes
     for (id, node) in cst.nodes.iter().enumerate() {
         match *node {
-            Node::Leaf { word: _, index } => dot.writeln(&format!("s{}[label=\"{}\", shape=none];", id, word_labelling(index))),
-            Node::Branch { var, .. } => dot.writeln(&format!("s{}[label=\"{}\", shape=oval];", id, var_labelling(var))),
+            Node::Leaf { word: _, index } => { writeln!(dot, "s{}[label=\"{}\", shape=none];", id, word_labelling(index))?; }
+            Node::Branch { var, .. } =>  { writeln!(dot, "s{}[label=\"{}\", shape=oval];", id, var_labelling(var))?; }
         };
     }
     dot.newline();
@@ -164,7 +165,7 @@ fn dot_with_labelling_internal<F, G, T, U>(cst: &CST, word_labelling: F, var_lab
             let mut index = head;
             loop {
                 let link = &cst.links[index];
-                dot.writeln(&format!("s{}->s{};", id, link.index));
+                writeln!(dot, "s{}->s{};", id, link.index)?;
                 stack.push(link.index);
                 if let Some(next) = link.next {
                     index = next;
@@ -177,20 +178,20 @@ fn dot_with_labelling_internal<F, G, T, U>(cst: &CST, word_labelling: F, var_lab
     dot.newline();
 
     // place leaves on same level
-    dot.writeln("{")
-       .indent()
-       .writeln("rank=max;")
-       .newline();
+    writeln!(dot, "{{")?;
+    dot.indent();
+    writeln!(dot, "rank=max;")?;
+    dot.newline();
     for (id, node) in cst.nodes.iter().enumerate() {
         if let Node::Leaf { .. } = node {
-            dot.writeln(&format!("s{}; ", id));
+            writeln!(dot, "s{}; ", id)?;
         }
     }
 
-    dot.unindent()
-       .writeln("}")
-       .unindent()
-       .write("}");
+    dot.unindent();
+    writeln!(dot, "}}")?;
+    dot.unindent();
+    write!(dot, "}}")?;
 
-    dot.build()
+    Ok(dot.build())
 }

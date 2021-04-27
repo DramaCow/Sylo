@@ -5,8 +5,6 @@
 #![allow(clippy::similar_names)]
 // #![warn(missing_docs)]
 
-// extern crate tera;
-
 #[macro_use]
 pub mod lang;
 pub mod cst;

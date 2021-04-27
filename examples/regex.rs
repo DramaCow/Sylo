@@ -57,17 +57,17 @@ fn main() {
     let timer = Instant::now();
 
     let lr1a = LR1ABuilder::new(&def.grammar).build();
-    std::fs::write("_graph.dot", lr1a.dot(&def.grammar, &def.lexer_def.vocab.symbolic_names, &def.var_names, true)).unwrap();
+    std::fs::write("_graph.dot", lr1a.dot(&def.grammar, &def.lexer_def.vocab.symbolic_names, &def.var_names, true).unwrap()).unwrap();
 
     let parser = def.build().unwrap();
     println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());  
-    println!("{}", sylo::lang::c_render::render_lexer(&parser.lexer, "MyLexer"));
+    println!("{}", sylo::lang::c_render::render_lexer(&parser.lexer, "MyLexer").unwrap());
 
     let timer2 = Instant::now();
     let text = "('A'..'Z' | 'a'..'z' | '_') ('A'..'Z' | 'a'..'z' | '0'..'9' | '_')* - '_'+";
     let cst = parser.cst(text).unwrap();
     println!("CST built in {:?}.", timer2.elapsed());
     
-    std::fs::write("_graph.dot", cst.dot(&parser)).unwrap();
+    std::fs::write("_graph.dot", cst.dot(&parser).unwrap()).unwrap();
     // let regex = compile(&cst, cst.root());
 }

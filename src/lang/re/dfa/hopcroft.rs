@@ -125,7 +125,7 @@ impl InvDFA {
 
 fn alphabet(states: &[State]) -> Vec<u8> {
     let mut iter = states.iter().map(|state| state.next.keys());
-    let alph = iter.next().unwrap().cloned().collect::<HashSet<_>>();
+    let alph = iter.next().unwrap().copied().collect::<HashSet<_>>();
     let alph = iter.fold(alph, |mut alph, keys| {
         alph.extend(keys); alph
     });
@@ -158,12 +158,12 @@ fn take_some(waiting: &mut BTreeSet<Ids>) -> Ids {
 
 fn split_sets<'a>(sets: &'a Partition, domain: &'a Ids) -> impl Iterator<Item=(Ids, (Ids, Ids))> + 'a {
     sets.iter().filter_map(move |p| {
-        let inter: Ids = p.intersection(domain).cloned().collect();
+        let inter: Ids = p.intersection(domain).copied().collect();
 
         if inter.is_empty() {
             None
         } else {
-            let diff: Ids = p.difference(domain).cloned().collect();
+            let diff: Ids = p.difference(domain).copied().collect();
             if diff.is_empty() {
                 None
             } else {

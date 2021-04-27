@@ -315,71 +315,71 @@ impl RegEx {
         }
     }
 
-    #[must_use]
-    pub fn dot(&self) -> String {
+    /// # Errors
+    pub fn dot(&self) -> Result<String, Error> {
         let mut stack: Vec<(usize, &RegEx)> = vec![(0, self)];
         let mut next_id = 0_usize;
 
         let mut obj = StringBuilder::new();
 
-        obj.writeln("digraph RegEx {");
+        writeln!(obj, "digraph RegEx {{")?;
         obj.indent();
-        obj.writeln("node[shape=plain];");
+        writeln!(obj, "node[shape=plain];")?;
         
         while let Some((parent_id, parent)) = stack.pop() {
             match parent.operator() {
                 Operator::None => {
-                    obj.writeln(&format!("s{}[label=\"\u{2205}\"]", parent_id));
+                    writeln!(obj, "s{}[label=\"\u{2205}\"]", parent_id)?;
                 },
                 Operator::Epsilon => {
-                    obj.writeln(&format!("s{}[label=\"\u{03B5}\"]", parent_id));
+                    writeln!(obj, "s{}[label=\"\u{03B5}\"]", parent_id)?;
                 },
                 Operator::Set(set) => {
-                    obj.writeln(&format!("s{}[label=\"{:?}\"]", parent_id, set));
+                    writeln!(obj, "s{}[label=\"{:?}\"]", parent_id, set)?;
                 },
                 Operator::Cat(children) => {
-                    obj.writeln(&format!("s{}[label=\"cat\"]", parent_id));
+                    writeln!(obj, "s{}[label=\"cat\"]", parent_id)?;
                     for child in children {
                         next_id += 1;
-                        obj.writeln(&format!("s{}->s{}", parent_id, next_id));
+                        writeln!(obj, "s{}->s{}", parent_id, next_id)?;
                         stack.push((next_id, child));
                     }
                 },
                 Operator::Star(child) => {
-                    obj.writeln(&format!("s{}[label=\"star\"]", parent_id));
+                    writeln!(obj, "s{}[label=\"star\"]", parent_id)?;
                     next_id += 1;
-                    obj.writeln(&format!("s{}->s{}", parent_id, next_id));
+                    writeln!(obj, "s{}->s{}", parent_id, next_id)?;
                     stack.push((next_id, child));
                 },
                 Operator::Or(children) => {
-                    obj.writeln(&format!("s{}[label=\"or\"]", parent_id));
+                    writeln!(obj, "s{}[label=\"or\"]", parent_id)?;
                     for child in children {
                         next_id += 1;
-                        obj.writeln(&format!("s{}->s{}", parent_id, next_id));
+                        writeln!(obj, "s{}->s{}", parent_id, next_id)?;
                         stack.push((next_id, child));
                     }
                 },
                 Operator::And(children) => {
-                    obj.writeln(&format!("s{}[label=\"and\"]", parent_id));
+                    writeln!(obj, "s{}[label=\"and\"]", parent_id)?;
                     for child in children {
                         next_id += 1;
-                        obj.writeln(&format!("s{}->s{}", parent_id, next_id));
+                        writeln!(obj, "s{}->s{}", parent_id, next_id)?;
                         stack.push((next_id, child));
                     }
                 },
                 Operator::Not(child) => {
-                    obj.writeln(&format!("s{}[label=\"not\"]", parent_id));
+                    writeln!(obj, "s{}[label=\"not\"]", parent_id)?;
                     next_id += 1;
-                    obj.writeln(&format!("s{}->s{}", parent_id, next_id));
+                    writeln!(obj, "s{}->s{}", parent_id, next_id)?;
                     stack.push((next_id, child));
                 },
             }
         }
 
         obj.unindent();
-        obj.writeln("}");
+        writeln!(obj, "}}")?;
         
-        obj.build()
+        Ok(obj.build())
     }
 }
 

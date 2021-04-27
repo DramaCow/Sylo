@@ -1,0 +1,61 @@
+#include <stddef.h>
+#include <stdint.h>
+
+#define NEXT_CHAR(CHAR) \
+    uint8_t CHAR = this->input[this->index]; \
+    if (++this->index == this->length) goto done;
+
+struct { name } \{
+    const uint8_t *const input;
+    const size_t length;
+    size_t index;
+};
+
+enum { name }_TokenType \{
+    {{ for label in ttype_labels -}}
+    { label },
+    {{ endfor -}}
+    TT_ERROR = -1,
+    TT_SKIP = -2,
+};
+
+struct { name }_Token \{
+    enum { name }_TokenType type;
+    size_t span_start;
+    size_t span_end;
+};
+
+struct { name }_Error \{
+    size_t pos;
+};
+
+struct { name }_Item \{
+    enum \{ OK = 0, ERR = 1, NONE = -1 } tag;
+    union \{
+        struct { name }_Token token;
+        struct { name }_Error error;
+    };
+};
+
+inline struct { name }_Item { name }_Item_newToken(enum { name }_TokenType type, size_t span_start, size_t span_end) \{
+    return (struct { name }_Item) \{ .tag = OK, .token = \{ type, span_start, span_end } };
+}
+
+inline struct { name }_Item { name }_Item_newError(size_t pos) \{
+    return (struct { name }_Item) \{ .tag = ERR, .error = pos };
+}
+
+inline struct { name }_Item { name }_Item_newNone() \{
+    return (struct { name }_Item) \{ .tag = NONE };
+}
+
+struct { name } { name }_new(const uint8_t *input, size_t length) \{
+    return (struct { name }) \{ .input = input, .length = length, .index = 0 };
+}
+
+struct { name }_Item { name }_next(struct { name } *this) \{
+    size_t start_index = this->index;
+    enum { name }_TokenType last_accept_ttype = TT_ERROR;
+    size_t last_accept_index = 0;
+
+    // *** LEXER TABLE START ***

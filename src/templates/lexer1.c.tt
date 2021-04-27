@@ -1,0 +1,21 @@
+    // ***  LEXER TABLE END  ***
+
+    sink:
+        if (last_accept_ttype == TT_ERROR) \{
+            size_t pos = this->index;
+            this->index = -1; // forces next iteration to return None
+            return { name }_Item_newError(pos);
+        } else if (last_accept_ttype == TT_SKIP) \{
+            this->index = last_accept_index;
+            return { name }_Item_newNone();
+        } else \{
+            this->index = last_accept_index;
+            return { name }_Item_newToken(last_accept_ttype, start_index, last_accept_index);
+        }
+    done:
+        return (struct { name }_Item) \{ .tag = NONE };
+}
+
+int main() \{
+    return 0;
+}

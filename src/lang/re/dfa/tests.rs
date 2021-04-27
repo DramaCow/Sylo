@@ -9,7 +9,7 @@ fn test() {
     let c = RegEx::set(CharSet::point(3));
     let regex = a.or(&b.then(&a)).or(&c);
     let dfa = DFA::from(&regex);
-    println!("{}", dfa.dot());
+    println!("{}", dfa.dot().unwrap());
 }
 
 #[test]

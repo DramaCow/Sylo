@@ -38,7 +38,7 @@ fn parentheses_grammar() {
     };
 
     for sentence in all_sentences(2, 12) {
-        let input = sentence.iter().cloned().map(Ok::<_,()>);
+        let input = sentence.iter().copied().map(Ok::<_,()>);
         let valid = is_valid(&sentence);
         let parse = Parse::new(&parser, input, |a: &usize| *a).collect::<Result<Vec<_>, _>>();
 
@@ -80,7 +80,7 @@ fn parentheses_grammar_2() {
 fn all_sentences(termcount: usize, maxlen: usize) -> Vec<Vec<usize>> {
     (0..=maxlen).scan(vec![Vec::new()], |ws, _| {
         let res = ws.clone();
-        *ws = ws.iter().flat_map(|w| (0..termcount).map(move |b| { w.iter().cloned().chain(once(b)).collect() })).collect();
+        *ws = ws.iter().flat_map(|w| (0..termcount).map(move |b| { w.iter().copied().chain(once(b)).collect() })).collect();
         Some(res)
     }).flatten().collect()
 }

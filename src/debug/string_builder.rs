@@ -1,3 +1,5 @@
+use std::fmt::{Error, Write, Arguments};
+
 #[derive(Default)]
 pub struct StringBuilder {
     string: String,
@@ -17,24 +19,13 @@ impl StringBuilder {
         }
     }
 
-    pub fn write(&mut self, text: &str) -> &mut Self {
-        if !self.written_to_line {
-            self.written_to_line = true;
-            self.string.push_str(&self.indent);
-        }
-        self.string.push_str(text);
-        self
+    pub fn write_fmt(&mut self, fmt: Arguments) -> Result<(), Error> {
+        <Self as Write>::write_fmt(self, fmt)
     }
 
     pub fn newline(&mut self) -> &mut Self {
         self.string.push('\n');
         self.written_to_line = false;
-        self
-    }
-
-    pub fn writeln(&mut self, text: &str) -> &mut Self {
-        self.write(text);
-        self.newline();
         self
     }
 
@@ -55,5 +46,22 @@ impl StringBuilder {
     #[must_use]
     pub fn build(self) -> String {
         self.string
+    }
+}
+
+impl Write for StringBuilder {
+    fn write_str(&mut self, s: &str) -> Result<(), Error> {
+        if !self.written_to_line {
+            self.written_to_line = true;
+            self.string.push_str(&self.indent);
+        }
+
+        self.string.push_str(s);
+
+        if let Some('\n') = s.chars().last() {
+            self.written_to_line = false;
+        }
+
+        Ok(())
     }
 }

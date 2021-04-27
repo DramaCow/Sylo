@@ -1,5 +1,4 @@
 use crate::lang::re::{self, RegEx};
-use std::char::from_u32;
 
 #[must_use]
 pub fn basic_latin() -> RegEx {

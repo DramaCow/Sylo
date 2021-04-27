@@ -1,180 +1,186 @@
 use std::collections::{
-    HashMap,
-    BTreeSet,
+    BTreeMap,
+    btree_map::Entry::{Occupied, Vacant},
 };
 use crate::debug::StringBuilder;
 use super::{
     Lexer,
-    Vocabulary,
     re::ScanningTable,
+    re::Command,
 };
+use tinytemplate::TinyTemplate;
+use serde::Serialize;
 
-#[allow(clippy::too_many_lines)]
-#[must_use]
-pub fn render_lexer(lexer: &Lexer, name: &str) -> String {
+/// # Errors
+pub fn render_lexer(lexer: &Lexer, name: &str) -> Result<String, std::fmt::Error> {
+    #[derive(Serialize)]
+    struct Context {
+        name: String,
+        ttype_labels: Vec<String>,
+    }
+
+    let lexdata = LexerSer::new(lexer);
+    
     let mut fmt = StringBuilder::new();
-
-    let scan_type      = &format!("struct {}Scan", name);
-    let ttype_type     = &format!("enum {}TokenType", name);
-    let token_type     = &format!("struct {}Token", name);
-    let error_type     = &format!("struct {}Error", name);
-    let scan_item_type = &format!("struct {}Scan_Item", name);
-
-    #[allow(clippy::useless_format)]
-    let code = format!("\
-#include <stddef.h>
-#include <stdint.h>
-
-#define NEXT_CHAR(CHAR) \\
-    do {{ \\
-        uint8_t CHAR = this->input[index]; \\
-        if (++index == this->length) goto done; \\
-    }} while (0);
-
-{scan_type} {{
-    const uint8_t *const input;
-    const size_t length;
-    size_t index;
-}};
-
-{ttype_type} {{
-    // todo
-}};
-
-{token_type} {{
-    {ttype_type} type;
-    size_t span_start;
-    size_t span_end;
-}};
-
-{error_type} {{
-    size_t pos;
-}};
-
-{scan_item_type} {{
-    enum {{ OK = 0, ERR = 1, NONE = -1 }} tag;
-    union {{
-        {token_type} token;
-        {error_type} error;
-    }};
-}};
-
-{scan_item_type} {name}Scan_next({scan_type} *this) {{
-    size_t index = this->index;
-    {ttype_type} last_accept_ttype;
-    size_t last_accept_index = 0;
-
-    // todo
-}}
-
-int main() {{
-    return 0;
-}}
-",
-    name = name,
-    scan_type = scan_type,
-    ttype_type = ttype_type,
-    token_type = token_type,
-    error_type = error_type,
-    scan_item_type = scan_item_type,
-);
-
-    fmt.writeln(&code);
-
-    // fmt.write(ttype_type).writeln(" {").indent();
-    // for ttype in &lexer.vocab.symbolic_names {
-    //     fmt.write(&ttype.to_uppercase()).writeln(",");
-    // }
-    // fmt.unindent().writeln("};");
-    // fmt.newline();
-
-    // ===
-
-    let next_char = "NEXT_CHAR(ch)";
-
-    for (i, row) in lexer.table.next.chunks_exact(256).enumerate() {
-        //
-        let mut state2chars: HashMap<usize, BTreeSet<u8>> = HashMap::new();
-        let mut can_transition_to_unlabelled_state = false; // NOTE: I consider the sink a "labelled" state
-        for (ch, state) in (0..=255_u8).zip(row.iter().copied()) {
-            if state != lexer.table.sink() {
-                state2chars.entry(state).or_default().insert(ch);
-
-                if lexer.table.class(state).is_none() {
-                    can_transition_to_unlabelled_state = true;
-                }
-            }
-        }
-
-        fmt.write("s").write(&i.to_string()).write(": { ").writeln(next_char).indent();
+    fmt.indent();
+        
+    for (i, state) in lexdata.states.iter().enumerate() {
+        writeln!(fmt, "s{}: {{", i)?;
+        fmt.indent();
+        writeln!(fmt, "NEXT_CHAR(ch)")?;
 
         // `i` is a labelled state
-        if let Some(class) = lexer.table.class(i) {
-            let ttype = &lexer.vocab.symbolic_names[class].to_uppercase(); // TODO:
+        if let Some(class) = state.class {
+            let ttype = if let Command::Skip = lexer.table.command(class) {
+                "TT_SKIP"
+            } else {
+                &lexer.vocab.symbolic_names[class]
+            }.to_uppercase();
 
             // If `i` can only transition to labelled states, then either
             // its corresponding token will be returned immediately or the
             // token of any destination state will take priority (due to
             // maximal munch). As such, there would be no need for the
             // last accept token type or index to be stored. 
-            if can_transition_to_unlabelled_state {
-                fmt.write("last_accept_ttype = ").write(ttype).writeln(";");
-                fmt.writeln("last_accept_index = index;");
+            if state.can_transition_to_unlabelled_state {
+                writeln!(fmt, "last_accept_ttype = {};", ttype)?;
+                writeln!(fmt, "last_accept_index = this->index;")?;
             }
+        }
+
+        // Transitions to non-sink states. Semantically speaking, if any no
+        // transition is taken, then we transition to the sink state.
+        for Transition { intervals, dest } in &state.transitions {
+            write!(fmt, "if (")?;
+
+            for (i, &(start, end)) in intervals.iter().enumerate() {
+                if i > 0 {
+                    write!(fmt, "    ")?;
+                }
+
+                #[allow(clippy::comparison_chain)]
+                if start + 1 < end {
+                    write!(fmt, "(0x{:02x?} <= ch && ch <= 0x{:02x?})", start, end)?;
+                } else if start + 1 == end {
+                    writeln!(fmt, "ch == 0x{:02x?} ||", start)?;
+                    write!(fmt, "    ch == 0x{:02x?}", end)?;
+                } else {
+                    write!(fmt, "ch == 0x{:02x?}", start)?;
+                }
+
+                if i < intervals.len() - 1 {
+                    writeln!(fmt, " ||")?;
+                }
+            }
+
+            writeln!(fmt, ") goto s{};", dest)?;
         }
         
-        for (&state, chars) in &state2chars {
-            let mut iter = chars.iter().copied();
+        // `i` is a labelled state
+        if let Some(class) = state.class {
+            if let Command::Skip = lexer.table.command(class) {
+                writeln!(fmt, "return {}_next(this);", name)?;
+            } else {
+                writeln!(fmt, "return {}_Item_newToken({}, start_index, this->index);", name, lexer.vocab.symbolic_names[class].to_uppercase())?;
+            }
+        } else {
+            writeln!(fmt, "goto sink;")?;
+        }
 
-            if let Some(ch0) = iter.next() {
-                fmt.write("if (");
-                
-                let mut start = ch0;
-                let mut end = ch0;
+        fmt.unindent();
+        writeln!(fmt, "}}")?;
+    }
 
-                for ch in iter {
-                    if end + 1 == ch {
-                        end = ch;
-                    } else {
-                        if start + 1 < end {
-                            fmt.write("(").write(&hex(start)).write(" <= ch && ch <= ").write(&hex(end)).writeln(") ||").write("    ");
-                        } else if start == end {
-                            fmt.write("ch == ").write(&hex(start)).writeln(" ||").write("    ");
+    let context = Context {
+        name: name.to_string(),
+        ttype_labels: lexer.vocab.symbolic_names.iter().map(|name| name.to_uppercase()).collect(),
+    };
+
+    let mut tt = TinyTemplate::new();
+    tt.add_template("lexer0", include_str!("../templates/lexer0.c.tt")).unwrap();
+    tt.add_template("lexer1", include_str!("../templates/lexer1.c.tt")).unwrap();
+
+    Ok(format!("{}\n\n{}\n{}", tt.render("lexer0", &context).unwrap(), fmt.build(), tt.render("lexer1", &context).unwrap()))
+}
+
+// fn hex(x: u8) -> String {
+//     format!("0x{:02x?}", x)
+// }
+
+// ================
+// === INTERNAL ===
+// ================
+
+struct LexerSer {
+    states: Vec<State>,
+}
+
+struct State {
+    transitions: Vec<Transition>,
+    can_transition_to_unlabelled_state: bool,
+    class: Option<usize>,
+}
+
+struct Transition {
+    intervals: Vec<(u8, u8)>,
+    dest: usize,
+}
+
+impl LexerSer {
+    fn new(lexer: &Lexer) -> Self {
+        Self {
+            states: lexer.table.next.chunks_exact(256).enumerate().map(|(i, row)| State::new(lexer, i, row)).collect(),
+        }
+    }
+}
+
+impl State {
+    fn new(lexer: &Lexer, index: usize, row: &[usize]) -> Self {
+        // NOTE: I consider the sink a "labelled" state
+        let mut transitions: BTreeMap<usize, Vec<(u8, u8)>> = BTreeMap::new();
+        let mut can_transition_to_unlabelled_state = false;
+
+        for (ch, state) in (0..=255_u8).zip(row.iter().copied()) {
+            if state != lexer.table.sink() {
+                match transitions.entry(state) {
+                    Occupied(mut entry) => {
+                        let intervals = entry.get_mut();
+                        let last = intervals.last_mut().unwrap();
+                        if last.1 + 1 == ch {
+                            last.1 = ch;
                         } else {
-                            fmt.write("ch == ").write(&hex(start)).writeln(" ||").write("    ").write("ch == ").write(&hex(end)).writeln(" ||").write("    ");
+                            intervals.push((ch, ch));
                         }
-
-                        fmt.write("(").write(&hex(start)).write(" <= ch && ch <= ").write(&hex(end)).writeln(") ||").write("    ");
-                        start = ch;
-                        end = ch;
-                    }
+                    },
+                    Vacant(entry) => { entry.insert(vec![(ch, ch)]); }
                 }
-
-                if start + 1 < end {
-                    fmt.write("(").write(&hex(start)).write(" <= ch && ch <= ").write(&hex(end)).write(")");
-                } else if start == end {
-                    fmt.write("ch == ").write(&hex(start));
-                } else {
-                    fmt.write("ch == ").write(&hex(start)).writeln(" ||").write("    ").write("ch == ").write(&hex(end));
+   
+                if lexer.table.class(state).is_none() {
+                    can_transition_to_unlabelled_state = true;
                 }
-                
-                fmt.write(") goto s").write(&state.to_string()).writeln(";");                
             }
         }
 
-        // `i` is a labelled state
-        if let Some(class) = lexer.table.class(i) {
-            let ttype = &lexer.vocab.symbolic_names[class].to_uppercase(); // TODO:
-            fmt.unindent().write("} return (").write(token_type).writeln(") { OK };").newline();
-        } else {
-            fmt.unindent().writeln("} goto sink;").newline();
+        Self {
+            transitions: transitions.into_iter().map(|(dest, intervals)| Transition { intervals, dest }).collect(),
+            can_transition_to_unlabelled_state,
+            class: lexer.table.class(index),
         }
-
     }
-
-    fmt.build()
 }
 
-fn hex(x: u8) -> String {
-    format!("0x{:02x?}", x)
-}
+// {{ for state in states -}}
+//     s{ @index }: \{
+//         NEXT_CHAR(ch)
+//         {{ for transition in state.transitions -}}
+//         if ({{ for interval in transition.intervals -}}
+//             ({ interval.0 } <= ch && ch <= { interval.1 })
+//             {{- if not @last }} ||
+//             {{ endif }}
+//             {{- endfor }}) goto s{ transition.dest };
+//         {{- if not @last }}
+//         {{ else }}{{ endif }}
+//         {{- endfor }}
+//     }
+
+//     {{ endfor }}

@@ -26,11 +26,11 @@ impl LR0Item {
 
     #[must_use]
     pub fn symbol_at_dot(&self, grammar: &Grammar) -> Option<Symbol> {
-        grammar.alt(self.alt).get(self.pos).cloned()
+        grammar.alt(self.alt).get(self.pos).copied()
     }
 
     #[must_use]
     pub fn symbol_after_dot(&self, grammar: &Grammar) -> Option<Symbol> {
-        grammar.alt(self.alt).get(self.pos + 1).cloned()
+        grammar.alt(self.alt).get(self.pos + 1).copied()
     }
 }
