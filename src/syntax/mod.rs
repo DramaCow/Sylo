@@ -1,14 +1,9 @@
 pub mod compile;
 
-mod vocabulary;
-pub use vocabulary::{
-    Vocabulary,
-};
-
 mod lexer;
 pub use lexer::{
-    LexerDef,
     Lexer,
+    LexerBuilder,
 };
 
 mod parser;

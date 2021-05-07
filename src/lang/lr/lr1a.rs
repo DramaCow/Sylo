@@ -115,7 +115,7 @@ fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, lr1a: &LR1A, word_
 
     for (A, state) in lr1a.states.iter().enumerate() {
         for (symbol, B) in &state.next {
-            writeln!(dot, "s{}->s{}[label={:?}]?;", A, B, 
+            writeln!(dot, "s{}->s{}[label={:?}];", A, B, 
                 match symbol {
                     Symbol::Terminal(a) => format!("{}", word_labelling(*a)),
                     Symbol::Variable(A) => format!("{}", var_labelling(*A)),

@@ -1,7 +1,7 @@
 use std::mem;
 use super::{
     Action,
-    ParsingTable,
+    LRTable,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -29,7 +29,7 @@ pub enum ParseError<E> {
 
 impl<'a, P, I, T, F> Parse<'a, P, I, T, F>
 where
-    P: ParsingTable,
+    P: LRTable,
     F: Fn(&T) -> usize,
 {
     #[must_use]
@@ -48,7 +48,7 @@ where
 
 impl<'a, P, I, T, E, F> Iterator for Parse<'a, P, I, T, F>
 where
-    P: ParsingTable,
+    P: LRTable,
     I: Iterator<Item=Result<T, E>>,
     F: Fn(&T) -> usize,
 {

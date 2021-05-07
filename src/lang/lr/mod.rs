@@ -2,7 +2,14 @@ mod table;
 pub use self::table::{
     Action,
     Reduction,
-    ParsingTable,
+    LRTable,
+};
+
+mod naive;
+pub use self::naive::{
+    ConstructionError,
+    Conflict,
+    NaiveLRTable,
 };
 
 mod parse;
@@ -10,13 +17,6 @@ pub use self::parse::{
     Event,
     Parse,
     ParseError,
-};
-
-mod lr1_table;
-pub use self::lr1_table::{
-    LR1Table,
-    ConstructionError,
-    Conflict,
 };
 
 mod lr0_item;

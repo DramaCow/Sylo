@@ -8,15 +8,15 @@ use super::{LR1Item, LR1A, lr1a::State};
 
 pub struct LR1ABuilder<'a> {
     grammar: &'a Grammar,
-    first: First,
+    first: &'a First,
 }
 
 impl<'a> LR1ABuilder<'a> {
     #[must_use]
-    pub fn new(grammar: &'a Grammar) -> Self {
+    pub fn new(grammar: &'a Grammar, first: &'a First) -> Self {
         LR1ABuilder {
             grammar,
-            first: First::new(grammar),
+            first,
         }
     }
 
@@ -142,7 +142,7 @@ impl LR1ABuilder<'_> {
                             }
                         },
                         Some(Symbol::Variable(A)) => {
-                            let first_A = self.first.get(A);
+                            let first_A = &self.first[A];
 
                             // NOTE: if first contains epsilon, it is guaranteed to be at index 0
                             if first_A[0].is_some() {

@@ -16,7 +16,7 @@ pub use self::dfa::DFA;
 
 mod table;
 pub use self::table::{
-    ScanningTable,
+    LexTable,
     Command,
 };
 
@@ -27,8 +27,8 @@ pub use self::scan::{
     ScanError
 };
 
-mod lex_table;
-pub use self::lex_table::LexTable;
+mod naive;
+pub use self::naive::NaiveLexTable;
 
 /// Constructs a `RegEx` that recognizes some input string only.
 #[must_use]

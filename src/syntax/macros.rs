@@ -25,9 +25,9 @@ macro_rules! parser {
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! _lexer_command {
-    (emit) => { $crate::lang::re::Command::Emit };
-    (skip) => { $crate::lang::re::Command::Skip };
+macro_rules! _lexer_rule {
+    ($builder:ident $label:ident $regex:expr , emit) => { $builder.rule(stringify!($label).to_string(), $regex); };
+    ($builder:ident $label:ident $regex:expr , skip) => { $builder.skip(stringify!($label).to_string(), $regex); };
 }
 
 #[doc(hidden)]
@@ -46,10 +46,12 @@ macro_rules! _lexer_def_internal {
         $crate::_lexer_def_internal![@ $out $count + 1_usize ; $($body)* $count , $command $label $regex]
     };
     (@ _ $count:expr ; $($id:expr , $command:ident $label:ident $regex:expr);+) => {
-        $crate::syntax::LexerDef {
-            vocab: $crate::syntax::Vocabulary::new(vec![$(stringify!($label).to_string()),+]),
-            regexes: vec![$($regex),+],
-            commands: vec![$($crate::_lexer_command![$command]),+]
+        {
+            let mut lexer = $crate::syntax::LexerBuilder::new();
+            $(
+                $crate::_lexer_rule![lexer $label $regex , $command];
+            )+
+            lexer
         }
     };
     (@ $out:ident $count:expr ; $($id:expr , $command:ident $label:ident $regex:expr);+) => {

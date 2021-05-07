@@ -3,7 +3,7 @@ use crate::lang::cfg::{
     Symbol::Terminal as Word,
     Symbol::Variable as Var,
 };
-use super::LR1Table;
+use super::NaiveLRTable;
 use crate::lang::lr::{Event, Parse};
 
 use std::iter::once;
@@ -15,7 +15,7 @@ fn parentheses_grammar() {
         .rule(&[&[Word(0), Var(0), Word(1)], &[Word(0), Word(1)]])
         .build().unwrap();
 
-    let parser = LR1Table::new(&grammar).unwrap();
+    let parser = NaiveLRTable::new(&grammar).unwrap();
 
     // ad hoc ground truth
     let is_valid = |input: &[usize]| -> bool {
@@ -57,7 +57,7 @@ fn parentheses_grammar_2() {
         .rule(&[&[Word(0), Var(0), Word(1)], &[Word(0), Word(1)]])
         .build().unwrap();
 
-    let parser = LR1Table::new(&grammar).unwrap();
+    let parser = NaiveLRTable::new(&grammar).unwrap();
 
     let input = vec![0, 0, 1, 1].into_iter().map(Ok::<_,()>);
 

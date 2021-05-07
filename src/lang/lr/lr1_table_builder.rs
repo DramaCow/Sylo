@@ -1,0 +1,1 @@
+struct LR1TableBuilder;

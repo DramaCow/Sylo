@@ -6,7 +6,6 @@
 // #![warn(missing_docs)]
 
 pub(crate) mod utils;
-
-#[macro_use]
 pub mod lang;
+
 pub mod syntax;

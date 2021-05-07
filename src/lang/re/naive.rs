@@ -1,12 +1,12 @@
-use super::{RegEx, DFA, ScanningTable, Command};
+use super::{RegEx, DFA, LexTable, Command};
 
-pub struct LexTable {
+pub struct NaiveLexTable {
     pub(crate) next:     Vec<usize>,
     pub(crate) classes:  Vec<Option<usize>>,
     pub(crate) commands: Vec<Command>,
 }
 
-impl LexTable {
+impl NaiveLexTable {
     #[must_use]
     pub fn new<'a, T, C>(regexes: T, commands: C) -> Self
     where
@@ -36,7 +36,7 @@ impl LexTable {
     }
 }
 
-impl ScanningTable for LexTable {
+impl LexTable for NaiveLexTable {
     fn step(&self, state: usize, symbol: u8) -> usize {
         self.next[256 * state + symbol as usize]
     }

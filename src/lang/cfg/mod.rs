@@ -12,3 +12,9 @@ pub use self::grammar::{
 
 mod first;
 pub use self::first::First;
+
+mod follow;
+pub use self::follow::Follow;
+
+#[cfg(test)]
+mod tests;

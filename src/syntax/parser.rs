@@ -1,14 +1,14 @@
 use super::{
-    LexerDef, Lexer, CST, CSTBuilder,
+    LexerBuilder, Lexer, CST, CSTBuilder,
 };
 use crate::lang::{
-    re::{Token, Scan, ScanError, LexTable},
+    re::{Token, ScanError},
     cfg::{Grammar, Symbol},
-    lr::{Event, Parse, ParseError, LR1Table, ConstructionError, Conflict, Action},
+    lr::{Event, Parse, ParseError, NaiveLRTable, ConstructionError, Conflict, Action},
 };
 
 pub struct ParserBuilder {
-    pub lexer_def: LexerDef,
+    pub lexer_def: LexerBuilder,
     pub var_names: Vec<String>,
     pub grammar: Grammar,
     pub token_precedence: Vec<Option<Precedence>>,
@@ -31,12 +31,12 @@ pub enum Associativity {
 pub struct Parser {
     pub lexer: Lexer,
     pub var_names: Vec<String>,
-    pub parsing_table: LR1Table,
+    pub parsing_table: NaiveLRTable,
 }
 
 impl ParserBuilder {
     #[must_use]
-    pub fn new(lexer_def: LexerDef, var_names: Vec<String>, grammar: Grammar) -> Self {
+    pub fn new(lexer_def: LexerBuilder, var_names: Vec<String>, grammar: Grammar) -> Self {
         let word_count = grammar.max_word().map_or(0, |word| word + 1);
         let production_count = grammar.alt_count();
 
@@ -78,7 +78,7 @@ impl ParserBuilder {
         Ok(Parser {
             lexer: self.lexer_def.compile(),
             var_names: self.var_names.to_vec(),
-            parsing_table: LR1Table::with_conflict_resolution(&self.grammar, |conflict| {
+            parsing_table: NaiveLRTable::with_conflict_resolution(&self.grammar, |conflict| {
                 match conflict {
                     Conflict::ShiftReduce { word, next_state, alt } => {
                         // let tok  = if let Some(tok) = self.token_precedence[word].as_ref() { tok } else { return Err(conflict) };
@@ -103,8 +103,8 @@ impl ParserBuilder {
 
 impl<'a> Parser {
     /// # Errors
-    #[must_use]
-    pub fn parse<I>(&'a self, input: &'a I) -> Parse<LR1Table, Scan<'a, LexTable, I>, Token<'a, I>, impl Fn(&Token<'a, I>) -> usize>
+    // pub fn parse<I>(&'a self, input: &'a I) -> Parse<LR1Table, Scan<'a, LexTable, I>, Token<'a, I>, impl Fn(&Token<'a, I>) -> usize>
+    pub fn parse<I>(&'a self, input: &'a I) -> impl Iterator<Item = Result<Event<Token<'a, I>>, ParseError<ScanError>>>
     where
         I: AsRef<[u8]> + ?Sized
     {

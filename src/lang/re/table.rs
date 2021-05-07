@@ -4,7 +4,7 @@ pub enum Command {
     Emit,
 }
 
-pub trait ScanningTable {
+pub trait LexTable {
     const START_STATE: usize = 0;
     fn step(&self, state: usize, symbol: u8) -> usize;
     fn class(&self, state: usize) -> Option<usize>;

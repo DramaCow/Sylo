@@ -3,7 +3,7 @@ use std::collections::{
     btree_map::Entry::{Occupied, Vacant},
 };
 use crate::utils::StringBuilder;
-use crate::lang::re::{ScanningTable, Command};
+use crate::lang::re::{LexTable, Command};
 use crate::syntax::Lexer;
 use tinytemplate::TinyTemplate;
 use serde::Serialize;
@@ -32,7 +32,7 @@ pub fn render_lexer(lexer: &Lexer, name: &str) -> Result<String, std::fmt::Error
                     if let Command::Skip = lexer.table.command(class) {
                         writeln!(fmt, "return {}_next(this);", name)?;
                     } else {
-                        writeln!(fmt, "return {}_Item_newToken({}, start_index, this->index);", name, lexer.vocab.symbolic_names[class])?;
+                        writeln!(fmt, "return {}_Item_newToken({}, start_index, this->index);", name, lexer.vocab[class])?;
                     }
                 } else {
                     writeln!(fmt, "goto sink;")?;
@@ -47,7 +47,7 @@ pub fn render_lexer(lexer: &Lexer, name: &str) -> Result<String, std::fmt::Error
                     let ttype = if let Command::Skip = lexer.table.command(class) {
                         "TT_SKIP"
                     } else {
-                        &lexer.vocab.symbolic_names[class]
+                        &lexer.vocab[class]
                     };
 
                     // If `i` can only transition to labelled states, then either
@@ -95,7 +95,7 @@ pub fn render_lexer(lexer: &Lexer, name: &str) -> Result<String, std::fmt::Error
                     if let Command::Skip = lexer.table.command(class) {
                         writeln!(fmt, "return {}_next(this);", name)?;
                     } else {
-                        writeln!(fmt, "return {}_Item_newToken({}, start_index, this->index);", name, lexer.vocab.symbolic_names[class])?;
+                        writeln!(fmt, "return {}_Item_newToken({}, start_index, this->index);", name, lexer.vocab[class])?;
                     }
                 } else {
                     writeln!(fmt, "goto sink;")?;
@@ -111,7 +111,7 @@ pub fn render_lexer(lexer: &Lexer, name: &str) -> Result<String, std::fmt::Error
 
     let context = Context {
         name: name.to_string(),
-        ttype_labels: lexer.vocab.symbolic_names.to_vec(),
+        ttype_labels: lexer.vocab.to_vec(),
     };
 
     let mut tt = TinyTemplate::new();

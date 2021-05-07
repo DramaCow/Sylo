@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
 
-use crate::lang::cfg::{Grammar, Symbol};
-use super::{LR1ABuilder, Action, Reduction, ParsingTable};
+use crate::lang::cfg::{Grammar, First, Symbol};
+use super::{LR1ABuilder, Action, Reduction, LRTable};
 
 #[derive(Debug)]
-pub struct LR1Table {
+pub struct NaiveLRTable {
     actions:    Vec<Action>,        /// lookup what action to perform given state and word
     gotos:      Vec<Option<usize>>, /// lookup what state should be transitioned to after reduction
     reductions: Vec<Reduction>,     // alt --> rule and number of symbols
@@ -24,7 +24,7 @@ pub enum Conflict {
     ReduceReduce { alt1: usize, alt2: usize },
 }
 
-impl LR1Table {
+impl NaiveLRTable {
     /// No conflicts allowed.
     /// 
     /// # Errors
@@ -37,7 +37,7 @@ impl LR1Table {
     where
         F: FnMut(Conflict) -> Result<Action, Conflict>,
     {
-        let lr1a = LR1ABuilder::new(grammar).build();
+        let lr1a = LR1ABuilder::new(grammar, &First::new(&grammar)).build();
         
         let word_count = grammar.max_word().map_or(0, |word| word + 1) + 1; // +1 for eof
         let var_count  = grammar.var_count() - 1; // implicit start variable not needed in goto table
@@ -54,21 +54,23 @@ impl LR1Table {
             for item in &state.items {
                 if !item.lr0_item.is_complete(grammar) {
                     let symbol = item.lr0_item.symbol_at_dot(grammar).unwrap();
-                    let word = match symbol {
-                        Symbol::Terminal(a) => a,
-                        Symbol::Variable(_) => continue,
-                    };
-                    let action = actions.get_mut(i * word_count + word + 1).unwrap();
-                    let next_state = state.next[&symbol];
+                    if let Symbol::Terminal(word) = symbol {
+                        // CASE 1: item is incomplete and has a terminal symbol at dot.
 
-                    // Note: shift-shift conflicts cannot occur
-                    if let Action::Reduce(alt) = *action {
-                        *action = conflict_resolution(Conflict::ShiftReduce { word, next_state, alt })
-                            .map_err(|conflict| ConstructionError { state: i, conflict })?;
-                    } else {
-                        *action = Action::Shift(next_state);
+                        let action = actions.get_mut(i * word_count + word + 1).unwrap();
+                        let next_state = state.next[&symbol];
+    
+                        // Note: shift-shift conflicts cannot occur
+                        if let Action::Reduce(alt) = *action {
+                            *action = conflict_resolution(Conflict::ShiftReduce { word, next_state, alt })
+                                .map_err(|conflict| ConstructionError { state: i, conflict })?;
+                        } else {
+                            *action = Action::Shift(next_state);
+                        }
                     }
                 } else if reductions[item.lr0_item.alt].var < var_count || item.lookahead.is_some() { // TODO: second check not necessary?
+                    // CASE 2: item is complete and does not have the start symbol on LHS.
+
                     let column = item.lookahead.map_or(0, |a| a + 1);
                     let action = actions.get_mut(i * word_count + column).unwrap();
                     
@@ -87,12 +89,13 @@ impl LR1Table {
                         }
                     }
                 } else {
+                    // CASE 3: item is complete and has start symbol on LHS.
                     actions[i * word_count] = Action::Accept;
                 }
             }
 
             for (var, A) in (0..var_count).map(|A| (Symbol::Variable(A), A)) {
-                gotos[i * var_count + A] = state.next.get(&var).cloned();
+                gotos[i * var_count + A] = state.next.get(&var).copied();
             }
         }
 
@@ -106,7 +109,7 @@ impl LR1Table {
     }
 }
 
-impl ParsingTable for LR1Table {
+impl LRTable for NaiveLRTable {
     fn action(&self, state: usize, word: Option<usize>) -> Action {
         word.map_or_else(
             || self.actions[state * (self.word_count + 1)],

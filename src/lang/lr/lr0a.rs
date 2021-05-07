@@ -54,7 +54,7 @@ fn format_item<F, G, T, U>(grammar: &Grammar, var: usize, item: &LR0Item, word_l
 {
     let alt = &grammar.alt(item.alt);
 
-    format!("[{} &rarr; {}&bull;{}]",
+    format!("{} &rarr; {}&bull;{}",
         var_labelling(var),
         if item.pos == 0 { "".to_string() } else { 
             alt[..item.pos].iter().map(|symbol| match symbol {
@@ -119,7 +119,7 @@ fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, lr0a: &LR0A, word_
 
     for (A, state) in lr0a.states.iter().enumerate() {
         for (symbol, B) in &state.next {
-            writeln!(dot, "s{}->s{}[label={:?}]?;", A, B, 
+            writeln!(dot, "s{}->s{}[label={:?}];", A, B, 
                 match symbol {
                     Symbol::Terminal(a) => format!("{}", word_labelling(*a)),
                     Symbol::Variable(A) => format!("{}", var_labelling(*A)),

@@ -1,9 +1,9 @@
 use std::ops::Range;
 use std::marker::PhantomData;
-use super::{ScanningTable, Command};
+use super::{LexTable, Command};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Token<'a, I>
+pub struct Token<'a, I: 'a>
 where
     I: AsRef<[u8]> + ?Sized
 {
@@ -28,7 +28,7 @@ pub struct ScanError {
 
 impl<'a, S, I> Scan<'a, S, I>
 where
-    S: ScanningTable,
+    S: LexTable,
     I: AsRef<[u8]> + ?Sized
 {
     #[must_use]
@@ -43,7 +43,7 @@ where
 
 impl<'a, S, I> Iterator for Scan<'a, S, I> 
 where
-    S: ScanningTable,
+    S: LexTable,
     I: AsRef<[u8]> + ?Sized
 {
     type Item = Result<Token<'a, I>, ScanError>;
