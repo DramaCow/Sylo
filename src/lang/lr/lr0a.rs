@@ -71,6 +71,30 @@ fn format_item<F, G, T, U>(grammar: &Grammar, var: usize, item: &LR0Item, word_l
     )
 }
 
+fn format_state<F, G, T, U>(fmt: &mut StringBuilder, grammar: &Grammar, id: usize, state: &State, alt2var: &[usize], word_labelling: F, var_labelling: G) -> Result<(), std::fmt::Error>
+    where F: Fn(usize) -> T + Copy,
+          G: Fn(usize) -> U + Copy,
+          T: std::fmt::Display,
+          U: std::fmt::Display,
+{
+    writeln!(fmt, "s{}[label=", id)?;
+    fmt.indent();
+    writeln!(fmt, "<<table border=\"1\" cellborder=\"0\">")?;
+    fmt.indent();
+    writeln!(fmt, "<tr><td align=\"center\"><b>s{}</b></td></tr>", id)?;
+    for item in &state.items {
+        if item.is_kernel_item(&grammar) {
+            writeln!(fmt, "<tr><td align=\"left\">{}</td></tr>", format_item(grammar, alt2var[item.alt], item, word_labelling, var_labelling))?;   
+        } else {
+            writeln!(fmt, "<tr><td bgcolor=\"grey\" align=\"left\">{}</td></tr>", format_item(grammar, alt2var[item.alt], item, word_labelling, var_labelling))?;
+        }
+    }
+    fmt.unindent();
+    writeln!(fmt, "</table>>];")?;
+    fmt.unindent();
+    Ok(())
+}
+
 /// # Errors
 fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, lr0a: &LR0A, word_labelling: F, var_labelling: G, print_itemsets: bool) -> Result<String, std::fmt::Error>
     where F: Fn(usize) -> T + Copy,
@@ -78,35 +102,32 @@ fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, lr0a: &LR0A, word_
           T: std::fmt::Display,
           U: std::fmt::Display,
 {
-    let alt2var: Vec<_> = grammar.rules().enumerate().flat_map(|(i, rule)| rule.alts().map(move |_| i)).collect();
-
     let mut dot = StringBuilder::new();
-
+    
     writeln!(dot, "digraph CC {{")?;
     dot.indent();
     writeln!(dot, "rankdir=LR;")?;
-
+    
     dot.newline();
-
+    
+    writeln!(dot, "node[shape=point]; q;")?;
     if print_itemsets {
-        writeln!(dot, "node[shape=plain];")?;
-        for (id, state) in lr0a.states.iter().enumerate() {
-            writeln!(dot, "s{}[label=", id)?;
-            dot.indent();
-            writeln!(dot, "<<table border=\"1\" cellborder=\"0\">")?;
-            dot.indent();
-            writeln!(dot, "<tr><td align=\"center\"><b>s{}</b></td></tr>", id)?;
-            
+        let alt2var: Vec<_> = grammar.rules().enumerate().flat_map(|(i, rule)| rule.alts().map(move |_| i)).collect();
+        let is_complete: Vec<_> = lr0a.states.iter().map(|state| {
             for item in &state.items {
-                if item.is_kernel_item(&grammar) {
-                    writeln!(dot, "<tr><td align=\"left\">{}</td></tr>", format_item(grammar, alt2var[item.alt], item, word_labelling, var_labelling))?;   
-                } else {
-                    writeln!(dot, "<tr><td bgcolor=\"grey\" align=\"left\">{}</td></tr>", format_item(grammar, alt2var[item.alt], item, word_labelling, var_labelling))?;
+                if item.is_complete(&grammar) && alt2var[item.alt] == grammar.var_count() - 1 {
+                    return true;
                 }
             }
-            dot.unindent();
-            writeln!(dot, "</table>>];")?;
-            dot.unindent();
+            false
+        }).collect();
+        writeln!(dot, "node[shape=box margin=0.05];")?;
+        for (id, state) in lr0a.states.iter().enumerate().filter(|(id, _)| is_complete[*id]) {
+            format_state(&mut dot, &grammar, id, state, &alt2var, word_labelling, var_labelling)?;
+        }
+        writeln!(dot, "node[shape=plain];")?;
+        for (id, state) in lr0a.states.iter().enumerate().filter(|(id, _)| !is_complete[*id]) {
+            format_state(&mut dot, &grammar, id, state, &alt2var, word_labelling, var_labelling)?;
         }
     } else {
         writeln!(dot, "node[shape=rectangle];")?;
@@ -117,6 +138,7 @@ fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, lr0a: &LR0A, word_
 
     dot.newline();
 
+    writeln!(dot, "q->s0;")?;
     for (A, state) in lr0a.states.iter().enumerate() {
         for (symbol, B) in &state.next {
             writeln!(dot, "s{}->s{}[label={:?}];", A, B, 
