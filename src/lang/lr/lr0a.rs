@@ -4,6 +4,7 @@ use std::collections::{BTreeSet, HashMap};
 use crate::lang::cfg::{Grammar, Symbol};
 use crate::utils::StringBuilder;
 use super::LR0Item;
+use std::cmp::Ordering::{Less, Greater};
 
 pub struct LR0A {
     pub(super) states: Vec<State>,
@@ -82,7 +83,24 @@ fn format_state<F, G, T, U>(fmt: &mut StringBuilder, grammar: &Grammar, id: usiz
     writeln!(fmt, "<<table border=\"1\" cellborder=\"0\">")?;
     fmt.indent();
     writeln!(fmt, "<tr><td align=\"center\"><b>s{}</b></td></tr>", id)?;
-    for item in &state.items {
+
+    let mut items: Vec<_> = state.items.iter().copied().collect();
+    items.sort_by(|a, b| {
+        match (a.is_kernel_item(&grammar), b.is_kernel_item(&grammar)) {
+            (false, false) | (true, true) => {
+                let c1 = alt2var[a.alt] == grammar.var_count() - 1;
+                let c2 = alt2var[b.alt] == grammar.var_count() - 1;
+                match (c1, c2) {
+                    (false, false) | (true, true) => a.cmp(&b),
+                    (false, true) => Greater,
+                    (true, false) => Less,
+                }
+            }
+            (false, true) => Greater,
+            (true, false) => Less,
+        }
+    });
+    for item in &items {
         if item.is_kernel_item(&grammar) {
             writeln!(fmt, "<tr><td align=\"left\">{}</td></tr>", format_item(grammar, alt2var[item.alt], item, word_labelling, var_labelling))?;   
         } else {
