@@ -83,7 +83,6 @@ fn format_state<F, G, T, U>(fmt: &mut StringBuilder, grammar: &Grammar, id: usiz
     writeln!(fmt, "<<table border=\"1\" cellborder=\"0\">")?;
     fmt.indent();
     writeln!(fmt, "<tr><td align=\"center\"><b>s{}</b></td></tr>", id)?;
-
     let mut items: Vec<_> = state.items.iter().copied().collect();
     items.sort_by(|a, b| {
         match (a.is_kernel_item(&grammar), b.is_kernel_item(&grammar)) {
@@ -129,22 +128,12 @@ fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, lr0a: &LR0A, word_
     dot.newline();
     
     writeln!(dot, "node[shape=point]; q;")?;
+    // writeln!(dot, "node[shape=doublecircle margin=0]; accept[label=<<b>ACCEPT</b>>];");
+    writeln!(dot, "node[shape=plain]; accept[label=<<b>ACCEPT</b>>];");
     if print_itemsets {
         let alt2var: Vec<_> = grammar.rules().enumerate().flat_map(|(i, rule)| rule.alts().map(move |_| i)).collect();
-        let is_complete: Vec<_> = lr0a.states.iter().map(|state| {
-            for item in &state.items {
-                if item.is_complete(&grammar) && alt2var[item.alt] == grammar.var_count() - 1 {
-                    return true;
-                }
-            }
-            false
-        }).collect();
-        writeln!(dot, "node[shape=box margin=0.05];")?;
-        for (id, state) in lr0a.states.iter().enumerate().filter(|(id, _)| is_complete[*id]) {
-            format_state(&mut dot, &grammar, id, state, &alt2var, word_labelling, var_labelling)?;
-        }
         writeln!(dot, "node[shape=plain];")?;
-        for (id, state) in lr0a.states.iter().enumerate().filter(|(id, _)| !is_complete[*id]) {
+        for (id, state) in lr0a.states.iter().enumerate() {
             format_state(&mut dot, &grammar, id, state, &alt2var, word_labelling, var_labelling)?;
         }
     } else {
@@ -153,10 +142,11 @@ fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, lr0a: &LR0A, word_
             writeln!(dot, "s{};", id)?;
         }
     }
-
+    
     dot.newline();
-
+    
     writeln!(dot, "q->s0;")?;
+    writeln!(dot, "s{}->accept[label=\"&#9633;\"];", *lr0a.states[0].next.get(&Symbol::Variable(0)).unwrap());
     for (A, state) in lr0a.states.iter().enumerate() {
         for (symbol, B) in &state.next {
             writeln!(dot, "s{}->s{}[label={:?}];", A, B, 

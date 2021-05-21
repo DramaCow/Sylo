@@ -2,15 +2,15 @@
 
 use super::{RegEx, DFA, CharSet};
 
-#[test]
-fn test() {
-    let a = RegEx::set(CharSet::point(1));
-    let b = RegEx::set(CharSet::point(2));
-    let c = RegEx::set(CharSet::point(3));
-    let regex = a.or(&b.then(&a)).or(&c);
-    let dfa = DFA::from(&regex);
-    println!("{}", dfa.dot().unwrap());
-}
+// #[test]
+// fn test() {
+//     let a = RegEx::set(CharSet::point(1));
+//     let b = RegEx::set(CharSet::point(2));
+//     let c = RegEx::set(CharSet::point(3));
+//     let regex = a.or(&b.then(&a)).or(&c);
+//     let dfa = DFA::from(&regex);
+//     println!("{}", dfa.dot().unwrap());
+// }
 
 #[test]
 fn excluding() {
@@ -35,7 +35,7 @@ fn indentifiers() {
 
     let character  = uppercase.or(&lowercase);
     let indentifier = character.or(&underscore).then(&character.or(&digit).or(&underscore).star());
-    println!("{:?}", &indentifier);
+    // println!("{:?}", &indentifier);
 
     let A = DFA::from(&indentifier);
 
