@@ -19,6 +19,7 @@ impl StringBuilder {
         }
     }
 
+    /// # Errors
     pub fn write_fmt(&mut self, fmt: Arguments) -> Result<(), Error> {
         <Self as Write>::write_fmt(self, fmt)
     }

@@ -5,7 +5,7 @@
 #![allow(clippy::similar_names)]
 // #![warn(missing_docs)]
 
-pub(crate) mod utils;
+pub/*(crate)*/ mod utils;
 pub mod lang;
 
 pub mod syntax;

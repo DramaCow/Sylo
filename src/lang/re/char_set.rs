@@ -68,12 +68,11 @@ impl CharSet {
             let half = size / 2;
             let mid = base + half;
 
-            // this is safe, don't worry
-            let interval = unsafe { *self.intervals.get_unchecked(mid) };
+            let (start, end) = self.intervals[mid];
 
-            if x < interval.0 {
+            if x < start{
                 size -= half;
-            } else if x > interval.1 {
+            } else if x > end {
                 size -= half;
                 base = mid;
             } else {
@@ -81,10 +80,9 @@ impl CharSet {
             }
         }
 
-        // also safe
-        let interval = unsafe { *self.intervals.get_unchecked(base) };
+        let (start, end) = self.intervals[base];
 
-        interval.0 <= x && x <= interval.1
+        start <= x && x <= end
     }
 
     #[must_use]
