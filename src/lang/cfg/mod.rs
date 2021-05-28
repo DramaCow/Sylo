@@ -10,11 +10,15 @@ pub use self::grammar::{
     Symbol,
 };
 
+mod nullability;
+pub use self::nullability::nullability;
+
 mod first;
 pub use self::first::First;
 
 mod follow;
 pub use self::follow::Follow;
+
 
 #[cfg(test)]
 mod tests;

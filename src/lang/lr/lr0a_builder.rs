@@ -19,7 +19,7 @@ impl<'a> LR0ABuilder<'a> {
     }
 
     #[must_use]
-    pub fn build(self) -> LR0A {   
+    pub fn build(self) -> LR0A {
         let initial_items = Rc::new(
             self.closure(
                 // NOTE: the last rule in the grammar is the implicit start

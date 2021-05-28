@@ -3,6 +3,8 @@ use std::iter::once;
 use super::{Grammar, Symbol};
 use std::ops::Index;
 
+use crate::utils::transitive_closure;
+
 /// A utility struct that, for each unique variable present in a 
 /// grammar, stores the set of terminals (the first set) that can
 /// appear at the start of a sentence derived from that symbol.
@@ -51,8 +53,46 @@ impl Index<usize> for First {
 // =================
 
 /// Constructs the first sets for each unique variable in grammar.
+fn compute_var_firsts_v2(grammar: &Grammar, nullable: &[bool]) -> Vec<BTreeSet<usize>> {
+    let var_count = grammar.var_count();
+    let mut trivial_first = vec![BTreeSet::new(); var_count];
+    let mut dependency_matrix = vec![false; var_count * var_count];
+    
+    // Initialise first to trivial values and fill left_dependent matrix
+    for (A, rule) in grammar.rules().enumerate() {
+        for alt in rule.alts() {            
+            for &symbol in alt {
+                match symbol {
+                    Symbol::Terminal(a) => {
+                        trivial_first[A].insert(a);
+                        break;
+                    }
+                    Symbol::Variable(B) => {
+                        dependency_matrix[A * var_count + B] = true;
+                        if !nullable[B] {
+                            break;
+                        }
+                    }
+                };
+            }
+        }
+    }
+
+    let dependency_matrix_ref = &dependency_matrix;
+    let left_dependencies = |A: usize| {
+        (0..var_count).filter(move |B| dependency_matrix_ref[A * var_count + B])
+    };
+
+    let extend = |A: &mut BTreeSet<usize>, B: &BTreeSet<usize>| {
+        A.extend(B);
+    };
+
+    transitive_closure(trivial_first, left_dependencies, extend)
+}
+
+/// Constructs the first sets for each unique variable in grammar.
 fn compute_var_firsts(grammar: &Grammar) -> Vec<BTreeSet<Option<usize>>> {
-    let mut first = vec![BTreeSet::<Option<usize>>::new(); grammar.var_count()];
+    let mut first = vec![BTreeSet::new(); grammar.var_count()];
 
     let mut done = false;
     while !done {
@@ -63,25 +103,26 @@ fn compute_var_firsts(grammar: &Grammar) -> Vec<BTreeSet<Option<usize>>> {
                 let mut rhs = BTreeSet::new();
 
                 if alt.is_empty() {
+                    // alt is epsilon
                     rhs.insert(None);
                 } else {
                     for (j, &symbol) in alt.iter().enumerate() {
                         match symbol {
                             // If the current grammar symbol being considered
-                            // is a terminal, then succeeding grammar symbols in the alt
-                            // cannot contribute to the first of the rule.
-                            Symbol::Terminal(a) => {
-                                rhs.insert(Some(a));
+                            // is a terminal, then succeeding grammar symbols
+                            // in the alt cannot contribute to first(A).
+                            Symbol::Terminal(b) => {
+                                rhs.insert(Some(b));
                                 break;
                             },
-                            Symbol::Variable(A) => {
-                                // If a grammar symbol being considered is not the last of an alt 
-                                // and its first contains an epsilon, then the succeeding grammar
-                                // symbol also contributes to the first of the rule.
-                                if first[A].contains(&None) && j < alt.len() - 1 {
-                                    rhs.extend(first[A].iter().filter(|a| Option::<usize>::is_some(a)));
+                            Symbol::Variable(B) => {
+                                // If B is not the last symbol in the rhs of the production
+                                // and B is nullable (first(B) contains epsilon), then the
+                                // succeeding grammar symbol also contributes to first(A).
+                                if j < alt.len() - 1 && first[B].contains(&None) {
+                                    rhs.extend(first[B].iter().filter(|b: &&Option<usize>| b.is_some()));
                                 } else {
-                                    rhs.extend(first[A].iter());
+                                    rhs.extend(first[B].iter());
                                     break;
                                 }
                             },

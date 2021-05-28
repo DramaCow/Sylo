@@ -1,6 +1,6 @@
 #![allow(non_upper_case_globals)]
 
-use super::{Symbol, Grammar, GrammarBuilder, First, Follow};
+use super::{Symbol, Grammar, GrammarBuilder, First, Follow, nullability};
 
 fn rr_expr_grammar() -> Grammar {
     const add: Symbol    = Symbol::Terminal(0);
@@ -17,8 +17,18 @@ fn rr_expr_grammar() -> Grammar {
     const Term: Symbol   = Symbol::Variable(2);
     const Term_: Symbol  = Symbol::Variable(3);
     const Factor: Symbol = Symbol::Variable(4);
-    
 
+    // Expr : Term Expr_,
+    // Expr_ : + Term Expr_
+    //       | - Term Expr_
+    //       | ,
+    // Term : Factor Term_,
+    // Term_ : * Factor Term_
+    //       | / Factor Term_
+    //       | ,
+    // Factor : ( Expr )
+    //        | name
+    //        | num,
     GrammarBuilder::new()
         .rule(&[&[Term, Expr_]])
         .rule(&[&[add, Term, Expr_],
@@ -52,7 +62,18 @@ const Term_: usize  = 3;
 const Factor: usize = 4;
 
 #[test]
-fn first() {
+fn test_nullability() {
+    let grammar = rr_expr_grammar();
+    let nullable = nullability(&grammar);
+    assert_eq!(nullable[Expr], false);
+    assert_eq!(nullable[Expr_], true);
+    assert_eq!(nullable[Term], false);
+    assert_eq!(nullable[Term_], true);
+    assert_eq!(nullable[Factor], false);
+}
+
+#[test]
+fn test_first() {
     let grammar = rr_expr_grammar();
     let first = First::new(&grammar);
     assert_eq!(&first[Expr], &[lparen, name, num]);
@@ -63,7 +84,7 @@ fn first() {
 }
 
 #[test]
-fn follow() {
+fn test_follow() {
     let grammar = rr_expr_grammar();
     let follow = Follow::new(&grammar, &First::new(&grammar));
     assert_eq!(&follow[Expr], &[eof, rparen]);

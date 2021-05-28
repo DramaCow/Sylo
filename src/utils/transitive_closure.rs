@@ -11,13 +11,13 @@ use std::cmp::{min, Ordering};
 /// use sylo::utils::transitive_closure;
 /// 
 /// let node_values: Vec<HashSet<usize>> = (0..6).map(|x| { let mut set = HashSet::new(); set.insert(x); set }).collect();
-/// let successors = |x: usize| -> &[usize] {
+/// let successors = |x: usize| {
 ///     match x {
-///         0 => &[1],
-///         1 => &[2],
-///         2 => &[0, 3, 5],
-///         4 => &[3],
-///         _ => &[],
+///         0 => (&[1]).iter().copied(),
+///         1 => (&[2]).iter().copied(),
+///         2 => (&[0, 3, 5]).iter().copied(),
+///         4 => (&[3]).iter().copied(),
+///         _ => (&[]).iter().copied(),
 ///     }
 /// };
 /// let extend = |a: &mut HashSet<usize>, b: &HashSet<usize>| {
@@ -28,10 +28,10 @@ use std::cmp::{min, Ordering};
 /// assert_eq!(counts, &[5, 5, 5, 1, 2, 1]);
 /// ```
 #[must_use]
-pub fn transitive_closure<'a, S, L, F, T>(node_values: Vec<T>, successors: S, extend: F) -> Vec<T>
+pub fn transitive_closure<S, L, F, T>(node_values: Vec<T>, successors: S, extend: F) -> Vec<T>
 where
     S: FnMut(usize) -> L,
-    L: IntoIterator<Item = &'a usize>,
+    L: IntoIterator<Item = usize>,
     F: FnMut(&mut T, &T),
     T: Clone,
 {
@@ -67,10 +67,10 @@ where
 // === INTERNALS ===
 // =================
 
-struct Tarjan<'a, S, L, F, T>
+struct Tarjan<S, L, F, T>
 where
     S: FnMut(usize) -> L,
-    L: IntoIterator<Item = &'a usize>,
+    L: IntoIterator<Item = usize>,
     F: FnMut(&mut T, &T),
     T: Clone,
 {
@@ -83,10 +83,10 @@ where
     result: Vec<T>,
 }
 
-impl<'a, S, L, F, T> Tarjan<'a, S, L, F, T>
+impl<S, L, F, T> Tarjan<S, L, F, T>
 where
     S: FnMut(usize) -> L,
-    L: IntoIterator<Item = &'a usize>,
+    L: IntoIterator<Item = usize>,
     F: FnMut(&mut T, &T),
     T: Clone,
 {
@@ -94,7 +94,7 @@ where
         self.stack_push(x);
         self.low_link[x] = self.stack_depth;
 
-        for &y in (self.successors)(x) {
+        for y in (self.successors)(x) {
             // if y hasn't been seen yet
             if self.low_link[y] == 0 {
                 self.traverse(y);
@@ -177,13 +177,13 @@ mod tests {
 
     #[test]
     fn tarjan_test_1() {
-        let successors = |x: usize| -> &[usize] {
+        let successors = |x: usize| {
             match x {
-                0 => &[1],
-                1 => &[2],
-                2 => &[0, 3, 5],
-                4 => &[3],
-                _ => &[],
+                0 => (&[1]).iter().copied(),
+                1 => (&[2]).iter().copied(),
+                2 => (&[0, 3, 5]).iter().copied(),
+                4 => (&[3]).iter().copied(),
+                _ => (&[]).iter().copied(),
             }
         };
         let counts: Vec<usize> = transitive_closure(unit_sets(6), successors, extend).iter().map(HashSet::len).collect();
@@ -192,17 +192,17 @@ mod tests {
 
     #[test]
     fn tarjan_test_2() {
-        let successors = |x: usize| -> &[usize] {
+        let successors = |x: usize| {
             match x {
-                0 => &[1, 4],
-                1 => &[5],
-                2 => &[1, 3, 6],
-                3 => &[6],
-                4 => &[0, 5],
-                5 => &[2, 6],
-                6 => &[7],
-                7 => &[3],
-                _ => &[],
+                0 => (&[1, 4]).iter().copied(),
+                1 => (&[5]).iter().copied(),
+                2 => (&[1, 3, 6]).iter().copied(),
+                3 => (&[6]).iter().copied(),
+                4 => (&[0, 5]).iter().copied(),
+                5 => (&[2, 6]).iter().copied(),
+                6 => (&[7]).iter().copied(),
+                7 => (&[3]).iter().copied(),
+                _ => (&[]).iter().copied(),
             }
         };
         let counts: Vec<usize> = transitive_closure(unit_sets(8), successors, extend).iter().map(HashSet::len).collect();
@@ -211,10 +211,10 @@ mod tests {
 
     #[test]
     fn tarjan_test_3() {
-        let successors = |x: usize| -> &[usize] {
+        let successors = |x: usize| {
             match x {
-                0 | 2 => &[1],
-                _ => &[],
+                0 | 2 => (&[1]).iter().copied(),
+                _ => (&[]).iter().copied(),
             }
         };
         let counts: Vec<usize> = transitive_closure(unit_sets(3), successors, extend).iter().map(HashSet::len).collect();
@@ -223,11 +223,11 @@ mod tests {
 
     #[test]
     fn tarjan_test_4() {
-        let successors = |x: usize| -> &[usize] {
+        let successors = |x: usize| {
             match x {
-                0 => &[1, 2],
-                2 => &[1],
-                _ => &[],
+                0 => (&[1, 2]).iter().copied(),
+                2 => (&[1]).iter().copied(),
+                _ => (&[]).iter().copied(),
             }
         };
         let counts: Vec<usize> = transitive_closure(unit_sets(3), successors, extend).iter().map(HashSet::len).collect();
@@ -236,11 +236,11 @@ mod tests {
 
     #[test]
     fn tarjan_test_5() {
-        let successors = |x: usize| -> &[usize] {
+        let successors = |x: usize| {
             match x {
-                0 => &[2, 3],
-                2 | 3 => &[1],
-                _ => &[],
+                0 => (&[2, 3]).iter().copied(),
+                2 | 3 => (&[1]).iter().copied(),
+                _ => (&[]).iter().copied(),
             }
         };
         let counts: Vec<usize> = transitive_closure(unit_sets(4), successors, extend).iter().map(HashSet::len).collect();
