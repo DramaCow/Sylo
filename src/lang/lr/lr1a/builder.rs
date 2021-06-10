@@ -3,22 +3,23 @@
 use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::iter::once;
 use std::rc::Rc;
-use crate::lang::cfg::{Grammar, Symbol, First};
+use crate::lang::cfg::{Grammar, Symbol, nullability, First};
 use super::{LR1Item, LR1A, State};
 
 pub struct LR1ABuilder<'a> {
     grammar: &'a Grammar,
-    nullable: &'a [bool],
-    first: &'a First,
+    nullable: Vec<bool>,
+    first: First,
 }
 
 impl<'a> LR1ABuilder<'a> {
     #[must_use]
-    pub fn new(grammar: &'a Grammar, nullable: &'a [bool], first: &'a First) -> Self {
+    pub fn new(grammar: &'a Grammar) -> Self {
+        let nullable = nullability(grammar);
         LR1ABuilder {
             grammar,
-            nullable,
-            first,
+            nullable: nullability(grammar),
+            first: First::new(grammar, &nullable),
         }
     }
 

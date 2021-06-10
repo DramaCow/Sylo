@@ -37,8 +37,7 @@ impl NaiveLRTable {
     where
         F: FnMut(Conflict) -> Result<Action, Conflict>,
     {
-        let nullable = nullability(grammar);
-        let lr1a = LR1ABuilder::new(grammar, &nullable, &First::new(grammar, &nullable)).build();
+        let lr1a = LR1ABuilder::new(grammar).build();
         
         let word_count = grammar.max_word().map_or(0, |word| word + 1) + 1; // +1 for eof
         let var_count  = grammar.var_count() - 1; // implicit start variable not needed in goto table

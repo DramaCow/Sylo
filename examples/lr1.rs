@@ -29,8 +29,7 @@ fn main() {
         }
     };
 
-    let nullable = nullability(&def.grammar);
-    let lr1a = LR1ABuilder::new(&def.grammar, &nullable, &First::new(&def.grammar, &nullable)).build();
+    let lr1a = LR1ABuilder::new(&def.grammar).build();
     std::fs::write("_graph.dot", lr1a.dot(&def.grammar, &["id", "(", ")", "+", "*"], &def.var_names, true).unwrap()).unwrap();
     println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());
 }
