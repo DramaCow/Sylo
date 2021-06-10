@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use crate::lang::cfg::{Grammar, First, Symbol};
+use crate::lang::cfg::{Grammar, First, nullability, Symbol};
 use super::{LR1ABuilder, Action, Reduction, LRTable};
 
 #[derive(Debug)]
@@ -37,7 +37,8 @@ impl NaiveLRTable {
     where
         F: FnMut(Conflict) -> Result<Action, Conflict>,
     {
-        let lr1a = LR1ABuilder::new(grammar, &First::new(&grammar)).build();
+        let nullable = nullability(grammar);
+        let lr1a = LR1ABuilder::new(grammar, &nullable, &First::new(grammar, &nullable)).build();
         
         let word_count = grammar.max_word().map_or(0, |word| word + 1) + 1; // +1 for eof
         let var_count  = grammar.var_count() - 1; // implicit start variable not needed in goto table

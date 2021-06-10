@@ -4,7 +4,7 @@ use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::iter::once;
 use std::rc::Rc;
 use crate::lang::cfg::{Grammar, Symbol};
-use super::{LR0Item, LR0A, lr0a::State};
+use super::{LR0Item, LR0A, State};
 
 pub struct LR0ABuilder<'a> {
     grammar: &'a Grammar,
@@ -96,7 +96,7 @@ impl<'a> LR0ABuilder<'a> {
                 .map(Result::unwrap)
                 .zip(gotos)
                 .map(|(items, next)| State { items, next })
-                .collect()
+                .collect(),
         }
     }
 }

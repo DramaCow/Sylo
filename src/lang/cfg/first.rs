@@ -2,30 +2,21 @@ use std::collections::BTreeSet;
 use std::iter::once;
 use super::{Grammar, Symbol};
 use std::ops::Index;
-
 use crate::utils::transitive_closure;
 
-/// A utility struct that, for each unique variable present in a 
-/// grammar, stores the set of terminals (the first set) that can
-/// appear at the start of a sentence derived from that symbol.
-/// 
-/// Sets of tokens are represented as slices of type `Option<usize>`,
-/// where `None` represents epsilon.  
-/// 
-/// NOTE: Trivially, the first set of each terminal symbol is the 
-/// set containing only itself, and the first of epsilon is 
-/// the set containing None. For this reason, they are omitted from
-/// this structure.
+/// For non-terminal A, first[A] is the set of terminals that can appear at
+/// the start of a sentence derived from A. This does not include epsilons;
+/// for this behaviour, see [nullability]().
 #[derive(Debug)]
 pub struct First {
-    firsts: Vec<Option<usize>>,
+    firsts: Vec<usize>,
     var_ranges: Vec<usize>,
 }
 
 impl First {
     #[must_use]
-    pub fn new(grammar: &Grammar) -> Self {
-        let var_firsts = compute_var_firsts(grammar);
+    pub fn new(grammar: &Grammar, nullable: &[bool]) -> Self {
+        let var_firsts = compute_var_firsts_v2(grammar, nullable);
         let var_ranges = once(0)
             .chain(
                 var_firsts.iter()
@@ -41,7 +32,7 @@ impl First {
 }
 
 impl Index<usize> for First {
-    type Output = [Option<usize>];
+    type Output = [usize];
 
     fn index(&self, var: usize) -> &Self::Output {
         &self.firsts[self.var_ranges[var]..self.var_ranges[var+1]]
@@ -52,19 +43,31 @@ impl Index<usize> for First {
 // === INTERNALS ===
 // =================
 
-/// Constructs the first sets for each unique variable in grammar.
+
+/// Let `A ~ B` hold iff there is a production of the form `A -> pX...`, where
+/// `p` is a nullable sequence of symbols. Let `~+` be the transitive closure
+/// of relation `~`.
+/// 
+/// ```text
+/// first[A] = { t in T | A ~+ t }
+///          = { t in T | A ~ t or A ~ B ~+ t }
+///          = { t in T | A ~ t } U { t in first[B] | A ~ B }
+///          = first'[A] U union({ first[B] | A ~ B })
+/// ```
+/// 
+/// Hence, we can compute `first` by applying the transitive closure algorithm.
 fn compute_var_firsts_v2(grammar: &Grammar, nullable: &[bool]) -> Vec<BTreeSet<usize>> {
     let var_count = grammar.var_count();
-    let mut trivial_first = vec![BTreeSet::new(); var_count];
+    let mut first = vec![BTreeSet::new(); var_count];
     let mut dependency_matrix = vec![false; var_count * var_count];
     
-    // Initialise first to trivial values and fill left_dependent matrix
+    // Initialise first to trivial values and fill dependency_matrix
     for (A, rule) in grammar.rules().enumerate() {
         for alt in rule.alts() {            
             for &symbol in alt {
                 match symbol {
                     Symbol::Terminal(a) => {
-                        trivial_first[A].insert(a);
+                        first[A].insert(a);
                         break;
                     }
                     Symbol::Variable(B) => {
@@ -87,56 +90,7 @@ fn compute_var_firsts_v2(grammar: &Grammar, nullable: &[bool]) -> Vec<BTreeSet<u
         A.extend(B);
     };
 
-    transitive_closure(trivial_first, left_dependencies, extend)
-}
-
-/// Constructs the first sets for each unique variable in grammar.
-fn compute_var_firsts(grammar: &Grammar) -> Vec<BTreeSet<Option<usize>>> {
-    let mut first = vec![BTreeSet::new(); grammar.var_count()];
-
-    let mut done = false;
-    while !done {
-        done = true;
-
-        for (A, rule) in grammar.rules().enumerate() {
-            for alt in rule.alts() {
-                let mut rhs = BTreeSet::new();
-
-                if alt.is_empty() {
-                    // alt is epsilon
-                    rhs.insert(None);
-                } else {
-                    for (j, &symbol) in alt.iter().enumerate() {
-                        match symbol {
-                            // If the current grammar symbol being considered
-                            // is a terminal, then succeeding grammar symbols
-                            // in the alt cannot contribute to first(A).
-                            Symbol::Terminal(b) => {
-                                rhs.insert(Some(b));
-                                break;
-                            },
-                            Symbol::Variable(B) => {
-                                // If B is not the last symbol in the rhs of the production
-                                // and B is nullable (first(B) contains epsilon), then the
-                                // succeeding grammar symbol also contributes to first(A).
-                                if j < alt.len() - 1 && first[B].contains(&None) {
-                                    rhs.extend(first[B].iter().filter(|b: &&Option<usize>| b.is_some()));
-                                } else {
-                                    rhs.extend(first[B].iter());
-                                    break;
-                                }
-                            },
-                        }
-                    }
-                }
-
-                if !rhs.is_subset(&first[A]) {
-                    first[A].extend(rhs);
-                    done = false;
-                }
-            }
-        }
-    }
+    transitive_closure(&mut first, left_dependencies, extend);
 
     first
 }

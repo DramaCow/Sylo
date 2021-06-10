@@ -1,46 +1,60 @@
-#![allow(non_snake_case)]
+/// TODO: Should not be a child of lr0a module.
 
-use std::collections::{BTreeSet, HashMap};
 use crate::lang::cfg::{Grammar, Symbol};
 use crate::utils::StringBuilder;
-use super::LR0Item;
+use super::{LR0A, State, LR0Item};
 use std::cmp::Ordering::{Less, Greater};
 
-pub struct LR0A {
-    pub(super) states: Vec<State>,
-}
-
-pub struct State {
-    pub items: BTreeSet<LR0Item>,
-    pub next: HashMap<Symbol, usize>,
-}
-
-impl LR0A {
-    #[must_use]
-    pub fn states(&self) -> &[State] {
-        &self.states
+/// # Errors
+pub fn dot_with_labelling<F, G, T, U>(grammar: &Grammar, lr0a: &LR0A, word_labelling: F, var_labelling: G, print_itemsets: bool) -> Result<String, std::fmt::Error>
+    where F: Fn(usize) -> T + Copy,
+          G: Fn(usize) -> U + Copy,
+          T: std::fmt::Display,
+          U: std::fmt::Display,
+{
+    let mut dot = StringBuilder::new();
+    
+    writeln!(dot, "digraph CC {{")?;
+    dot.indent();
+    writeln!(dot, "rankdir=LR;")?;
+    
+    dot.newline();
+    
+    writeln!(dot, "node[shape=point]; q;")?;
+    // writeln!(dot, "node[shape=doublecircle margin=0]; accept[label=<<b>ACCEPT</b>>];");
+    writeln!(dot, "node[shape=plain]; accept[label=<<b>ACCEPT</b>>];");
+    if print_itemsets {
+        let alt2var: Vec<_> = grammar.rules().enumerate().flat_map(|(i, rule)| rule.alts().map(move |_| i)).collect();
+        writeln!(dot, "node[shape=plain];")?;
+        for (id, state) in lr0a.states.iter().enumerate() {
+            format_state(&mut dot, &grammar, id, state, &alt2var, word_labelling, var_labelling)?;
+        }
+    } else {
+        writeln!(dot, "node[shape=rectangle];")?;
+        for (id, _) in lr0a.states.iter().enumerate() {
+            writeln!(dot, "s{};", id)?;
+        }
+    }
+    
+    dot.newline();
+    
+    writeln!(dot, "q->s0;")?;
+    writeln!(dot, "s{}->accept[label=\"&#9633;\"];", *lr0a.states[0].next.get(&Symbol::Variable(0)).unwrap());
+    for (A, state) in lr0a.states.iter().enumerate() {
+        for (symbol, B) in &state.next {
+            writeln!(dot, "s{}->s{}[label={:?}];", A, B, 
+                match symbol {
+                    Symbol::Terminal(a) => format!("{}", word_labelling(*a)),
+                    Symbol::Variable(A) => format!("{}", var_labelling(*A)),
+                }
+            )?;
+        }
     }
 
-    /// # Errors
-    pub fn dot<T, U>(&self, grammar: &Grammar, word_names: &[T], var_names: &[U], print_itemsets: bool) -> Result<String, std::fmt::Error>
-    where
-        T: std::fmt::Display,
-        U: std::fmt::Display,
-    {
-        let word_to_string = |word: usize| {
-            format!("{}", word_names[word])
-        };
+    dot.unindent();
+    writeln!(dot, "}}")?;
 
-        let var_to_string = |var: usize| {
-            if var < var_names.len() {
-                format!("{}", var_names[var])
-            } else {
-                "S'".to_string()
-            }
-        };
-
-        dot_with_labelling_internal(grammar, self, word_to_string, var_to_string, print_itemsets)
-    }
+    Ok(dot.build())
 }
 
 // =================
@@ -110,56 +124,4 @@ fn format_state<F, G, T, U>(fmt: &mut StringBuilder, grammar: &Grammar, id: usiz
     writeln!(fmt, "</table>>];")?;
     fmt.unindent();
     Ok(())
-}
-
-/// # Errors
-fn dot_with_labelling_internal<F, G, T, U>(grammar: &Grammar, lr0a: &LR0A, word_labelling: F, var_labelling: G, print_itemsets: bool) -> Result<String, std::fmt::Error>
-    where F: Fn(usize) -> T + Copy,
-          G: Fn(usize) -> U + Copy,
-          T: std::fmt::Display,
-          U: std::fmt::Display,
-{
-    let mut dot = StringBuilder::new();
-    
-    writeln!(dot, "digraph CC {{")?;
-    dot.indent();
-    writeln!(dot, "rankdir=LR;")?;
-    
-    dot.newline();
-    
-    writeln!(dot, "node[shape=point]; q;")?;
-    // writeln!(dot, "node[shape=doublecircle margin=0]; accept[label=<<b>ACCEPT</b>>];");
-    writeln!(dot, "node[shape=plain]; accept[label=<<b>ACCEPT</b>>];");
-    if print_itemsets {
-        let alt2var: Vec<_> = grammar.rules().enumerate().flat_map(|(i, rule)| rule.alts().map(move |_| i)).collect();
-        writeln!(dot, "node[shape=plain];")?;
-        for (id, state) in lr0a.states.iter().enumerate() {
-            format_state(&mut dot, &grammar, id, state, &alt2var, word_labelling, var_labelling)?;
-        }
-    } else {
-        writeln!(dot, "node[shape=rectangle];")?;
-        for (id, _) in lr0a.states.iter().enumerate() {
-            writeln!(dot, "s{};", id)?;
-        }
-    }
-    
-    dot.newline();
-    
-    writeln!(dot, "q->s0;")?;
-    writeln!(dot, "s{}->accept[label=\"&#9633;\"];", *lr0a.states[0].next.get(&Symbol::Variable(0)).unwrap());
-    for (A, state) in lr0a.states.iter().enumerate() {
-        for (symbol, B) in &state.next {
-            writeln!(dot, "s{}->s{}[label={:?}];", A, B, 
-                match symbol {
-                    Symbol::Terminal(a) => format!("{}", word_labelling(*a)),
-                    Symbol::Variable(A) => format!("{}", var_labelling(*A)),
-                }
-            )?;
-        }
-    }
-
-    dot.unindent();
-    writeln!(dot, "}}")?;
-
-    Ok(dot.build())
 }

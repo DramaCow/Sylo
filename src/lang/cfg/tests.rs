@@ -44,16 +44,6 @@ fn rr_expr_grammar() -> Grammar {
         .build().unwrap()
 }
 
-const eps: Option<usize>    = None;
-const add: Option<usize>    = Some(0);
-const sub: Option<usize>    = Some(1);
-const mul: Option<usize>    = Some(2);
-const div: Option<usize>    = Some(3);
-const lparen: Option<usize> = Some(4);
-const rparen: Option<usize> = Some(5);
-const name: Option<usize>   = Some(6);
-const num: Option<usize>    = Some(7);
-const eof: Option<usize>    = None;
 // ---
 const Expr: usize   = 0;
 const Expr_: usize  = 1;
@@ -74,19 +64,36 @@ fn test_nullability() {
 
 #[test]
 fn test_first() {
+    const add: usize    = 0;
+    const sub: usize    = 1;
+    const mul: usize    = 2;
+    const div: usize    = 3;
+    const lparen: usize = 4;
+    const name: usize   = 6;
+    const num: usize    = 7;
+
     let grammar = rr_expr_grammar();
-    let first = First::new(&grammar);
+    let first = First::new(&grammar, &nullability(&grammar));
     assert_eq!(&first[Expr], &[lparen, name, num]);
-    assert_eq!(&first[Expr_], &[eps, add, sub]);
+    assert_eq!(&first[Expr_], &[add, sub]);
     assert_eq!(&first[Term], &[lparen, name, num]);
-    assert_eq!(&first[Term_], &[eps, mul, div]);
+    assert_eq!(&first[Term_], &[mul, div]);
     assert_eq!(&first[Factor], &[lparen, name, num]);
+    println!("first = {:?}", first);
 }
 
 #[test]
 fn test_follow() {
+    const add: Option<usize>    = Some(0);
+    const sub: Option<usize>    = Some(1);
+    const mul: Option<usize>    = Some(2);
+    const div: Option<usize>    = Some(3);
+    const rparen: Option<usize> = Some(5);
+    const eof: Option<usize>    = None;
+
     let grammar = rr_expr_grammar();
-    let follow = Follow::new(&grammar, &First::new(&grammar));
+    let nullable = nullability(&grammar);
+    let follow = Follow::new(&grammar, &nullable, &First::new(&grammar, &nullable));
     assert_eq!(&follow[Expr], &[eof, rparen]);
     assert_eq!(&follow[Expr_], &[eof, rparen]);
     assert_eq!(&follow[Term], &[eof, add, sub, rparen]);

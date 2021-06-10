@@ -4,18 +4,20 @@ use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::iter::once;
 use std::rc::Rc;
 use crate::lang::cfg::{Grammar, Symbol, First};
-use super::{LR1Item, LR1A, lr1a::State};
+use super::{LR1Item, LR1A, State};
 
 pub struct LR1ABuilder<'a> {
     grammar: &'a Grammar,
+    nullable: &'a [bool],
     first: &'a First,
 }
 
 impl<'a> LR1ABuilder<'a> {
     #[must_use]
-    pub fn new(grammar: &'a Grammar, first: &'a First) -> Self {
+    pub fn new(grammar: &'a Grammar, nullable: &'a [bool], first: &'a First) -> Self {
         LR1ABuilder {
             grammar,
+            nullable,
             first,
         }
     }
@@ -144,9 +146,8 @@ impl LR1ABuilder<'_> {
                         Some(Symbol::Variable(A)) => {
                             let first_A = &self.first[A];
 
-                            // NOTE: if first contains epsilon, it is guaranteed to be at index 0
-                            if first_A[0].is_some() {
-                                for &lookahead in first_A {
+                            if self.nullable[A] {
+                                for lookahead in first_A.iter().copied().map(Some).chain(once(item.lookahead)) {
                                     for alt in self.grammar.rule(var).alt_indices() {
                                         if new_items.insert(LR1Item::new(alt, 0, lookahead)) {
                                             done = false;
@@ -154,14 +155,14 @@ impl LR1ABuilder<'_> {
                                     }
                                 }
                             } else {
-                                for &lookahead in first_A[1..].iter().chain(once(&item.lookahead)) {
+                                for &lookahead in first_A {
                                     for alt in self.grammar.rule(var).alt_indices() {
-                                        if new_items.insert(LR1Item::new(alt, 0, lookahead)) {
+                                        if new_items.insert(LR1Item::new(alt, 0, Some(lookahead))) {
                                             done = false;
                                         }
                                     }
                                 }
-                            }
+                            } 
                         },
                     };
                 }

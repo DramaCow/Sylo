@@ -3,7 +3,7 @@
 
 use sylo::lang::{
     re,
-    cfg::First,
+    cfg::{nullability, First},
     lr::LR1ABuilder,
 };
 use sylo::syntax::{
@@ -59,7 +59,8 @@ fn main() {
     
     let timer = Instant::now();
 
-    let lr1a = LR1ABuilder::new(&def.grammar, &First::new(&def.grammar)).build();
+    let nullable = nullability(&def.grammar);
+    let lr1a = LR1ABuilder::new(&def.grammar, &nullable, &First::new(&def.grammar, &nullable)).build();
     std::fs::write("_graph.dot", lr1a.dot(&def.grammar, &def.lexer_def.vocab(), &def.var_names, true).unwrap()).unwrap();
 
     let parser = def.build().unwrap();

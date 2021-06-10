@@ -17,8 +17,8 @@ pub struct Follow {
 
 impl Follow {
     #[must_use]
-    pub fn new(grammar: &Grammar, first: &First) -> Self {
-        let var_follows = compute_var_follows(grammar, first);
+    pub fn new(grammar: &Grammar, nullable: &[bool], first: &First) -> Self {
+        let var_follows = compute_var_follows(grammar, nullable, first);
         let var_ranges = once(0)
             .chain(
                 var_follows.iter()
@@ -46,7 +46,42 @@ impl Index<usize> for Follow {
 // =================
 
 /// Constructs the follow sets for each unique variable in grammar.
-fn compute_var_follows(grammar: &Grammar, first: &First) -> Vec<BTreeSet<Option<usize>>> {
+fn compute_var_follows_v2(grammar: &Grammar, nullable: &[bool], first: &First) -> Vec<BTreeSet<Option<usize>>> {
+    let var_count = grammar.var_count();
+    // let mut direct_read = vec![BTreeSet::new(); var_count];
+    let mut read = vec![BTreeSet::new(); var_count];
+
+    // Initialise first to trivial values and fill left_dependent matrix
+    for (A, rule) in grammar.rules().enumerate() {
+        for alt in rule.alts() {
+
+            
+            for &symbol in alt {
+
+
+
+                
+                match symbol {
+                    Symbol::Terminal(a) => {
+                        read[A].insert(a);
+                        break;
+                    }
+                    Symbol::Variable(B) => {
+                        read[A].extend(&first[B]);
+                        if !nullable[B] {
+                            break;
+                        }
+                    }
+                };
+            }
+        }
+    }
+
+    todo!()
+}
+
+/// Constructs the follow sets for each unique variable in grammar.
+fn compute_var_follows(grammar: &Grammar, nullable: &[bool], first: &First) -> Vec<BTreeSet<Option<usize>>> {
     let mut follow = vec![BTreeSet::<Option<usize>>::new(); grammar.var_count()];
     follow.last_mut().unwrap().insert(None);
 
@@ -71,11 +106,10 @@ fn compute_var_follows(grammar: &Grammar, first: &First) -> Vec<BTreeSet<Option<
 
                             let first_B = &first[B];
 
-                            // NOTE: if first contains epsilon, it is guaranteed to be at index 0
-                            if first_B[0].is_some() {
-                                trailer = first_B.iter().copied().collect();
+                            if nullable[B] {
+                                trailer.extend(first_B.iter().copied().map(Some));
                             } else {
-                                trailer.extend(&first_B[1..]);
+                                trailer = first_B.iter().copied().map(Some).collect();
                             }
                         }
                     }
