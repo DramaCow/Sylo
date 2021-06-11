@@ -1,5 +1,5 @@
 
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashSet, HashMap, hash_map::Keys};
 use crate::lang::cfg::{Grammar, Symbol, nullability};
 use crate::lang::lr::{LR0A, LR0ABuilder};
 use crate::utils::transitive_closure;
@@ -12,10 +12,35 @@ pub struct LALR1ABuilder<'a> {
     nonterminal_transition_map: HashMap<NonterminalTransition, usize>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct NonterminalTransition {
+    pub state: usize,
+    pub var: usize,
+}
+
+pub struct Reads<'a> {
+    symbols: Keys<'a, Symbol, usize>,
     state: usize,
-    var: usize,
+    nullable_ref: &'a [bool], 
+    transition_map_ref: &'a HashMap<NonterminalTransition, usize>, 
+}
+
+impl Iterator for Reads<'_> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(&symbol) = self.symbols.next() {
+            if let Symbol::Variable(B) = symbol {
+                if self.nullable_ref[B] {
+                    // (p, A) reads (q, B)
+                    let transition = NonterminalTransition { state: self.state, var: B };
+                    let j = self.transition_map_ref[&transition];
+                    return Some(j);
+                }
+            }
+        }
+        None
+    }
 }
 
 impl<'a> LALR1ABuilder<'a> {
@@ -48,6 +73,12 @@ impl<'a> LALR1ABuilder<'a> {
 }
 
 impl LALR1ABuilder<'_> {
+    #[must_use]
+    pub fn nonterminal_transitions(&self) -> &[NonterminalTransition] {
+        &self.nonterminal_transitions
+    }
+
+    #[must_use]
     pub fn direct_read(&self) -> Vec<HashSet<usize>> {
         let states = self.lr0a.states();
         let ntt_count = self.nonterminal_transitions.len();
@@ -68,37 +99,18 @@ impl LALR1ABuilder<'_> {
         direct_read
     }
 
+    #[must_use]
     pub fn read(&self) -> Vec<HashSet<usize>> {
-        let states = self.lr0a.states();
         let mut read = self.direct_read();
 
-        let reads = |i: usize| {
-            let NonterminalTransition { state: p, var: A } = self.nonterminal_transitions[i];
-            let q = states[p].next[&Symbol::Variable(A)];
-
-            let nullable_ref       = &self.nullable;
-            let transition_map_ref = &self.nonterminal_transition_map;
-            
-            states[q].next.keys().filter_map(move |&symbol| {
-                if let Symbol::Variable(B) = symbol {
-                    if nullable_ref[B] {
-                        // (p, A) reads (q, B)
-                        let transition = NonterminalTransition { state: q, var: B };
-                        let j = transition_map_ref[&transition];
-                        return Some(j);
-                    }
-                }
-                None
-            })
-        };
-
-        if transitive_closure(&mut read, reads, extend) {
+        if transitive_closure(&mut read, self.reads_relation(), extend) {
             // cycle detected, TODO: handle errors
         }
 
         read
     }
 
+    #[must_use]
     pub fn follow(&self) -> Vec<HashSet<usize>> {
         let states = self.lr0a.states();
         let mut follow = self.read();
@@ -138,6 +150,25 @@ impl LALR1ABuilder<'_> {
         }
 
         follow
+    }
+}
+
+impl<'a> LALR1ABuilder<'a> {
+    pub fn reads_relation(&'a self) -> impl FnMut(usize) -> Reads<'a>
+    {
+        let states = self.lr0a.states();
+
+        move |i: usize| {
+            let NonterminalTransition { state: p, var: A } = self.nonterminal_transitions[i];
+            let q = states[p].next[&Symbol::Variable(A)];
+
+            Reads {
+                symbols: states[q].next.keys(),
+                state: q,
+                nullable_ref: &self.nullable,
+                transition_map_ref: &self.nonterminal_transition_map,
+            }
+        }
     }
 }
 
