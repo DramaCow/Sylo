@@ -7,10 +7,10 @@ macro_rules! lexer {
 
 #[macro_export]
 macro_rules! parser {
-    ({ $($([$lexcmd:ident])? $lexlbl:ident : $regex:expr),+ $(,)? } , $({ $(% $assoc:ident $($token:ident)+)* },)? { $($([$syncmd:ident])? $synlbl:ident : $($($symbol:ident)*)|*),+ $(,)? } $(,)?) => {
+    ({ $($([$lexcmd:ident])? $lexlbl:ident : $regex:expr),+ $(,)? } , $({ $(% $assoc:ident $($token:ident)+)* },)? { $($([$syncmd:ident])? $synlbl:ident : $($($symbol:ident)*)|+),+ $(,)? } $(,)?) => {
         {
             $crate::_lexer_def_internal![__LEX_DEF__ 0_usize ; [] $($([$lexcmd])? $lexlbl : $regex),+];
-            let mut __PARSER_DEF__ = $crate::_parser_def_internal![__LEX_DEF__ 0_usize ; [] $($([$syncmd])? $synlbl : $($($symbol)*)|*),+];
+            let mut __PARSER_DEF__ = $crate::_parser_def_internal![__LEX_DEF__ 0_usize ; [] $($([$syncmd])? $synlbl : $($($symbol)*)|+),+];
             $(
                 $crate::_precedence_internal![__PARSER_DEF__ 0_usize ; [] $(% $assoc $($token)+)*];
             )?
@@ -89,10 +89,10 @@ macro_rules! _precedence_internal {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! _parser_def_internal {
-    ($lexer_def:ident $count:expr ; [$($body:tt)*] $label:ident : $($($symbol:ident)*)|* , $($tail:tt)+) => {
+    ($lexer_def:ident $count:expr ; [$($body:tt)*] $label:ident : $($($symbol:ident)*)|+ , $($tail:tt)+) => {
         $crate::_parser_def_internal![$lexer_def $count + 1_usize ; [$($body)* $count , $label &[$(&[$($symbol),*]),*] ;] $($tail)+]
     };
-    ($lexer_def:ident $count:expr ; [$($body:tt)*] $label:ident : $($($symbol:ident)*)|* $(,)?) => {
+    ($lexer_def:ident $count:expr ; [$($body:tt)*] $label:ident : $($($symbol:ident)*)|+ $(,)?) => {
         $crate::_parser_def_internal![@ $lexer_def $($body)* $count , $label &[$(&[$($symbol),*]),*]]
     };
     (@ $lexer_def:ident $($id:expr , $label:ident $rule:expr);+) => {

@@ -3,6 +3,7 @@
 
 use sylo::lang::{
     re,
+    lr::LR0ABuilder,
     lr::LALR1ABuilder,
 };
 use std::time::Instant;
@@ -12,23 +13,21 @@ fn main() {
 
     let def = parser! {
         {
-            id:     re::range('a', 'z').plus(),
-            lparen: re::literal("("),
-            rparen: re::literal(")"),
-            add:    re::literal("+"),
-            mul:    re::literal("*"),
+            a: re::literal("a"),
         },
         {
-            E : E add T
-              | T,
-            T : T mul F
-              | F,
-            F : lparen E rparen
-              | id,
+            A : B C D A
+              | a,
+            B : ,
+            C : ,
+            D : ,
         }
     };
     
-    let word_names = ["id", "(", ")", "+", "*"];
+    let word_names = ["a"];
+
+    let lr0a = LR0ABuilder::new(&def.grammar).build();
+    std::fs::write("_graph.dot", lr0a.dot(&def.grammar, &word_names, &def.var_names, true).unwrap()).unwrap();
 
     let builder = LALR1ABuilder::new(&def.grammar);
     let transition_names: Vec<_> = builder.nonterminal_transitions().iter()
@@ -40,7 +39,7 @@ fn main() {
 
     let mut reads = builder.reads_relation();
 
-    for i in (0..builder.nonterminal_transitions().len()) {
+    for i in 0..builder.nonterminal_transitions().len() {
         let related = format_indices(reads(i), &transition_names);
         println!("{} reads {{{}}}", transition_names[i], related);
     }
@@ -53,5 +52,5 @@ fn main() {
 }
 
 fn format_indices<I: IntoIterator<Item = usize>, L: std::fmt::Display>(indices: I, labels: &[L]) -> String {
-    indices.into_iter().map(|t| format!("'{}'", labels[t])).collect::<Vec<_>>().join(", ")
+    indices.into_iter().map(|t| format!("{}", labels[t])).collect::<Vec<_>>().join(", ")
 }

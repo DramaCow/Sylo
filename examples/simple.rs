@@ -22,7 +22,7 @@ fn main() {
             Sentence  : Words period
                       | Words ellipses,
             Words     : Words word
-                      | word
+                      | word,
         }
     };
 

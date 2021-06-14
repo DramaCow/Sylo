@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use crate::lang::cfg::{Grammar, First, nullability, Symbol};
+use crate::lang::cfg::{Grammar, Symbol};
 use super::{LR1ABuilder, Action, Reduction, LRTable};
 
 #[derive(Debug)]
