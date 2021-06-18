@@ -3,7 +3,6 @@
 
 use sylo::lang::{
     re,
-    cfg::{nullability, First},
     lr::LR1ABuilder,
 };
 use std::time::Instant;

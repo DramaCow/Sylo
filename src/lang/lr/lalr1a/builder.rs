@@ -1,5 +1,6 @@
+#![allow(non_snake_case)]
 
-use std::collections::{HashSet, HashMap, hash_map::Keys};
+use std::collections::{HashSet, HashMap};
 use crate::lang::cfg::{Grammar, Symbol, nullability};
 use crate::lang::lr::{LR0A, LR0ABuilder};
 use crate::utils::transitive_closure;
@@ -18,49 +19,23 @@ pub struct NonterminalTransition {
     pub var: usize,
 }
 
-pub struct Reads<'a> {
-    symbols: Keys<'a, Symbol, usize>,
-    state: usize,
-    nullable_ref: &'a [bool], 
-    transition_map_ref: &'a HashMap<NonterminalTransition, usize>, 
-}
-
-impl Iterator for Reads<'_> {
-    type Item = usize;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(&symbol) = self.symbols.next() {
-            if let Symbol::Variable(B) = symbol {
-                if self.nullable_ref[B] {
-                    // (p, A) reads (q, B)
-                    let transition = NonterminalTransition { state: self.state, var: B };
-                    let j = self.transition_map_ref[&transition];
-                    return Some(j);
-                }
-            }
-        }
-        None
-    }
-}
-
 impl<'a> LALR1ABuilder<'a> {
     #[must_use]
     pub fn new(grammar: &'a Grammar) -> Self {
         let lr0a = LR0ABuilder::new(grammar).build();
 
-        let mut nonterminal_transitions: Vec<NonterminalTransition> = Vec::new();
-        let mut nonterminal_transition_map: HashMap<NonterminalTransition, usize> = HashMap::new();
-
-        for (p, state) in lr0a.states().iter().enumerate() {
-            for &symbol in state.next.keys() {
+        let nonterminal_transitions: Vec<_> = lr0a.states().iter().enumerate().flat_map(|(p, state)| {
+            state.next.keys().filter_map(move |&symbol| {
                 if let Symbol::Variable(A) = symbol {
-                    let transition = NonterminalTransition { state: p, var: A };
-                    let index = nonterminal_transitions.len();
-                    nonterminal_transitions.push(transition);
-                    nonterminal_transition_map.insert(transition, index);
+                    Some(NonterminalTransition { state: p, var: A })
+                } else {
+                    None
                 }
-            }
-        }
+            })
+        }).collect();
+
+        let nonterminal_transition_map = nonterminal_transitions.iter().enumerate()
+            .map(|(i, &transition)| (transition, i)).collect();
 
         Self {
             grammar,
@@ -102,8 +77,9 @@ impl LALR1ABuilder<'_> {
     #[must_use]
     pub fn read(&self) -> Vec<HashSet<usize>> {
         let mut read = self.direct_read();
+        let reads = self.reads();
 
-        if transitive_closure(&mut read, self.reads_relation(), extend) {
+        if transitive_closure(&mut read, |i| reads[i].iter().copied(), extend) {
             // cycle detected, TODO: handle errors
         }
 
@@ -112,10 +88,68 @@ impl LALR1ABuilder<'_> {
 
     #[must_use]
     pub fn follow(&self) -> Vec<HashSet<usize>> {
-        let states = self.lr0a.states();
         let mut follow = self.read();
+        let includes = self.includes();
 
-        let includes_table: Vec<HashSet<usize>> = self.nonterminal_transitions.iter().map(|&transition| {
+        if transitive_closure(&mut follow, |i| includes[i].iter().copied(), extend) {
+            // cycle detected, TODO: handle errors
+        }
+
+        follow
+    }
+
+    #[must_use]
+    pub fn lookahead(&self) -> Vec<HashSet<usize>> {
+        let inconsistent_state_reduction_pairs: Vec<(usize, usize)> = self.lr0a.states().iter()
+            .enumerate()
+            .filter_map(|(q, state)| {
+                if state.items.len() > 1 {
+                    Some(state.items.iter().filter_map(move |item| {
+                        if item.is_complete(self.grammar) {
+                            Some((q, item.alt))
+                        } else {
+                            None
+                        }
+                    }))
+                } else {
+                    None
+                }
+            }).flatten().collect();
+
+        println!("{:?}", inconsistent_state_reduction_pairs);
+        
+        todo!()
+    }
+
+    #[must_use]
+    pub fn reads(&self) -> Vec<HashSet<usize>> {
+        // NOTE: this doesn't need to be stored: can be computed on the fly.
+
+        let states = self.lr0a.states();
+
+        self.nonterminal_transitions.iter().map(|&transition| {
+            let NonterminalTransition { state: p, var: A } = transition;
+            let q = states[p].next[&Symbol::Variable(A)];
+
+            states[q].next.keys().filter_map(|&symbol| {
+                if let Symbol::Variable(B) = symbol {
+                    if self.nullable[B] {
+                        // (p, A) reads (q, B)
+                        let transition = NonterminalTransition { state: q, var: B };
+                        let j = self.nonterminal_transition_map[&transition];
+                        return Some(j);
+                    }
+                }
+                None
+            }).collect()
+        }).collect()
+    }
+
+    #[must_use]
+    pub fn includes(&self) -> Vec<HashSet<usize>> {
+        let states = self.lr0a.states();
+
+        self.nonterminal_transitions.iter().map(|&transition| {
             let NonterminalTransition { state: p, var: B } = transition;
             let mut successors = HashSet::new();
 
@@ -139,38 +173,34 @@ impl LALR1ABuilder<'_> {
             }
 
             successors
-        }).collect();
-
-        let includes = |i: usize| {
-            includes_table[i].iter().copied()
-        };
-        
-        if transitive_closure(&mut follow, includes, extend) {
-            // cycle detected, TODO: handle errors
-        }
-
-        follow
+        }).collect()
     }
 }
 
-impl<'a> LALR1ABuilder<'a> {
-    pub fn reads_relation(&'a self) -> impl FnMut(usize) -> Reads<'a>
-    {
-        let states = self.lr0a.states();
+// pub struct Reads<'a> {
+//     state: usize,
+//     symbols: Keys<'a, Symbol, usize>,
+//     nullable_ref: &'a [bool], 
+//     transition_map_ref: &'a HashMap<NonterminalTransition, usize>, 
+// }
 
-        move |i: usize| {
-            let NonterminalTransition { state: p, var: A } = self.nonterminal_transitions[i];
-            let q = states[p].next[&Symbol::Variable(A)];
+// impl Iterator for Reads<'_> {
+//     type Item = usize;
 
-            Reads {
-                symbols: states[q].next.keys(),
-                state: q,
-                nullable_ref: &self.nullable,
-                transition_map_ref: &self.nonterminal_transition_map,
-            }
-        }
-    }
-}
+//     fn next(&mut self) -> Option<Self::Item> {
+//         while let Some(&symbol) = self.symbols.next() {
+//             if let Symbol::Variable(B) = symbol {
+//                 if self.nullable_ref[B] {
+//                     // (p, A) reads (q, B)
+//                     let transition = NonterminalTransition { state: self.state, var: B };
+//                     let j = self.transition_map_ref[&transition];
+//                     return Some(j);
+//                 }
+//             }
+//         }
+//         None
+//     }
+// }
 
 // =================
 // === INTERNALS === 

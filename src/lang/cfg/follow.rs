@@ -45,40 +45,34 @@ impl Index<usize> for Follow {
 // === INTERNALS ===
 // =================
 
-/// Constructs the follow sets for each unique variable in grammar.
-fn compute_var_follows_v2(grammar: &Grammar, nullable: &[bool], first: &First) -> Vec<BTreeSet<Option<usize>>> {
-    let var_count = grammar.var_count();
-    // let mut direct_read = vec![BTreeSet::new(); var_count];
-    let mut read = vec![BTreeSet::new(); var_count];
-
-    // Initialise first to trivial values and fill left_dependent matrix
-    for (A, rule) in grammar.rules().enumerate() {
-        for alt in rule.alts() {
-
-            
-            for &symbol in alt {
-
-
-
-                
-                match symbol {
-                    Symbol::Terminal(a) => {
-                        read[A].insert(a);
-                        break;
-                    }
-                    Symbol::Variable(B) => {
-                        read[A].extend(&first[B]);
-                        if !nullable[B] {
-                            break;
-                        }
-                    }
-                };
-            }
-        }
-    }
-
-    todo!()
-}
+// /// Constructs the follow sets for each unique variable in grammar.
+// fn compute_var_follows_v2(grammar: &Grammar, nullable: &[bool], first: &First) -> Vec<BTreeSet<Option<usize>>> {
+//     let var_count = grammar.var_count();
+//     // let mut direct_read = vec![BTreeSet::new(); var_count];
+//     let mut read = vec![BTreeSet::new(); var_count];
+//
+//     // Initialise first to trivial values and fill left_dependent matrix
+//     for (A, rule) in grammar.rules().enumerate() {
+//         for alt in rule.alts() {
+//             for &symbol in alt {
+//                 match symbol {
+//                     Symbol::Terminal(a) => {
+//                         read[A].insert(a);
+//                         break;
+//                     }
+//                     Symbol::Variable(B) => {
+//                         read[A].extend(&first[B]);
+//                         if !nullable[B] {
+//                             break;
+//                         }
+//                     }
+//                 };
+//             }
+//         }
+//     }
+//
+//     todo!()
+// }
 
 /// Constructs the follow sets for each unique variable in grammar.
 fn compute_var_follows(grammar: &Grammar, nullable: &[bool], first: &First) -> Vec<BTreeSet<Option<usize>>> {
