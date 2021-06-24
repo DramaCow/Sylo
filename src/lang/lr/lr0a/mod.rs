@@ -32,15 +32,16 @@ impl LR0A {
             }
         };
 
-        graphviz::dot_with_labelling(grammar, self, labelling)
+        LR0ADotWriter::new(String::new(), self, grammar, labelling).build()
     }
 }
 
 mod builder;
-pub use builder::LR0ABuilder;
+pub use self::builder::LR0ABuilder;
+
+mod graphviz;
+pub use self::graphviz::LR0ADotWriter;
 
 // =================
 // === INTERNALS ===
 // =================
-
-mod graphviz;
