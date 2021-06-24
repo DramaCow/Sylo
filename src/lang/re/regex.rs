@@ -7,7 +7,7 @@ use std::fmt::Error;
 use std::fmt::Debug;
 
 use crate::utils::{
-    StringBuilder,
+    IndentWriter,
     iter::IteratorExtensions,
 };
 use super::CharSet;
@@ -322,66 +322,66 @@ impl RegEx {
         let mut stack: Vec<(usize, &RegEx)> = vec![(0, self)];
         let mut next_id = 0_usize;
 
-        let mut obj = StringBuilder::new();
+        let mut fmt = IndentWriter::new(String::new());
 
-        writeln!(obj, "digraph RegEx {{")?;
-        obj.indent();
-        writeln!(obj, "node[shape=plain];")?;
+        writeln!(fmt, "digraph RegEx {{")?;
+        fmt.indent();
+        writeln!(fmt, "node[shape=plain];")?;
         
         while let Some((parent_id, parent)) = stack.pop() {
             match parent.operator() {
                 Operator::None => {
-                    writeln!(obj, "s{}[label=\"\u{2205}\"]", parent_id)?;
+                    writeln!(fmt, "s{}[label=\"\u{2205}\"]", parent_id)?;
                 },
                 Operator::Epsilon => {
-                    writeln!(obj, "s{}[label=\"\u{03B5}\"]", parent_id)?;
+                    writeln!(fmt, "s{}[label=\"\u{03B5}\"]", parent_id)?;
                 },
                 Operator::Set(set) => {
-                    writeln!(obj, "s{}[label=\"{:?}\"]", parent_id, set)?;
+                    writeln!(fmt, "s{}[label=\"{:?}\"]", parent_id, set)?;
                 },
                 Operator::Cat(children) => {
-                    writeln!(obj, "s{}[label=\"cat\"]", parent_id)?;
+                    writeln!(fmt, "s{}[label=\"cat\"]", parent_id)?;
                     for child in children {
                         next_id += 1;
-                        writeln!(obj, "s{}->s{}", parent_id, next_id)?;
+                        writeln!(fmt, "s{}->s{}", parent_id, next_id)?;
                         stack.push((next_id, child));
                     }
                 },
                 Operator::Star(child) => {
-                    writeln!(obj, "s{}[label=\"star\"]", parent_id)?;
+                    writeln!(fmt, "s{}[label=\"star\"]", parent_id)?;
                     next_id += 1;
-                    writeln!(obj, "s{}->s{}", parent_id, next_id)?;
+                    writeln!(fmt, "s{}->s{}", parent_id, next_id)?;
                     stack.push((next_id, child));
                 },
                 Operator::Or(children) => {
-                    writeln!(obj, "s{}[label=\"or\"]", parent_id)?;
+                    writeln!(fmt, "s{}[label=\"or\"]", parent_id)?;
                     for child in children {
                         next_id += 1;
-                        writeln!(obj, "s{}->s{}", parent_id, next_id)?;
+                        writeln!(fmt, "s{}->s{}", parent_id, next_id)?;
                         stack.push((next_id, child));
                     }
                 },
                 Operator::And(children) => {
-                    writeln!(obj, "s{}[label=\"and\"]", parent_id)?;
+                    writeln!(fmt, "s{}[label=\"and\"]", parent_id)?;
                     for child in children {
                         next_id += 1;
-                        writeln!(obj, "s{}->s{}", parent_id, next_id)?;
+                        writeln!(fmt, "s{}->s{}", parent_id, next_id)?;
                         stack.push((next_id, child));
                     }
                 },
                 Operator::Not(child) => {
-                    writeln!(obj, "s{}[label=\"not\"]", parent_id)?;
+                    writeln!(fmt, "s{}[label=\"not\"]", parent_id)?;
                     next_id += 1;
-                    writeln!(obj, "s{}->s{}", parent_id, next_id)?;
+                    writeln!(fmt, "s{}->s{}", parent_id, next_id)?;
                     stack.push((next_id, child));
                 },
             }
         }
 
-        obj.unindent();
-        writeln!(obj, "}}")?;
+        fmt.unindent();
+        writeln!(fmt, "}}")?;
         
-        Ok(obj.build())
+        Ok(fmt.build())
     }
 }
 

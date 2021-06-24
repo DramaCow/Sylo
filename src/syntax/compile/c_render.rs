@@ -2,7 +2,7 @@ use std::collections::{
     BTreeMap,
     btree_map::Entry::{Occupied, Vacant},
 };
-use crate::utils::StringBuilder;
+use crate::utils::IndentWriter;
 use crate::lang::re::{LexTable, Command};
 use crate::syntax::Lexer;
 use tinytemplate::TinyTemplate;
@@ -19,7 +19,7 @@ pub fn render_lexer(lexer: &Lexer, name: &str) -> Result<String, std::fmt::Error
     let lexdata = LexerSer::new(lexer);
     
     let table_code = {
-        let mut fmt = StringBuilder::new();
+        let mut fmt = IndentWriter::new(String::new());
         fmt.indent();
             
         for (i, state) in lexdata.states.iter().enumerate() {

@@ -7,7 +7,7 @@ use super::{LR1ABuilder, Action, Reduction, LRTable};
 pub struct NaiveLRTable {
     actions:    Vec<Action>,        /// lookup what action to perform given state and word
     gotos:      Vec<Option<usize>>, /// lookup what state should be transitioned to after reduction
-    reductions: Vec<Reduction>,     // alt --> rule and number of symbols
+    reductions: Vec<Reduction>,     // production --> rule and number of symbols
     word_count: usize,
     var_count:  usize,
 }
@@ -20,8 +20,8 @@ pub struct ConstructionError {
 
 #[derive(Debug)]
 pub enum Conflict {
-    ShiftReduce { word: usize, next_state: usize, alt: usize },
-    ReduceReduce { alt1: usize, alt2: usize },
+    ShiftReduce { word: usize, next_state: usize, production: usize },
+    ReduceReduce { production1: usize, production2: usize },
 }
 
 impl NaiveLRTable {
@@ -39,7 +39,7 @@ impl NaiveLRTable {
     {
         let lr1a = LR1ABuilder::new(grammar).build();
         
-        let word_count = grammar.max_word().map_or(0, |word| word + 1) + 1; // +1 for eof
+        let word_count = grammar.word_count() + 1; // +1 for eof
         let var_count  = grammar.var_count() - 1; // implicit start variable not needed in goto table
         let num_states = lr1a.states().len();
         
@@ -61,14 +61,14 @@ impl NaiveLRTable {
                         let next_state = state.next[&symbol];
     
                         // Note: shift-shift conflicts cannot occur
-                        if let Action::Reduce(alt) = *action {
-                            *action = conflict_resolution(Conflict::ShiftReduce { word, next_state, alt })
+                        if let Action::Reduce(production) = *action {
+                            *action = conflict_resolution(Conflict::ShiftReduce { word, next_state, production })
                                 .map_err(|conflict| ConstructionError { state: i, conflict })?;
                         } else {
                             *action = Action::Shift(next_state);
                         }
                     }
-                } else if reductions[item.lr0_item.alt].var < var_count || item.lookahead.is_some() { // TODO: second check not necessary?
+                } else if reductions[item.lr0_item.production].var < var_count || item.lookahead.is_some() { // TODO: second check not necessary?
                     // CASE 2: item is complete and does not have the start symbol on LHS.
 
                     let column = item.lookahead.map_or(0, |a| a + 1);
@@ -77,15 +77,15 @@ impl NaiveLRTable {
                     match *action {
                         Action::Shift(state) => {
                             let word = column - 1;
-                            *action = conflict_resolution(Conflict::ShiftReduce { word, next_state: state, alt: item.lr0_item.alt })
+                            *action = conflict_resolution(Conflict::ShiftReduce { word, next_state: state, production: item.lr0_item.production })
                                 .map_err(|conflict| ConstructionError { state: i, conflict })?;
                         }
-                        Action::Reduce(alt1) => {
-                            *action = conflict_resolution(Conflict::ReduceReduce { alt1, alt2: item.lr0_item.alt })
+                        Action::Reduce(production1) => {
+                            *action = conflict_resolution(Conflict::ReduceReduce { production1, production2: item.lr0_item.production })
                                 .map_err(|conflict| ConstructionError { state: i, conflict })?;
                         }
                         _ => {
-                            *action = Action::Reduce(item.lr0_item.alt);
+                            *action = Action::Reduce(item.lr0_item.production);
                         }
                     }
                 } else {

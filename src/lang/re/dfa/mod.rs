@@ -2,7 +2,7 @@ use std::collections::{HashSet, HashMap, BTreeMap};
 use std::iter::once;
 
 use crate::lang::re::{CharSet, RegEx, Operator};
-use crate::utils::StringBuilder;
+use crate::utils::IndentWriter;
 
 pub struct DFA {
     states: Vec<State>,
@@ -62,36 +62,36 @@ impl DFA {
 
     /// # Errors
     pub fn dot(&self) -> Result<String, std::fmt::Error> {
-        let mut obj = StringBuilder::new();
+        let mut fmt = IndentWriter::new(String::new());
 
-        writeln!(obj, "digraph DFA {{")?;
-        obj.indent();
+        writeln!(fmt, "digraph DFA {{")?;
+        fmt.indent();
 
-        writeln!(obj, "rankdir=LR;")?;
-        obj.newline();
+        writeln!(fmt, "rankdir=LR;")?;
+        writeln!(fmt)?;
 
-        writeln!(obj, "node[shape=point]; q;")?;
-        writeln!(obj, "node[shape=invhouse]; s0[label=\"\"];")?;
-        obj.newline();
+        writeln!(fmt, "node[shape=point]; q;")?;
+        writeln!(fmt, "node[shape=invhouse]; s0[label=\"\"];")?;
+        writeln!(fmt)?;
 
-        writeln!(obj, "node[shape=doublecircle];")?;
+        writeln!(fmt, "node[shape=doublecircle];")?;
         for (a, state) in self.states().iter().enumerate().skip(1) {
             if let Some(class) = state.class {
-                writeln!(obj, "s{}[label=\"{}\"];", a, class)?;
+                writeln!(fmt, "s{}[label=\"{}\"];", a, class)?;
             }
         }
-        obj.newline();
+        writeln!(fmt)?;
 
-        writeln!(obj, "node[shape=circle];")?;
+        writeln!(fmt, "node[shape=circle];")?;
         for (a, state) in self.states().iter().enumerate().skip(1) {
             if state.class.is_none() {
-                writeln!(obj, "s{}[label=\"\"];", a)?;
+                writeln!(fmt, "s{}[label=\"\"];", a)?;
             }
         }
         
-        obj.newline();
-        writeln!(obj, "s0->s0[label=\"{:?}\"];", CharSet::universe())?;
-        writeln!(obj, "q->s1;")?;
+        writeln!(fmt)?;
+        writeln!(fmt, "s0->s0[label=\"{:?}\"];", CharSet::universe())?;
+        writeln!(fmt, "q->s1;")?;
 
         for (a, state) in self.states().iter().enumerate().skip(1) {
             let mut inv: HashMap<usize, Vec<u8>>= HashMap::new();
@@ -104,14 +104,14 @@ impl DFA {
                 for symbol in symbols {
                     set = set.union(&CharSet::point(*symbol));
                 }
-                writeln!(obj, "s{}->s{}[label=\"{:?}\"];", a, b, set)?;
+                writeln!(fmt, "s{}->s{}[label=\"{:?}\"];", a, b, set)?;
             }
         }
 
-        obj.unindent();
-        writeln!(obj, "}}")?;
+        fmt.unindent();
+        writeln!(fmt, "}}")?;
 
-        Ok(obj.build())
+        Ok(fmt.build())
     }
 }
 

@@ -1,7 +1,7 @@
 //! TODO
 
 use super::Parser;
-use crate::utils::StringBuilder;
+use crate::utils::IndentWriter;
 
 /// Concrete Syntax Tree.
 #[derive(Debug)]
@@ -144,19 +144,19 @@ fn dot_with_labelling_internal<F, G, T, U>(cst: &CST, word_labelling: F, var_lab
           T: std::fmt::Display,
           U: std::fmt::Display,
 {
-    let mut dot = StringBuilder::new();
+    let mut fmt = IndentWriter::new(String::new());
 
-    writeln!(dot, "digraph CC {{")?;
-    dot.indent();
+    writeln!(fmt, "digraph CC {{")?;
+    fmt.indent();
 
     // nodes
     for (id, node) in cst.nodes.iter().enumerate() {
         match *node {
-            Node::Leaf { word: _, index } => { writeln!(dot, "s{}[label=\"{}\", shape=none];", id, word_labelling(index))?; }
-            Node::Branch { var, .. } =>  { writeln!(dot, "s{}[label=\"{}\", shape=oval];", id, var_labelling(var))?; }
+            Node::Leaf { word: _, index } => { writeln!(fmt, "s{}[label=\"{}\", shape=none];", id, word_labelling(index))?; }
+            Node::Branch { var, .. } =>  { writeln!(fmt, "s{}[label=\"{}\", shape=oval];", id, var_labelling(var))?; }
         };
     }
-    dot.newline();
+    writeln!(fmt)?;
 
     // edges
     let mut stack = vec![cst.nodes.len() - 1];
@@ -165,7 +165,7 @@ fn dot_with_labelling_internal<F, G, T, U>(cst: &CST, word_labelling: F, var_lab
             let mut index = head;
             loop {
                 let link = &cst.links[index];
-                writeln!(dot, "s{}->s{};", id, link.index)?;
+                writeln!(fmt, "s{}->s{};", id, link.index)?;
                 stack.push(link.index);
                 if let Some(next) = link.next {
                     index = next;
@@ -175,23 +175,23 @@ fn dot_with_labelling_internal<F, G, T, U>(cst: &CST, word_labelling: F, var_lab
             }
         }
     }
-    dot.newline();
+    writeln!(fmt)?;
 
     // place leaves on same level
-    writeln!(dot, "{{")?;
-    dot.indent();
-    writeln!(dot, "rank=max;")?;
-    dot.newline();
+    writeln!(fmt, "{{")?;
+    fmt.indent();
+    writeln!(fmt, "rank=max;")?;
+    writeln!(fmt)?;
     for (id, node) in cst.nodes.iter().enumerate() {
         if let Node::Leaf { .. } = node {
-            writeln!(dot, "s{}; ", id)?;
+            writeln!(fmt, "s{}; ", id)?;
         }
     }
 
-    dot.unindent();
-    writeln!(dot, "}}")?;
-    dot.unindent();
-    write!(dot, "}}")?;
+    fmt.unindent();
+    writeln!(fmt, "}}")?;
+    fmt.unindent();
+    write!(fmt, "}}")?;
 
-    Ok(dot.build())
+    Ok(fmt.build())
 }

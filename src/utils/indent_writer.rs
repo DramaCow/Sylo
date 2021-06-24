@@ -1,20 +1,18 @@
 use std::fmt::{Error, Write, Arguments};
 
 #[derive(Default)]
-pub struct StringBuilder {
-    string: String,
+pub struct IndentWriter<W: Write> {
+    fmt: W,
     indent_count: usize,
-    indent: String,
     written_to_line: bool,
 }
 
-impl StringBuilder {
+impl<W: Write> IndentWriter<W> {
     #[must_use]
-    pub fn new () -> Self {
+    pub fn new(fmt: W) -> Self {
         Self {
-            string: String::new(),
+            fmt,
             indent_count: 0,
-            indent: String::new(),
             written_to_line: false,
         }
     }
@@ -24,43 +22,42 @@ impl StringBuilder {
         <Self as Write>::write_fmt(self, fmt)
     }
 
-    pub fn newline(&mut self) -> &mut Self {
-        self.string.push('\n');
-        self.written_to_line = false;
-        self
-    }
-
     pub fn indent(&mut self) -> &mut Self {
         self.indent_count += 4;
-        self.indent = " ".repeat(self.indent_count);
         self
     }
 
     pub fn unindent(&mut self) -> &mut Self {
         if self.indent_count > 0 {
             self.indent_count -= 4;
-            self.indent = " ".repeat(self.indent_count);
         }
         self
     }
 
     #[must_use]
-    pub fn build(self) -> String {
-        self.string
+    pub fn build(self) -> W {
+        self.fmt
     }
 }
 
-impl Write for StringBuilder {
+impl<W: Write> Write for IndentWriter<W> {
     fn write_str(&mut self, s: &str) -> Result<(), Error> {
+        let mut split = s.split('\n');
+
         if !self.written_to_line {
             self.written_to_line = true;
-            self.string.push_str(&self.indent);
+            write!(self.fmt, "{:width$}", "", width = self.indent_count)?;
         }
+        write!(self.fmt, "{}", split.next().unwrap())?;
 
-        self.string.push_str(s);
-
-        if let Some('\n') = s.chars().last() {
-            self.written_to_line = false;
+        for substr in split {
+            if substr.is_empty() {
+                self.written_to_line = false;
+                write!(self.fmt, "\n")?;
+            } else {
+                self.written_to_line = true;
+                write!(self.fmt, "\n{:width$}{}", "", substr, width = self.indent_count)?;
+            }
         }
 
         Ok(())

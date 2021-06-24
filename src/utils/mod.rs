@@ -1,5 +1,5 @@
-mod string_builder;
-pub use self::string_builder::StringBuilder;
+mod indent_writer;
+pub use self::indent_writer::IndentWriter;
 
 pub mod iter;
 

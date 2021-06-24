@@ -1,5 +1,5 @@
 use crate::lang::cfg::{Grammar, Symbol};
-use crate::utils::StringBuilder;
+use crate::utils::IndentWriter;
 use super::{LR1A, LR1Item};
 
 /// # Errors
@@ -11,41 +11,41 @@ pub fn dot_with_labelling<F, G, T, U>(grammar: &Grammar, lr1a: &LR1A, word_label
 {
     let alt2var: Vec<_> = grammar.rules().enumerate().flat_map(|(i, rule)| rule.alts().map(move |_| i)).collect();
 
-    let mut dot = StringBuilder::new();
+    let mut fmt = IndentWriter::new(String::new());
 
-    writeln!(dot, "digraph CC {{")?;
-    dot.indent();
-    writeln!(dot, "rankdir=LR;")?;
+    writeln!(fmt, "digraph CC {{")?;
+    fmt.indent();
+    writeln!(fmt, "rankdir=LR;")?;
 
-    dot.newline();
+    writeln!(fmt)?;
 
     if print_itemsets {
-        writeln!(dot, "node[shape=plain];")?;
+        writeln!(fmt, "node[shape=plain];")?;
         for (id, state) in lr1a.states.iter().enumerate() {
-            writeln!(dot, "s{}[label=", id)?;
-            dot.indent();
-            writeln!(dot, "<<table border=\"1\" cellborder=\"0\">")?;
-            dot.indent();
-            writeln!(dot, "<tr><td align=\"center\"><b>s{}</b></td></tr>", id)?;
+            writeln!(fmt, "s{}[label=", id)?;
+            fmt.indent();
+            writeln!(fmt, "<<table border=\"1\" cellborder=\"0\">")?;
+            fmt.indent();
+            writeln!(fmt, "<tr><td align=\"center\"><b>s{}</b></td></tr>", id)?;
             for item in &state.items {
-                writeln!(dot, "<tr><td align=\"left\">{}</td></tr>", format_item(grammar, alt2var[item.lr0_item.alt], item, word_labelling, var_labelling))?;
+                writeln!(fmt, "<tr><td align=\"left\">{}</td></tr>", format_item(grammar, alt2var[item.lr0_item.production], item, word_labelling, var_labelling))?;
             }
-            dot.unindent();
-            writeln!(dot, "</table>>];")?;
-            dot.unindent();
+            fmt.unindent();
+            writeln!(fmt, "</table>>];")?;
+            fmt.unindent();
         }
     } else {
-        writeln!(dot, "node[shape=rectangle];")?;
+        writeln!(fmt, "node[shape=rectangle];")?;
         for (id, _) in lr1a.states.iter().enumerate() {
-            writeln!(dot, "s{};", id)?;
+            writeln!(fmt, "s{};", id)?;
         }
     }
 
-    dot.newline();
+    writeln!(fmt)?;
 
     for (A, state) in lr1a.states.iter().enumerate() {
         for (symbol, B) in &state.next {
-            writeln!(dot, "s{}->s{}[label={:?}];", A, B, 
+            writeln!(fmt, "s{}->s{}[label={:?}];", A, B, 
                 match symbol {
                     Symbol::Terminal(a) => format!("{}", word_labelling(*a)),
                     Symbol::Variable(A) => format!("{}", var_labelling(*A)),
@@ -54,10 +54,10 @@ pub fn dot_with_labelling<F, G, T, U>(grammar: &Grammar, lr1a: &LR1A, word_label
         }
     }
 
-    dot.unindent();
-    writeln!(dot, "}}")?;
+    fmt.unindent();
+    writeln!(fmt, "}}")?;
 
-    Ok(dot.build())
+    Ok(fmt.build())
 }
 
 // =================
@@ -70,7 +70,7 @@ fn format_item<F, G, T, U>(grammar: &Grammar, var: usize, item: &LR1Item, word_l
           T: std::fmt::Display,
           U: std::fmt::Display,
 {
-    let alt = &grammar.alt(item.lr0_item.alt);
+    let alt = &grammar.alt(item.lr0_item.production);
 
     format!("[{} &rarr; {}&bull;{}, {}]", 
         var_labelling(var),

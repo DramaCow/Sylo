@@ -4,6 +4,7 @@ use std::collections::{HashSet, HashMap};
 use crate::lang::cfg::{Grammar, Symbol, nullability};
 use crate::lang::lr::{LR0A, LR0ABuilder};
 use crate::utils::transitive_closure;
+use super::{LALR1A, StateReductionPair};
 
 pub struct LALR1ABuilder<'a> {
     grammar: &'a Grammar,
@@ -45,6 +46,15 @@ impl<'a> LALR1ABuilder<'a> {
             nonterminal_transition_map,
         }
     }
+
+    #[must_use]
+    pub fn build(self) -> LALR1A {
+        let lookahead = self.lookahead();
+        LALR1A {
+            lr0a: self.lr0a,
+            lookahead,
+        }
+    }
 }
 
 impl LALR1ABuilder<'_> {
@@ -54,19 +64,26 @@ impl LALR1ABuilder<'_> {
     }
 
     #[must_use]
-    pub fn direct_read(&self) -> Vec<HashSet<usize>> {
+    pub fn direct_read(&self) -> Vec<HashSet<Option<usize>>> {
         let states = self.lr0a.states();
-        let ntt_count = self.nonterminal_transitions.len();
-        let mut direct_read: Vec<HashSet<usize>> = vec![HashSet::new(); ntt_count];
+        let mut direct_read: Vec<HashSet<Option<usize>>> = 
+            vec![HashSet::new(); self.nonterminal_transitions.len()];
 
         for (i, &transition) in self.nonterminal_transitions.iter().enumerate() {
             let NonterminalTransition { state: p, var: A } = transition;
+
+            // The only "transition" to the "accept state" is from the state
+            // reached by shifting the start variable from the start state.
+            if (p, A) == (0, 0) {
+                direct_read[i].insert(None);
+            }
+
             let q = states[p].next[&Symbol::Variable(A)];
 
             for &symbol in states[q].next.keys() {
                 if let Symbol::Terminal(t) = symbol {
                     // (p, A) directly-reads t
-                    direct_read[i].insert(t);
+                    direct_read[i].insert(Some(t));
                 }
             }
         }
@@ -75,7 +92,7 @@ impl LALR1ABuilder<'_> {
     }
 
     #[must_use]
-    pub fn read(&self) -> Vec<HashSet<usize>> {
+    pub fn read(&self) -> Vec<HashSet<Option<usize>>> {
         let mut read = self.direct_read();
         let reads = self.reads();
 
@@ -87,7 +104,7 @@ impl LALR1ABuilder<'_> {
     }
 
     #[must_use]
-    pub fn follow(&self) -> Vec<HashSet<usize>> {
+    pub fn follow(&self) -> Vec<HashSet<Option<usize>>> {
         let mut follow = self.read();
         let includes = self.includes();
 
@@ -99,26 +116,15 @@ impl LALR1ABuilder<'_> {
     }
 
     #[must_use]
-    pub fn lookahead(&self) -> Vec<HashSet<usize>> {
-        let inconsistent_state_reduction_pairs: Vec<(usize, usize)> = self.lr0a.states().iter()
-            .enumerate()
-            .filter_map(|(q, state)| {
-                if state.items.len() > 1 {
-                    Some(state.items.iter().filter_map(move |item| {
-                        if item.is_complete(self.grammar) {
-                            Some((q, item.alt))
-                        } else {
-                            None
-                        }
-                    }))
-                } else {
-                    None
-                }
-            }).flatten().collect();
+    pub fn lookahead(&self) -> HashMap<StateReductionPair, HashSet<Option<usize>>> {
+        let follow = self.follow();
 
-        println!("{:?}", inconsistent_state_reduction_pairs);
-        
-        todo!()
+        self.lookback().into_iter().map(|(key, value)| {
+            (key, value.into_iter().fold(HashSet::new(), |mut acc, x| {
+                acc.extend(&follow[x]);
+                acc
+            }))
+        }).collect()
     }
 
     #[must_use]
@@ -175,37 +181,47 @@ impl LALR1ABuilder<'_> {
             successors
         }).collect()
     }
+
+    #[must_use]
+    pub fn lookback(&self) -> HashMap<StateReductionPair, HashSet<usize>> {
+        // let inconsistent_state_reduction_pairs: Vec<(usize, usize)> = self.lr0a.states().iter()
+        //     .enumerate()
+        //     .filter_map(|(q, state)| {
+        //         if state.items.len() > 1 {
+        //             Some(state.items.iter().filter_map(move |item| {
+        //                 if item.is_complete(self.grammar) {
+        //                     Some((q, item.production))
+        //                 } else {
+        //                     None
+        //                 }
+        //             }))
+        //         } else {
+        //             None
+        //         }
+        //     }).flatten().collect();
+        // println!("{:?}", inconsistent_state_reduction_pairs);
+
+        let states = self.lr0a.states();
+        let mut map: HashMap<StateReductionPair, HashSet<usize>> = HashMap::new();
+
+        for (i, &transition) in self.nonterminal_transitions().iter().enumerate() {
+            let NonterminalTransition { state: p, var: A } = transition;
+            let rule = self.grammar.rule(A);
+            
+            for (alt_index, alt) in rule.alt_indices().zip(rule.alts()) {
+                let q = alt.iter().fold(p, |q, symbol| states[q].next[symbol]);
+                map.entry(StateReductionPair { state: q, production: alt_index }).or_default().insert(i);
+            }
+        }
+
+        map
+    }
 }
-
-// pub struct Reads<'a> {
-//     state: usize,
-//     symbols: Keys<'a, Symbol, usize>,
-//     nullable_ref: &'a [bool], 
-//     transition_map_ref: &'a HashMap<NonterminalTransition, usize>, 
-// }
-
-// impl Iterator for Reads<'_> {
-//     type Item = usize;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         while let Some(&symbol) = self.symbols.next() {
-//             if let Symbol::Variable(B) = symbol {
-//                 if self.nullable_ref[B] {
-//                     // (p, A) reads (q, B)
-//                     let transition = NonterminalTransition { state: self.state, var: B };
-//                     let j = self.transition_map_ref[&transition];
-//                     return Some(j);
-//                 }
-//             }
-//         }
-//         None
-//     }
-// }
 
 // =================
 // === INTERNALS === 
 // =================
 
-fn extend(a: &mut HashSet<usize>, b: &HashSet<usize>) {
+fn extend(a: &mut HashSet<Option<usize>>, b: &HashSet<Option<usize>>) {
     a.extend(b);
 }

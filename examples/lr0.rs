@@ -29,7 +29,7 @@ fn main() {
     };
 
     let lr0a = LR0ABuilder::new(&def.grammar).build();
-    std::fs::write("_graph.dot", lr0a.dot(&def.grammar, &["id", "(", ")", "+", "*"], &def.var_names, true).unwrap()).unwrap();
+    std::fs::write("_graph.dot", lr0a.dot(&def.grammar, &["id", "(", ")", "+", "*"], &def.var_names).unwrap()).unwrap();
     // pub fn dot<T, U>(&self, grammar: &Grammar, word_names: &[T], var_names: &[U], print_itemsets: bool) -> String
 
     println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());

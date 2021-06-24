@@ -29,7 +29,7 @@ pub use self::{
     lr0_item::LR0Item,
     lr1_item::LR1Item,
     lr0a::{LR0A, LR0ABuilder},
-    lalr1a::{LALR1ABuilder},
+    lalr1a::{LALR1ABuilder, NonterminalTransition, StateReductionPair},
     lr1a::{LR1A, LR1ABuilder},
 };
 

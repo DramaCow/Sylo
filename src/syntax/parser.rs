@@ -37,8 +37,8 @@ pub struct Parser {
 impl ParserBuilder {
     #[must_use]
     pub fn new(lexer_def: LexerBuilder, var_names: Vec<String>, grammar: Grammar) -> Self {
-        let word_count = grammar.max_word().map_or(0, |word| word + 1);
-        let production_count = grammar.alt_count();
+        let word_count = grammar.word_count();
+        let production_count = grammar.production_count();
 
         Self {
             lexer_def,
@@ -80,14 +80,14 @@ impl ParserBuilder {
             var_names: self.var_names.to_vec(),
             parsing_table: NaiveLRTable::with_conflict_resolution(&self.grammar, |conflict| {
                 match conflict {
-                    Conflict::ShiftReduce { word, next_state, alt } => {
+                    Conflict::ShiftReduce { word, next_state, production } => {
                         // let tok  = if let Some(tok) = self.token_precedence[word].as_ref() { tok } else { return Err(conflict) };
                         // let prod = if let Some(prod) = self.production_precedence[alt].as_ref() { prod } else { return Err(conflict) };
                         let tok  = if let Some(tok) = self.token_precedence[word].as_ref() { tok } else { return Ok(Action::Shift(next_state)) };
-                        let prod = if let Some(prod) = self.production_precedence[alt].as_ref() { prod } else { return Ok(Action::Shift(next_state)) };
+                        let prod = if let Some(prod) = self.production_precedence[production].as_ref() { prod } else { return Ok(Action::Shift(next_state)) };
 
                         if prod.level > tok.level || (prod.level == tok.level && prod.associativity == Associativity::Left) {
-                            Ok(Action::Reduce(alt))
+                            Ok(Action::Reduce(production))
                         } else {
                             Ok(Action::Shift(next_state))
                         }

@@ -35,8 +35,16 @@ impl Grammar {
     }
 
     #[must_use]
-    pub fn alt_count(&self) -> usize {
+    pub fn production_count(&self) -> usize {
         self.alts.len() - 1
+    }
+
+    #[must_use]
+    pub fn word_count(&self) -> usize {
+        self.symbols.iter()
+            .filter_map(|symbol| if let Symbol::Terminal(word) = symbol { Some(*word) } else { None })
+            .max()
+            .map_or(0, |word| word + 1)
     }
 
     #[must_use]
@@ -63,11 +71,6 @@ impl Grammar {
         let low  = self.alts[i];
         let high = self.alts[i + 1];
         &self.symbols[low..high]
-    }
-
-    #[must_use]
-    pub fn max_word(&self) -> Option<usize> {
-        self.symbols.iter().filter_map(|symbol| if let Symbol::Terminal(word) = symbol { Some(*word) } else { None }).max()
     }
 }
 
@@ -172,7 +175,7 @@ impl GrammarBuilder {
             }
         }
 
-        // finally, we add a start rule
+        // finally, we augment the grammar by adding a start rule
         self.grammar.rules.push(self.grammar.rules.last().unwrap() + 1);
         self.grammar.symbols.push(Symbol::Variable(0));
         self.grammar.alts.push(self.grammar.symbols.len());

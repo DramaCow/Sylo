@@ -28,7 +28,7 @@ impl<'a> LR1ABuilder<'a> {
         let initial_items = Rc::new(
             self.closure(
                 // NOTE: the last rule in the grammar is the implicit start
-                &once(LR1Item::new(self.grammar.alt_count() - 1, 0, None)).collect()
+                &once(LR1Item::new(self.grammar.production_count() - 1, 0, None)).collect()
             )
         );
 
@@ -179,7 +179,7 @@ impl LR1ABuilder<'_> {
         self.closure(&items.filter_map(|item| {
             if let Some(y) = item.lr0_item.symbol_at_dot(&self.grammar) {
                 if *x == y {
-                    return Some(LR1Item::new(item.lr0_item.alt, item.lr0_item.pos + 1, item.lookahead));
+                    return Some(LR1Item::new(item.lr0_item.production, item.lr0_item.pos + 1, item.lookahead));
                 }
             }
             None
