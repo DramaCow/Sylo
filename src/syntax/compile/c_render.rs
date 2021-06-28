@@ -5,12 +5,12 @@ use std::collections::{
 use crate::utils::IndentWriter;
 use crate::lang::re::{LexTable, Command};
 use crate::syntax::Lexer;
-use tinytemplate::TinyTemplate;
-use serde::Serialize;
+// use tinytemplate::TinyTemplate;
+// use serde::Serialize;
 
 /// # Errors
 pub fn render_lexer(lexer: &Lexer, name: &str) -> Result<String, std::fmt::Error> {
-    #[derive(Serialize)]
+    // #[derive(Serialize)]
     struct Context {
         name: String,
         ttype_labels: Vec<String>,
@@ -114,11 +114,13 @@ pub fn render_lexer(lexer: &Lexer, name: &str) -> Result<String, std::fmt::Error
         ttype_labels: lexer.vocab.to_vec(),
     };
 
-    let mut tt = TinyTemplate::new();
-    tt.add_template("lexer0", include_str!("templates/lexer0.c.tt")).unwrap();
-    tt.add_template("lexer1", include_str!("templates/lexer1.c.tt")).unwrap();
+    todo!()
 
-    Ok(format!("{}\n\n{}\n{}", tt.render("lexer0", &context).unwrap(), table_code, tt.render("lexer1", &context).unwrap()))
+    // let mut tt = TinyTemplate::new();
+    // tt.add_template("lexer0", include_str!("templates/lexer0.c.tt")).unwrap();
+    // tt.add_template("lexer1", include_str!("templates/lexer1.c.tt")).unwrap();
+
+    // Ok(format!("{}\n\n{}\n{}", tt.render("lexer0", &context).unwrap(), table_code, tt.render("lexer1", &context).unwrap()))
 }
 
 // fn hex(x: u8) -> String {

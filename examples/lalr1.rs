@@ -41,7 +41,7 @@ fn main() {
     };
     let word_names = ["-", "n", "(", ")"];
     
-    let lr0a = LR0ABuilder::new(&def.grammar).build();
+    let lr0a = LALR1ABuilder::new(&def.grammar).build();
     std::fs::write("_graph.dot", lr0a.dot(&def.grammar, &word_names, &def.var_names).unwrap()).unwrap();
     
     let word_names = ["$", "-", "n", "(", ")"];

@@ -56,14 +56,14 @@ fn main() {
 
     def.set_production_precedence(3, Precedence { level: 2, associativity: Associativity::Left }); // associativity doesn't matter for this production
     
-    let timer = Instant::now();
-
+    
     let lr1a = LR1ABuilder::new(&def.grammar).build();
-    std::fs::write("_graph.dot", lr1a.dot(&def.grammar, &def.lexer_def.vocab(), &def.var_names, true).unwrap()).unwrap();
-
+    std::fs::write("_graph.dot", lr1a.dot(&def.grammar, &def.lexer_def.vocab(), &def.var_names).unwrap()).unwrap();
+    
+    let timer = Instant::now();
     let parser = def.build().unwrap();
     println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());  
-    println!("{}", sylo::syntax::compile::c_render::render_lexer(&parser.lexer, "MyLexer").unwrap());
+    // println!("{}", sylo::syntax::compile::c_render::render_lexer(&parser.lexer, "MyLexer").unwrap());
     
     let timer2 = Instant::now();
     let text = "('A'..'Z' | 'a'..'z' | '_') ('A'..'Z' | 'a'..'z' | '0'..'9' | '_')* - '_'+";

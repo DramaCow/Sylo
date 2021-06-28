@@ -11,5 +11,8 @@ publish = false
 proc-macro = false
 
 [dependencies]
-tinytemplate = "1"
-serde = { version = "1", features = ["derive"] }
+# tinytemplate = "1"
+# serde = { version = "1", features = ["derive"] }
+
+[profile.release]
+debug = 1

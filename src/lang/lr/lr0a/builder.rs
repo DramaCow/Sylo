@@ -4,7 +4,7 @@ use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::iter::once;
 use std::rc::Rc;
 use crate::lang::cfg::{Grammar, Symbol};
-use super::{LR0Item, LR0A, State};
+use super::{LRkItem, LR0Item, LR0A, State};
 
 pub struct LR0ABuilder<'a> {
     grammar: &'a Grammar,

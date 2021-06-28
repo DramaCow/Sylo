@@ -4,7 +4,7 @@ use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::iter::once;
 use std::rc::Rc;
 use crate::lang::cfg::{Grammar, Symbol, nullability, First};
-use super::{LR1Item, LR1A, State};
+use super::{LR1Item, LR1A, State, LRkItem};
 
 pub struct LR1ABuilder<'a> {
     grammar: &'a Grammar,
@@ -52,7 +52,7 @@ impl<'a> LR1ABuilder<'a> {
             let mut iter2 = iter1.clone();
 
             while let Some(item) = iter1.next() {
-                if let Some(x) = item.lr0_item.symbol_at_dot(&self.grammar) {
+                if let Some(x) = item.symbol_at_dot(&self.grammar) {
                     // x has already been processed
                     if gotos[i].contains_key(&x) {
                         continue;
@@ -128,8 +128,8 @@ impl LR1ABuilder<'_> {
             done = true;
 
             for item in &items {
-                if let Some(Symbol::Variable(var)) = item.lr0_item.symbol_at_dot(&self.grammar) {
-                    match item.lr0_item.symbol_after_dot(&self.grammar) {
+                if let Some(Symbol::Variable(var)) = item.symbol_at_dot(&self.grammar) {
+                    match item.symbol_after_dot(&self.grammar) {
                         None => {
                             for alt in self.grammar.rule(var).alt_indices() {
                                 if new_items.insert(LR1Item::new(alt, 0, item.lookahead)) {
@@ -177,9 +177,9 @@ impl LR1ABuilder<'_> {
 
     fn goto<'a, I: Iterator<Item=&'a LR1Item>>(&self, items: I, x: &Symbol) -> ItemSet {
         self.closure(&items.filter_map(|item| {
-            if let Some(y) = item.lr0_item.symbol_at_dot(&self.grammar) {
+            if let Some(y) = item.symbol_at_dot(&self.grammar) {
                 if *x == y {
-                    return Some(LR1Item::new(item.lr0_item.production, item.lr0_item.pos + 1, item.lookahead));
+                    return Some(LR1Item::new(item.production(), item.pos() + 1, item.lookahead));
                 }
             }
             None

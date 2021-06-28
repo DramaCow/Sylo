@@ -1,7 +1,9 @@
+#![allow(non_snake_case)]
+
 use std::collections::{HashSet, HashMap};
 use crate::lang::{
-    cfg::Grammar,
-    lr::{LR0A, lr0a::State},
+    cfg::{Grammar, Symbol},
+    lr::{LR0A, lr0a::State, LR0Item, LRkItem},
 };
 
 pub struct LALR1A {
@@ -21,27 +23,21 @@ impl LALR1A {
         self.lr0a.states()
     }
 
-    // /// # Errors
-    // pub fn dot<T, U>(&self, grammar: &Grammar, word_names: &[T], var_names: &[U], print_itemsets: bool) -> Result<String, std::fmt::Error>
-    // where
-    //     T: std::fmt::Display,
-    //     U: std::fmt::Display,
-    // {
-    //     let word_to_string = |word: usize| {
-    //         format!("{}", word_names[word])
-    //     };
+    /// # Errors
+    pub fn dot<T, U>(&self, grammar: &Grammar, word_names: &[T], var_names: &[U]) -> Result<String, std::fmt::Error>
+    where
+        T: std::fmt::Display,
+        U: std::fmt::Display,
+    {
+        let labelling = |symbol: Symbol| {
+            match symbol {
+                Symbol::Terminal(a) => word_names[a].to_string(),
+                Symbol::Variable(A) => if A < var_names.len() { var_names[A].to_string() } else { "S'".to_string() },
+            }
+        };
 
-    //     let var_to_string = |var: usize| {
-    //         if var < var_names.len() {
-    //             format!("{}", var_names[var])
-    //         } else {
-    //             "S'".to_string()
-    //         }
-    //     };
-
-    //     todo!()
-    //     // graphviz::dot_with_labelling(grammar, self, word_to_string, var_to_string, print_itemsets)
-    // }
+        LALR1ADotWriter::new(String::new(), self, grammar, labelling).build()
+    }
 }
 
 mod builder;
@@ -50,3 +46,5 @@ pub use self::builder::{
     NonterminalTransition,
 };
 
+mod graphviz;
+pub use self::graphviz::LALR1ADotWriter;

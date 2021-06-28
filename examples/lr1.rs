@@ -29,6 +29,6 @@ fn main() {
     };
 
     let lr1a = LR1ABuilder::new(&def.grammar).build();
-    std::fs::write("_graph.dot", lr1a.dot(&def.grammar, &["id", "(", ")", "+", "*"], &def.var_names, true).unwrap()).unwrap();
+    std::fs::write("_graph.dot", lr1a.dot(&def.grammar, &["id", "(", ")", "+", "*"], &def.var_names).unwrap()).unwrap();
     println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());
 }

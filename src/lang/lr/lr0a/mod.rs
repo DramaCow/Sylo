@@ -2,7 +2,7 @@
 
 use std::collections::{BTreeSet, HashMap};
 use crate::lang::cfg::{Grammar, Symbol};
-use super::LR0Item;
+use super::{LRkItem, LR0Item};
 
 pub struct LR0A {
     states: Vec<State>,

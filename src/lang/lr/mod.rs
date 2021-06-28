@@ -19,6 +19,7 @@ pub use self::parse::{
     ParseError,
 };
 
+mod lrk_item;
 mod lr0_item;
 mod lr1_item;
 mod lr0a;
@@ -26,6 +27,7 @@ mod lalr1a;
 mod lr1a;
 
 pub use self::{
+    lrk_item::LRkItem,
     lr0_item::LR0Item,
     lr1_item::LR1Item,
     lr0a::{LR0A, LR0ABuilder},

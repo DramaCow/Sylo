@@ -1,6 +1,6 @@
 use crate::lang::cfg::{Grammar, Symbol};
 use crate::utils::IndentWriter;
-use super::{LR0A, State, LR0Item};
+use super::{LR0A, State, LR0Item, LRkItem};
 use std::fmt::Write;
 use std::cmp::Ordering::{Less, Greater};
 
@@ -67,22 +67,25 @@ where
     }
 
     fn format_state(&mut self, id: usize, state: &State) -> Result<(), std::fmt::Error> {
-        let mut items: Vec<_> = state.items.iter().copied().collect();
-        items.sort_by(|a, b| {
-            match (a.is_kernel_item(self.grammar), b.is_kernel_item(self.grammar)) {
-                (false, false) | (true, true) => {
-                    let c1 = self.alt2var[a.production] == self.grammar.var_count() - 1;
-                    let c2 = self.alt2var[b.production] == self.grammar.var_count() - 1;
-                    match (c1, c2) {
-                        (false, false) | (true, true) => a.cmp(&b),
-                        (false, true) => Greater,
-                        (true, false) => Less,
+        let items = {
+            let mut items: Vec<_> = state.items.iter().copied().collect();
+            items.sort_by(|a, b| {
+                match (a.is_kernel_item(self.grammar), b.is_kernel_item(self.grammar)) {
+                    (false, false) | (true, true) => {
+                        let c1 = self.alt2var[a.production] == self.grammar.var_count() - 1;
+                        let c2 = self.alt2var[b.production] == self.grammar.var_count() - 1;
+                        match (c1, c2) {
+                            (false, false) | (true, true) => a.cmp(&b),
+                            (false, true) => Greater,
+                            (true, false) => Less,
+                        }
                     }
+                    (false, true) => Greater,
+                    (true, false) => Less,
                 }
-                (false, true) => Greater,
-                (true, false) => Less,
-            }
-        });
+            });
+            items
+        };
 
         writeln!(self.fmt, "s{}[label=", id)?;
         self.fmt.indent();

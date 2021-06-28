@@ -2,7 +2,7 @@
 
 use std::collections::{BTreeSet, HashMap};
 use crate::lang::cfg::{Grammar, Symbol};
-use super::LR1Item;
+use super::{LRkItem, LR1Item};
 
 pub struct LR1A {
     states: Vec<State>,
@@ -20,32 +20,24 @@ impl LR1A {
     }
 
     /// # Errors
-    pub fn dot<T, U>(&self, grammar: &Grammar, word_names: &[T], var_names: &[U], print_itemsets: bool) -> Result<String, std::fmt::Error>
+    pub fn dot<T, U>(&self, grammar: &Grammar, word_names: &[T], var_names: &[U]) -> Result<String, std::fmt::Error>
     where
         T: std::fmt::Display,
         U: std::fmt::Display,
     {
-        let word_to_string = |word: usize| {
-            format!("{}", word_names[word])
-        };
-
-        let var_to_string = |var: usize| {
-            if var < var_names.len() {
-                format!("{}", var_names[var])
-            } else {
-                "S'".to_string()
+        let labelling = |symbol: Symbol| {
+            match symbol {
+                Symbol::Terminal(a) => word_names[a].to_string(),
+                Symbol::Variable(A) => if A < var_names.len() { var_names[A].to_string() } else { "S'".to_string() },
             }
         };
 
-        graphviz::dot_with_labelling(grammar, self, word_to_string, var_to_string, print_itemsets)
+        LR1ADotWriter::new(String::new(), self, grammar, labelling).build()
     }
 }
 
 mod builder;
 pub use builder::LR1ABuilder;
 
-// =================
-// === INTERNALS ===
-// =================
-
 mod graphviz;
+pub use graphviz::LR1ADotWriter;
