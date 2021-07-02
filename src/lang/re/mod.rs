@@ -14,14 +14,10 @@ pub use self::unicode::{
 mod dfa;
 pub use self::dfa::DFA;
 
-mod table;
-pub use self::table::{
-    LexTable,
-    Command,
-};
-
 mod scan;
 pub use self::scan::{
+    LexTable,
+    Command,
     Token,
     Scan,
     ScanError

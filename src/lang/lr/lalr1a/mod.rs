@@ -3,7 +3,7 @@
 use std::collections::{HashSet, HashMap};
 use crate::lang::{
     cfg::{Grammar, Symbol},
-    lr::{LR0A, lr0a::State, LR0Item, LRkItem},
+    lr::{LR0A, lr0a::State, LR0Item},
 };
 
 pub struct LALR1A {

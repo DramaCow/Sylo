@@ -1,6 +1,6 @@
 use crate::lang::cfg::{Grammar, Symbol};
 use crate::utils::IndentWriter;
-use super::{LR1A, State, LR1Item, LRkItem};
+use super::{LR1A, State, LR1Item};
 use std::fmt::Write;
 use std::cmp::Ordering::{Less, Greater};
 
@@ -70,10 +70,10 @@ where
         let items = {
             let mut items: Vec<_> = state.items.iter().copied().collect();
             items.sort_by(|a, b| {
-                match (a.is_kernel_item(self.grammar), b.is_kernel_item(self.grammar)) {
+                match (a.lr0_item.is_kernel_item(self.grammar), b.lr0_item.is_kernel_item(self.grammar)) {
                     (false, false) | (true, true) => {
-                        let c1 = self.alt2var[a.production()] == self.grammar.var_count() - 1;
-                        let c2 = self.alt2var[b.production()] == self.grammar.var_count() - 1;
+                        let c1 = self.alt2var[a.lr0_item.production] == self.grammar.var_count() - 1;
+                        let c2 = self.alt2var[b.lr0_item.production] == self.grammar.var_count() - 1;
                         match (c1, c2) {
                             (false, false) | (true, true) => a.cmp(&b),
                             (false, true) => Greater,
@@ -93,7 +93,7 @@ where
         self.fmt.indent();
         writeln!(self.fmt, "<tr><td align=\"center\"><b>s{}</b></td></tr>", id)?;
         for item in &items {
-            if item.is_kernel_item(self.grammar) {
+            if item.lr0_item.is_kernel_item(self.grammar) {
                 writeln!(self.fmt, "<tr><td align=\"left\">{}</td></tr>", self.format_item(item))?;   
             } else {
                 writeln!(self.fmt, "<tr><td bgcolor=\"grey\" align=\"left\">{}</td></tr>", self.format_item(item))?;
@@ -106,12 +106,12 @@ where
     }
 
     fn format_item(&self, item: &LR1Item) -> String {
-        let alt = self.grammar.alt(item.production());
+        let alt = self.grammar.alt(item.lr0_item.production);
 
         format!("{} &rarr; {}&bull;{}, {}",
-            (self.labelling)(Symbol::Variable(self.alt2var[item.production()])),
-            alt[..item.pos()].iter().map(|&symbol| (self.labelling)(symbol).to_string()).collect::<Vec<_>>().join(" "),
-            alt[item.pos()..].iter().map(|&symbol| (self.labelling)(symbol).to_string()).collect::<Vec<_>>().join(" "),
+            (self.labelling)(Symbol::Variable(self.alt2var[item.lr0_item.production])),
+            alt[..item.lr0_item.pos].iter().map(|&symbol| (self.labelling)(symbol).to_string()).collect::<Vec<_>>().join(" "),
+            alt[item.lr0_item.pos..].iter().map(|&symbol| (self.labelling)(symbol).to_string()).collect::<Vec<_>>().join(" "),
             item.lookahead.map_or("$".to_string(), |a| format!("{}", (self.labelling)(Symbol::Terminal(a)))),
         )
     }

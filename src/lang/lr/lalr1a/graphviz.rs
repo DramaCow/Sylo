@@ -1,6 +1,6 @@
 use crate::lang::cfg::{Grammar, Symbol};
 use crate::utils::IndentWriter;
-use super::{LALR1A, State, LR0Item, LRkItem, StateReductionPair};
+use super::{LALR1A, State, LR0Item, StateReductionPair};
 use std::fmt::Write;
 use std::cmp::Ordering::{Less, Greater};
 

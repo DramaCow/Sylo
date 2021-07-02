@@ -1,16 +1,16 @@
 #![allow(non_snake_case)]
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::HashMap;
 use crate::lang::cfg::{Grammar, Symbol};
-use super::{LRkItem, LR0Item};
+use super::LR0Item;
 
 pub struct LR0A {
     states: Vec<State>,
 }
 
 pub struct State {
-    pub items: BTreeSet<LR0Item>,
-    pub next: HashMap<Symbol, usize>,
+    pub(super) items: Vec<LR0Item>,
+    pub(super) next: HashMap<Symbol, usize>,
 }
 
 impl LR0A {

@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
 
-use std::collections::{BTreeSet, HashMap, VecDeque};
+use std::collections::BTreeSet;
 use std::iter::once;
-use std::rc::Rc;
 use crate::lang::cfg::{Grammar, Symbol, nullability, First};
-use super::{LR1Item, LR1A, State, LRkItem};
+use super::{LR1Item, LR1A, State};
+use crate::lang::lr::BuildItemSets;
 
 pub struct LR1ABuilder<'a> {
     grammar: &'a Grammar,
@@ -12,113 +12,25 @@ pub struct LR1ABuilder<'a> {
     first: First,
 }
 
-impl<'a> LR1ABuilder<'a> {
-    #[must_use]
-    pub fn new(grammar: &'a Grammar) -> Self {
-        let nullable = nullability(grammar);
-        LR1ABuilder {
-            grammar,
-            nullable: nullability(grammar),
-            first: First::new(grammar, &nullable),
-        }
+impl BuildItemSets<LR1Item> for LR1ABuilder<'_> {
+    fn start_item(&self) -> LR1Item {
+        LR1Item::new(self.grammar.production_count() - 1, 0, None)
     }
 
-    #[must_use]
-    pub fn build(self) -> LR1A {   
-        let initial_items = Rc::new(
-            self.closure(
-                // NOTE: the last rule in the grammar is the implicit start
-                &once(LR1Item::new(self.grammar.production_count() - 1, 0, None)).collect()
-            )
-        );
-
-        let mut itemsets = vec![initial_items.clone()];
-        let mut gotos: Vec<HashMap<Symbol, usize>> = vec![HashMap::new()];
-
-        // Item sets we've seen so far mapped to indices in itemsets vector.
-        let mut table: HashMap<_, usize> = once((initial_items.clone(), 0)).collect();
-
-        // Queue of itemsets to process.
-        // NOTE: A stack could be used here instead; but by using a queue,
-        //       the iteration step of the outer-most loop (i) will correspond
-        //       to the index of the item set in CC we are currently
-        //       transitioning from.
-        let mut queue: VecDeque<_> = once(initial_items).collect();
-
-        let mut i = 0_usize;
-
-        while let Some(item_set) = queue.pop_front() {
-            let mut iter1 = item_set.iter();
-            let mut iter2 = iter1.clone();
-
-            while let Some(item) = iter1.next() {
-                if let Some(x) = item.symbol_at_dot(&self.grammar) {
-                    // x has already been processed
-                    if gotos[i].contains_key(&x) {
-                        continue;
-                    }
-                    
-                    // NOTE: Previously processed items in item_set (those before
-                    //       iter2) are guaranteed to not contribute to the output
-                    //       item set. As such, goto is only required to process
-                    //       from iter2 onwards.
-                    let temp = self.goto(iter2, &x);
-                    
-                    // Check if temp is already in itemsets. If not, we
-                    // add to itemsets and push on to process queue.
-                    let j = if let Some(&index) = table.get(&temp) {
-                        index
-                    } else {
-                        let new_index = itemsets.len();
-                        let temp_rc = Rc::new(temp);
-
-                        itemsets.push(temp_rc.clone());
-                        gotos.push(HashMap::new());
-
-                        table.insert(temp_rc.clone(), new_index);
-                        queue.push_back(temp_rc);
-
-                        new_index
-                    };
-
-                    // Record transition on x
-                    gotos[i].insert(x, j);
-
-                    iter2 = iter1.clone();
-                }
-            }
-
-            i += 1;
-        }
-
-        // forces out-of-scope early so all
-        // reference counts get decremented.
-        drop(table);
-
-        LR1A {
-            states: itemsets.into_iter()
-                .map(Rc::try_unwrap)
-                .map(Result::unwrap)
-                .zip(gotos)
-                .map(|(items, next)| State { items, next })
-                .collect()
-        }
+    fn advance(&self, item: &LR1Item) -> LR1Item {
+        LR1Item::new(item.lr0_item.production, item.lr0_item.pos + 1, item.lookahead)
     }
-}
 
-// =================
-// === INTERNALS ===
-// =================
+    fn symbol_at_dot(&self, item: &LR1Item) -> Option<Symbol> {
+        item.lr0_item.symbol_at_dot(self.grammar)
+    }
 
-type ItemSet = BTreeSet<LR1Item>;
-
-impl LR1ABuilder<'_> {
     /// Performs the following:
     /// * for item `i` with variable `B` at dot:
     /// * * for production with `B` on lhs:
     /// * * * for symbol `b` in :
     /// * * * * add item that is the production with dot at start and lookahead `b`
-    fn closure(&self, old_items: &ItemSet) -> ItemSet {
+    fn closure(&self, old_items: &BTreeSet<LR1Item>) -> BTreeSet<LR1Item> {
         let mut items     = old_items.clone();
         let mut new_items = old_items.clone();
         
@@ -128,8 +40,8 @@ impl LR1ABuilder<'_> {
             done = true;
 
             for item in &items {
-                if let Some(Symbol::Variable(var)) = item.symbol_at_dot(&self.grammar) {
-                    match item.symbol_after_dot(&self.grammar) {
+                if let Some(Symbol::Variable(var)) = item.lr0_item.symbol_at_dot(self.grammar) {
+                    match item.lr0_item.symbol_after_dot(self.grammar) {
                         None => {
                             for alt in self.grammar.rule(var).alt_indices() {
                                 if new_items.insert(LR1Item::new(alt, 0, item.lookahead)) {
@@ -174,15 +86,28 @@ impl LR1ABuilder<'_> {
     
         items
     }
+}
 
-    fn goto<'a, I: Iterator<Item=&'a LR1Item>>(&self, items: I, x: &Symbol) -> ItemSet {
-        self.closure(&items.filter_map(|item| {
-            if let Some(y) = item.symbol_at_dot(&self.grammar) {
-                if *x == y {
-                    return Some(LR1Item::new(item.production(), item.pos() + 1, item.lookahead));
-                }
-            }
-            None
-        }).collect::<ItemSet>())
+impl<'a> LR1ABuilder<'a> {
+    #[must_use]
+    pub fn new(grammar: &'a Grammar) -> Self {
+        let nullable = nullability(grammar);
+        LR1ABuilder {
+            grammar,
+            nullable: nullability(grammar),
+            first: First::new(grammar, &nullable),
+        }
+    }
+
+    #[must_use]
+    pub fn build(self) -> LR1A {
+        let (itemsets, gotos) = <Self as BuildItemSets<LR1Item>>::build(&self);
+
+        LR1A {
+            states: itemsets.into_iter()
+                .zip(gotos)
+                .map(|(items, next)| State { items: items.into_iter().collect(), next })
+                .collect()
+        }
     }
 }
