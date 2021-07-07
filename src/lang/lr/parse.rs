@@ -1,27 +1,5 @@
 use std::mem;
-
-#[derive(Debug, Clone, Copy)]
-pub enum Action {
-    Invalid,
-    Accept,
-    Shift(usize),  //< shift to a *state*
-    Reduce(usize), //< reduce via a *production*
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct Reduction {
-    pub var: usize,
-    pub count: usize,
-}
-
-pub trait LRTable {
-    const START_STATE: usize = 0;
-    fn action(&self, state: usize, word: Option<usize>) -> Action;
-    fn goto(&self, state: usize, var: usize) -> Option<usize>;
-    fn reduction(&self, alt: usize) -> Reduction;
-}
-
-// ===
+use super::{Action, LR1Table};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Event<T> {
@@ -48,7 +26,7 @@ pub enum ParseError<E> {
 
 impl<'a, P, I, T, F> Parse<'a, P, I, T, F>
 where
-    P: LRTable,
+    P: LR1Table,
     F: Fn(&T) -> usize,
 {
     #[must_use]
@@ -67,7 +45,7 @@ where
 
 impl<'a, P, I, T, E, F> Iterator for Parse<'a, P, I, T, F>
 where
-    P: LRTable,
+    P: LR1Table,
     I: Iterator<Item=Result<T, E>>,
     F: Fn(&T) -> usize,
 {

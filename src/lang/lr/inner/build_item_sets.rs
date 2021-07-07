@@ -3,7 +3,7 @@ use std::iter::once;
 use std::rc::Rc;
 use crate::lang::cfg::Symbol;
 
-pub(super) trait BuildItemSets<T: Ord + std::hash::Hash + std::fmt::Debug> {
+pub trait BuildItemSets<T: Ord + std::hash::Hash + std::fmt::Debug> {
     fn start_item(&self) -> T;
     
     fn advance(&self, item: &T) -> T;

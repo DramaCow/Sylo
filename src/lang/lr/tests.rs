@@ -3,7 +3,7 @@ use crate::lang::cfg::{
     Symbol::Terminal as Word,
     Symbol::Variable as Var,
 };
-use super::NaiveLRTable;
+use super::NaiveLR1Table;
 use crate::lang::lr::{Event, Parse};
 
 use std::iter::once;

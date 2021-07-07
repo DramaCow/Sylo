@@ -14,29 +14,36 @@ pub use self::{
     lr1a::{LR1A, LR1ABuilder},
 };
 
-mod parse;
-pub use self::parse::{
+mod lr1_table;
+pub use self::lr1_table::{
     Action,
     Reduction,
-    LRTable,
+    LR1Table,
+};
+
+mod parse;
+pub use self::parse::{
     Event,
     Parse,
     ParseError,
 };
 
-mod naive;
-pub use self::naive::{
+mod construction;
+pub use self::construction::{
     ConstructionError,
     Conflict,
-    NaiveLRTable,
+    NaiveLR1Table,
 };
 
 // =================
 // === INTERNALS ===
 // =================
 
-mod automaton;
-use self::automaton::BuildItemSets;
+mod inner;
+use self::inner::{
+    BuildItemSets,
+    BuildLR1Table,
+};
 
 #[cfg(test)]
 mod tests;
