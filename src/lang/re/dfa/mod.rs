@@ -11,7 +11,6 @@ pub struct DFA {
 pub struct State {
     pub class: Option<usize>,
     pub next: HashMap<u8, usize>,
-    _private: (),
 }
 
 impl From<&RegEx> for DFA {
@@ -124,7 +123,6 @@ impl State {
         Self {
             class,
             next,
-            _private: (),
         }
     }
 

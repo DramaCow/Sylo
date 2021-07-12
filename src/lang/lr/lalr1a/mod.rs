@@ -1,10 +1,8 @@
 #![allow(non_snake_case)]
 
 use std::collections::{HashSet, HashMap};
-use crate::lang::{
-    cfg::{Grammar, Symbol},
-    lr::{LR0A, lr0a::State, LR0Item},
-};
+use crate::lang::cfg::{Grammar, Symbol};
+use crate::lang::lr::{LR0A, lr0a::State, LR0Item};
 
 pub struct LALR1A {
     lr0a: LR0A,
@@ -21,6 +19,12 @@ impl LALR1A {
     #[must_use]
     pub fn states(&self) -> &[State] {
         self.lr0a.states()
+    }
+
+    #[must_use]
+    pub fn lookaheads(&self, state: usize, production: usize) -> &HashSet<Option<usize>> {
+        let pair = StateReductionPair { state, production };
+        &self.lookahead[&pair]
     }
 
     /// # Errors

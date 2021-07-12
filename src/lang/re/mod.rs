@@ -14,17 +14,19 @@ pub use self::unicode::{
 mod dfa;
 pub use self::dfa::DFA;
 
+mod table;
+pub use self::table::{
+    Command,
+    LexTable,
+    NaiveLexTable,
+};
+
 mod scan;
 pub use self::scan::{
-    LexTable,
-    Command,
     Token,
     Scan,
     ScanError
 };
-
-mod naive;
-pub use self::naive::NaiveLexTable;
 
 /// Constructs a `RegEx` that recognizes some input string only.
 #[must_use]

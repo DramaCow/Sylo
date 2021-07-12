@@ -1,13 +1,12 @@
 
 #[macro_use] extern crate sylo;
 
-use sylo::lang::{
-    re,
-    lr::LR1ABuilder,
-};
-use sylo::syntax::{
+use sylo::lang::re;
+use sylo::lang::lr::LR1ABuilder;
+use sylo::parser::{
     Precedence,
     Associativity,
+    strategy,
 };
 use std::time::Instant;
 
@@ -61,9 +60,8 @@ fn main() {
     std::fs::write("_graph.dot", lr1a.dot(&def.grammar, &def.lexer_def.vocab(), &def.var_names).unwrap()).unwrap();
     
     let timer = Instant::now();
-    let parser = def.build().unwrap();
+    let parser = def.build(strategy::LR1).unwrap();
     println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());  
-    // println!("{}", sylo::syntax::compile::c_render::render_lexer(&parser.lexer, "MyLexer").unwrap());
     
     let timer2 = Instant::now();
     let text = "('A'..'Z' | 'a'..'z' | '_') ('A'..'Z' | 'a'..'z' | '0'..'9' | '_')* - '_'+";
@@ -71,5 +69,4 @@ fn main() {
     println!("CST built in {:?}.", timer2.elapsed());
     
     std::fs::write("_graph.dot", cst.dot(&parser).unwrap()).unwrap();
-    // let regex = compile(&cst, cst.root());
 }

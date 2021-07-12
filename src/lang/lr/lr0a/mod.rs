@@ -2,15 +2,15 @@
 
 use std::collections::HashMap;
 use crate::lang::cfg::{Grammar, Symbol};
-use super::LR0Item;
+use super::{inner, LR0Item};
 
 pub struct LR0A {
     states: Vec<State>,
 }
 
 pub struct State {
-    pub(super) items: Vec<LR0Item>,
-    pub(super) next: HashMap<Symbol, usize>,
+    pub items: Vec<LR0Item>,
+    pub next: HashMap<Symbol, usize>,
 }
 
 impl LR0A {

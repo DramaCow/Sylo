@@ -10,29 +10,8 @@ mod lalr1a;
 mod lr1a;
 pub use self::{
     lr0a::{LR0A, LR0ABuilder},
-    lalr1a::{LALR1ABuilder, NonterminalTransition, StateReductionPair},
+    lalr1a::{LALR1A, LALR1ABuilder, NonterminalTransition, StateReductionPair},
     lr1a::{LR1A, LR1ABuilder},
-};
-
-mod lr1_table;
-pub use self::lr1_table::{
-    Action,
-    Reduction,
-    LR1Table,
-};
-
-mod parse;
-pub use self::parse::{
-    Event,
-    Parse,
-    ParseError,
-};
-
-mod construction;
-pub use self::construction::{
-    ConstructionError,
-    Conflict,
-    NaiveLR1Table,
 };
 
 // =================
@@ -40,10 +19,3 @@ pub use self::construction::{
 // =================
 
 mod inner;
-use self::inner::{
-    BuildItemSets,
-    BuildLR1Table,
-};
-
-#[cfg(test)]
-mod tests;

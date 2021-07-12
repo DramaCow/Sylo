@@ -1,12 +1,6 @@
-use crate::lang::cfg::{
-    GrammarBuilder,
-    Symbol::Terminal as Word,
-    Symbol::Variable as Var,
-};
-use super::NaiveLR1Table;
-use crate::lang::lr::{Event, Parse};
-
 use std::iter::once;
+use crate::lang::cfg::{GrammarBuilder, Symbol::Terminal as Word, Symbol::Variable as Var};
+use super::{Event, Parse, construct, strategy};
 
 #[test]
 fn parentheses_grammar() {
@@ -15,7 +9,7 @@ fn parentheses_grammar() {
         .rule(&[&[Word(0), Var(0), Word(1)], &[Word(0), Word(1)]])
         .build().unwrap();
 
-    let parser = NaiveLRTable::new(&grammar).unwrap();
+    let parser = construct(&grammar, strategy::LR1).unwrap();
 
     // ad hoc ground truth
     let is_valid = |input: &[usize]| -> bool {
@@ -57,7 +51,7 @@ fn parentheses_grammar_2() {
         .rule(&[&[Word(0), Var(0), Word(1)], &[Word(0), Word(1)]])
         .build().unwrap();
 
-    let parser = NaiveLRTable::new(&grammar).unwrap();
+    let parser = construct(&grammar, strategy::LR1).unwrap();
 
     let input = vec![0, 0, 1, 1].into_iter().map(Ok::<_,()>);
 

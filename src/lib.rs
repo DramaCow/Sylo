@@ -8,4 +8,17 @@
 pub/*(crate)*/ mod utils;
 pub mod lang;
 
-pub mod syntax;
+pub mod compile;
+pub mod lexer;
+pub mod parser;
+pub mod cst;
+
+#[macro_use]
+mod macros;
+
+// =================
+// === INTERNALS ===
+// =================
+
+#[cfg(test)]
+mod tests;

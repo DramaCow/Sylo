@@ -2,6 +2,7 @@
 #[macro_use] extern crate sylo;
 
 use sylo::lang::re;
+use sylo::parser::strategy;
 
 use std::time::Instant;
 
@@ -26,7 +27,7 @@ fn main() {
         }
     };
 
-    let parser = def.build().unwrap();
+    let parser = def.build(strategy::LR1).unwrap();
 
     let text = "never gonna give you up. never gonna let you down...";
 

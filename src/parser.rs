@@ -1,14 +1,14 @@
-use super::{
-    LexerBuilder, Lexer, CST, CSTBuilder,
-};
-use crate::lang::{
-    re::{Token, ScanError},
-    cfg::{Grammar, Symbol},
-    lr::{Event, Parse, ParseError, NaiveLRTable, ConstructionError, Conflict, Action},
-};
+use crate::lang::{re, cfg::{Grammar, Symbol}, lr1_table};
+use crate::{lexer, cst};
+
+pub mod strategy {
+    use crate::lang::lr1_table::strategy;
+    pub use strategy::LALR1;
+    pub use strategy::LR1;
+}
 
 pub struct ParserBuilder {
-    pub lexer_def: LexerBuilder,
+    pub lexer_def: lexer::LexerBuilder,
     pub var_names: Vec<String>,
     pub grammar: Grammar,
     pub token_precedence: Vec<Option<Precedence>>,
@@ -29,14 +29,17 @@ pub enum Associativity {
 }
 
 pub struct Parser {
-    pub lexer: Lexer,
+    pub lexer: lexer::Lexer,
     pub var_names: Vec<String>,
-    pub parsing_table: NaiveLRTable,
+    pub parsing_table: lr1_table::NaiveLR1Table,
 }
+
+type Parse<'a, I, F> = lr1_table::Parse<'a, lr1_table::NaiveLR1Table, lexer::Scan<'a, I>, re::Token<'a, I>, F>;
+type ParseError = lr1_table::ParseError<re::ScanError>;
 
 impl ParserBuilder {
     #[must_use]
-    pub fn new(lexer_def: LexerBuilder, var_names: Vec<String>, grammar: Grammar) -> Self {
+    pub fn new(lexer_def: lexer::LexerBuilder, var_names: Vec<String>, grammar: Grammar) -> Self {
         let word_count = grammar.word_count();
         let production_count = grammar.production_count();
 
@@ -60,7 +63,7 @@ impl ParserBuilder {
     }
 
     /// # Errors
-    pub fn build(mut self) -> Result<Parser, ConstructionError> {
+    pub fn build<S: lr1_table::LR1TableConstructionStrategy>(mut self, strategy: S) -> Result<Parser, lr1_table::ConstructionError> {
         // In case where no production precedence has been specified, production precedence
         // is defaulted to the precedence of the rightmost token (that has some precedence).
         for (i, alt) in self.grammar.rules().flat_map(|rule| rule.alts()).enumerate() {
@@ -76,23 +79,30 @@ impl ParserBuilder {
         }
 
         Ok(Parser {
-            lexer: self.lexer_def.compile(),
+            lexer: self.lexer_def.build(),
             var_names: self.var_names.to_vec(),
-            parsing_table: NaiveLRTable::with_conflict_resolution(&self.grammar, |conflict| {
+            parsing_table: lr1_table::with_conflict_resolution(&self.grammar, strategy, |conflict| {
                 match conflict {
-                    Conflict::ShiftReduce { word, next_state, production } => {
-                        // let tok  = if let Some(tok) = self.token_precedence[word].as_ref() { tok } else { return Err(conflict) };
-                        // let prod = if let Some(prod) = self.production_precedence[alt].as_ref() { prod } else { return Err(conflict) };
-                        let tok  = if let Some(tok) = self.token_precedence[word].as_ref() { tok } else { return Ok(Action::Shift(next_state)) };
-                        let prod = if let Some(prod) = self.production_precedence[production].as_ref() { prod } else { return Ok(Action::Shift(next_state)) };
+                    lr1_table::Conflict::ShiftReduce { word, next_state, production } => {
+                        let tok  = if let Some(tok) = self.token_precedence[word].as_ref() {
+                            tok
+                        } else {
+                            return Ok(lr1_table::Action::Shift(next_state))
+                        };
+
+                        let prod = if let Some(prod) = self.production_precedence[production].as_ref() {
+                            prod
+                        } else {
+                            return Ok(lr1_table::Action::Shift(next_state))
+                        };
 
                         if prod.level > tok.level || (prod.level == tok.level && prod.associativity == Associativity::Left) {
-                            Ok(Action::Reduce(production))
+                            Ok(lr1_table::Action::Reduce(production))
                         } else {
-                            Ok(Action::Shift(next_state))
+                            Ok(lr1_table::Action::Shift(next_state))
                         }
                     }
-                    Conflict::ReduceReduce { .. } => {
+                    lr1_table::Conflict::ReduceReduce { .. } => {
                         Err(conflict)
                     }
                 }
@@ -103,22 +113,21 @@ impl ParserBuilder {
 
 impl<'a> Parser {
     /// # Errors
-    // pub fn parse<I>(&'a self, input: &'a I) -> Parse<LR1Table, Scan<'a, LexTable, I>, Token<'a, I>, impl Fn(&Token<'a, I>) -> usize>
-    pub fn parse<I>(&'a self, input: &'a I) -> impl Iterator<Item = Result<Event<Token<'a, I>>, ParseError<ScanError>>>
+    pub fn parse<I>(&'a self, input: &'a I) -> Parse<'a, I, impl Fn(&re::Token<'a, I>) -> usize>
     where
-        I: AsRef<[u8]> + ?Sized
+        I: AsRef<[u8]> + ?Sized,
     {
-        Parse::new(&self.parsing_table, self.lexer.scan(input), |token: &Token<'a, I>| token.class)
+        Parse::new(&self.parsing_table, self.lexer.scan(input), |token: &re::Token<'a, I>| token.class)
     }
 
     /// # Errors
-    pub fn cst(&'a self, text: &'a str) -> Result<CST, ParseError<ScanError>> {
-        let mut builder = CSTBuilder::new();
+    pub fn cst(&'a self, text: &'a str) -> Result<cst::CST, ParseError> {
+        let mut builder = cst::CSTBuilder::new();
 
         for res in self.parse(text) {
             match res? {
-                Event::Shift(token) => builder.leaf(token.class, &text[token.span]),
-                Event::Reduce { var, child_count, production: _ } => builder.branch(var, child_count),
+                lr1_table::Event::Shift(token) => builder.leaf(token.class, &text[token.span]),
+                lr1_table::Event::Reduce { var, child_count, production: _ } => builder.branch(var, child_count),
             }
         }
 

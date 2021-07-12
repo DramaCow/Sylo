@@ -5,11 +5,11 @@ fn simple_lexer() {
     let lexer = lexer! {
         [skip] _ws: re::any(" ,").plus(),
         word:       re::any("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz").plus()
-    }.compile();
+    }.build();
     
     let text = "Waltz, bad nymph, for quick jigs vex";
 
-    let tokens = lexer.scan(text).collect::<Result<Vec<_>, _>>().unwrap();
+    let tokens: Vec<_> = lexer.scan(text).collect::<Result<_, _>>().unwrap();
 
     assert_eq!(&text[tokens[0].span.clone()], "Waltz");
     assert_eq!(&text[tokens[1].span.clone()], "bad");

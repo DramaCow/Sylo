@@ -4,7 +4,7 @@ use std::collections::{
 };
 use crate::utils::IndentWriter;
 use crate::lang::re::{LexTable, Command};
-use crate::syntax::Lexer;
+use crate::lexer::Lexer;
 // use tinytemplate::TinyTemplate;
 // use serde::Serialize;
 

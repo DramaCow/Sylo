@@ -2,14 +2,13 @@
 
 use std::collections::BTreeSet;
 use crate::lang::cfg::{Grammar, Symbol};
-use super::{LR0Item, LR0A, State};
-use crate::lang::lr::BuildItemSets;
+use super::{inner, LR0Item, LR0A, State};
 
 pub struct LR0ABuilder<'a> {
     grammar: &'a Grammar,
 }
 
-impl BuildItemSets<LR0Item> for LR0ABuilder<'_> {
+impl inner::BuildItemSets<LR0Item> for LR0ABuilder<'_> {
     fn start_item(&self) -> LR0Item {
         LR0Item::new(self.grammar.production_count() - 1, 0)
     }
@@ -58,7 +57,7 @@ impl<'a> LR0ABuilder<'a> {
 
     #[must_use]
     pub fn build(self) -> LR0A {
-        let (itemsets, gotos) = <Self as BuildItemSets<LR0Item>>::build(&self);
+        let (itemsets, gotos) = <Self as inner::BuildItemSets<LR0Item>>::build(&self);
 
         LR0A {
             states: itemsets.into_iter()

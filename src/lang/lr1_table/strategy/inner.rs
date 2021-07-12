@@ -1,19 +1,22 @@
-use crate::lang::cfg::{Grammar, Symbol};
-use crate::lang::lr::{Action, Reduction, Conflict, ConstructionError, NaiveLR1Table};
+#![allow(non_snake_case)]
 
-pub trait BuildLR1Table<I> {
+use crate::lang::cfg::{Grammar, Symbol};
+use super::{Action, Reduction, Conflict, ConstructionError, NaiveLR1Table};
+
+pub trait BuildLR1Table<'a, T, I: 'a + IntoIterator<Item = Option<usize>>> {
     fn state_count(&self) -> usize;
 
-    fn items(&self, state: usize) -> &[I];
+    fn items(&self, state: usize) -> &[T];
     fn transition(&self, state: usize, symbol: Symbol) -> Option<usize>;
+    
+    fn lookaheads(&'a self, state: usize, item: &T) -> I;
 
-    fn production(&self, item: &I) -> usize;
-    fn is_complete(&self, item: &I) -> bool;
-    fn symbol_at_dot(&self, item: &I) -> Option<Symbol>;
-    fn lookaheads(&self, item: &I) -> &[Option<usize>];
+    fn production(&self, item: &T) -> usize;
+    fn is_complete(&self, item: &T) -> bool;
+    fn symbol_at_dot(&self, item: &T) -> Option<Symbol>;
 
     /// # Errors
-    fn with_conflict_resolution<F>(&self, grammar: &Grammar, mut conflict_resolution: F) -> Result<NaiveLR1Table, ConstructionError>
+    fn build<F>(&'a self, grammar: &Grammar, mut conflict_resolution: F) -> Result<NaiveLR1Table, ConstructionError>
     where
         F: FnMut(Conflict) -> Result<Action, Conflict>,
     {       
@@ -49,7 +52,7 @@ pub trait BuildLR1Table<I> {
                 } else if reductions[self.production(item)].var < var_count {
                     // CASE 2: item is complete and does not have the start symbol on LHS.
 
-                    for lookahead in self.lookaheads(item) {
+                    for lookahead in self.lookaheads(i, item) {
                         let column = lookahead.map_or(0, |a| a + 1);
                         let action = actions.get_mut(i * word_count + column).unwrap();
                         

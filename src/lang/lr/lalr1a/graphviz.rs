@@ -44,18 +44,18 @@ where
         self.fmt.indent();
         writeln!(self.fmt, "rankdir=LR;")?;
 
-        writeln!(self.fmt);
+        writeln!(self.fmt)?;
 
         writeln!(self.fmt, "node[shape=point]; q;")?;
-        writeln!(self.fmt, "node[shape=plain]; accept[label=<<b>ACCEPT</b>>];");
+        writeln!(self.fmt, "node[shape=plain]; accept[label=<<b>ACCEPT</b>>];")?;
         for (id, state) in states.iter().enumerate() {
             self.format_state(id, state)?;
         }
 
-        writeln!(self.fmt);
+        writeln!(self.fmt)?;
 
         writeln!(self.fmt, "q->s0;")?;
-        writeln!(self.fmt, "s{}->accept[label=\"&#9633;\"];", *states[0].next.get(&Symbol::Variable(0)).unwrap());
+        writeln!(self.fmt, "s{}->accept[label=\"&#9633;\"];", *states[0].next.get(&Symbol::Variable(0)).unwrap())?;
         for (A, state) in states.iter().enumerate() {
             for (symbol, B) in &state.next {
                 writeln!(self.fmt, "s{}->s{}[label=\"{}\"];", A, B, (self.labelling)(*symbol))?;

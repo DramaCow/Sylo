@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use crate::lang::cfg::{Grammar, Symbol};
-use super::LR1Item;
+use super::{inner, LR1Item};
 
 pub struct LR1A {
     states: Vec<State>,
