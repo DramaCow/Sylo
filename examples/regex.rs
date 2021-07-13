@@ -2,20 +2,16 @@
 #[macro_use] extern crate sylo;
 
 use sylo::lang::re;
-use sylo::lang::lr::LR1ABuilder;
-use sylo::parser::{
-    Precedence,
-    Associativity,
-    strategy,
-};
+use sylo::parser::{Precedence, Associativity, strategy};
+use sylo::codegen;
 use std::time::Instant;
 
 fn main() {
     let c = re::non_compatibility_char()
-    .diff(&re::literal("\\"))
-    .diff(&re::literal("\""))
-    .or(&re::literal("\\\\"))
-    .or(&re::literal("\\\""));
+        .diff(&re::literal("\\"))
+        .diff(&re::literal("\""))
+        .or(&re::literal("\\\\"))
+        .or(&re::literal("\\\""));
     
     let mut def = parser! {
         {
@@ -52,21 +48,13 @@ fn main() {
             /*11*/      | CHAR range CHAR,
         }
     };
-
     def.set_production_precedence(3, Precedence { level: 2, associativity: Associativity::Left }); // associativity doesn't matter for this production
-    
-    
-    let lr1a = LR1ABuilder::new(&def.grammar).build();
-    std::fs::write("_graph.dot", lr1a.dot(&def.grammar, &def.lexer_def.vocab(), &def.var_names).unwrap()).unwrap();
     
     let timer = Instant::now();
     let parser = def.build(strategy::LR1).unwrap();
     println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());  
-    
-    let timer2 = Instant::now();
-    let text = "('A'..'Z' | 'a'..'z' | '_') ('A'..'Z' | 'a'..'z' | '0'..'9' | '_')* - '_'+";
-    let cst = parser.cst(text).unwrap();
-    println!("CST built in {:?}.", timer2.elapsed());
-    
-    std::fs::write("_graph.dot", cst.dot(&parser).unwrap()).unwrap();
+
+    std::fs::write("lexer.c.txt", codegen::c::lexer(String::new(), "RegEx_Lexer", &parser.lexer).unwrap()).unwrap();
+
+    // let text = "('A'..'Z' | 'a'..'z' | '_') ('A'..'Z' | 'a'..'z' | '0'..'9' | '_')* - '_'+";
 }
