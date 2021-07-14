@@ -203,7 +203,7 @@ mod tests {
         let has_cycle = transitive_closure(&mut reachable_nodes, successors, extend);
         let counts: Vec<usize> = reachable_nodes.iter().map(HashSet::len).collect();
         assert_eq!(counts, &[5, 5, 5, 1, 2, 1]);
-        assert_eq!(has_cycle, true);
+        assert!(has_cycle);
     }
 
     #[test]
@@ -225,7 +225,7 @@ mod tests {
         let has_cycle = transitive_closure(&mut reachable_nodes, successors, extend);
         let counts: Vec<usize> = reachable_nodes.iter().map(HashSet::len).collect();
         assert_eq!(counts, &[8, 6, 6, 3, 8, 6, 3, 3]);
-        assert_eq!(has_cycle, true);
+        assert!(has_cycle);
     }
 
     #[test]
@@ -240,7 +240,7 @@ mod tests {
         let has_cycle = transitive_closure(&mut reachable_nodes, successors, extend);
         let counts: Vec<usize> = reachable_nodes.iter().map(HashSet::len).collect();
         assert_eq!(counts, &[2, 1, 2]);
-        assert_eq!(has_cycle, false);
+        assert!(!has_cycle);
     }
 
     #[test]
@@ -256,7 +256,7 @@ mod tests {
         let has_cycle = transitive_closure(&mut reachable_nodes, successors, extend);
         let counts: Vec<usize> = reachable_nodes.iter().map(HashSet::len).collect();
         assert_eq!(counts, &[3, 1, 2]);
-        assert_eq!(has_cycle, false);
+        assert!(!has_cycle);
     }
 
     #[test]
@@ -272,6 +272,6 @@ mod tests {
         let has_cycle = transitive_closure(&mut reachable_nodes, successors, extend);
         let counts: Vec<usize> = reachable_nodes.iter().map(HashSet::len).collect();
         assert_eq!(counts, &[4, 1, 2, 2]);
-        assert_eq!(has_cycle, false);
+        assert!(!has_cycle);
     }
 }

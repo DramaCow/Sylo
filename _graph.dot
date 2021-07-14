@@ -1,0 +1,113 @@
+digraph CC {
+    rankdir=LR;
+    
+    node[shape=point]; q;
+    node[shape=plain]; accept[label=<<b>ACCEPT</b>>];
+    s0[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s0</b></td></tr>
+            <tr><td align="left">S' &rarr; &bull;E</td></tr>
+            <tr><td bgcolor="grey" align="left">E &rarr; &bull;E + T</td></tr>
+            <tr><td bgcolor="grey" align="left">E &rarr; &bull;T</td></tr>
+            <tr><td bgcolor="grey" align="left">T &rarr; &bull;T * F</td></tr>
+            <tr><td bgcolor="grey" align="left">T &rarr; &bull;F</td></tr>
+            <tr><td bgcolor="grey" align="left">F &rarr; &bull;( E )</td></tr>
+            <tr><td bgcolor="grey" align="left">F &rarr; &bull;id</td></tr>
+        </table>>];
+    s1[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s1</b></td></tr>
+            <tr><td align="left">S' &rarr; E&bull;</td></tr>
+            <tr><td align="left">E &rarr; E&bull;+ T</td></tr>
+        </table>>];
+    s2[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s2</b></td></tr>
+            <tr><td align="left">E &rarr; T&bull;</td></tr>
+            <tr><td align="left">T &rarr; T&bull;* F</td></tr>
+        </table>>];
+    s3[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s3</b></td></tr>
+            <tr><td align="left">T &rarr; F&bull;</td></tr>
+        </table>>];
+    s4[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s4</b></td></tr>
+            <tr><td align="left">F &rarr; (&bull;E )</td></tr>
+            <tr><td bgcolor="grey" align="left">E &rarr; &bull;E + T</td></tr>
+            <tr><td bgcolor="grey" align="left">E &rarr; &bull;T</td></tr>
+            <tr><td bgcolor="grey" align="left">T &rarr; &bull;T * F</td></tr>
+            <tr><td bgcolor="grey" align="left">T &rarr; &bull;F</td></tr>
+            <tr><td bgcolor="grey" align="left">F &rarr; &bull;( E )</td></tr>
+            <tr><td bgcolor="grey" align="left">F &rarr; &bull;id</td></tr>
+        </table>>];
+    s5[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s5</b></td></tr>
+            <tr><td align="left">F &rarr; id&bull;</td></tr>
+        </table>>];
+    s6[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s6</b></td></tr>
+            <tr><td align="left">E &rarr; E +&bull;T</td></tr>
+            <tr><td bgcolor="grey" align="left">T &rarr; &bull;T * F</td></tr>
+            <tr><td bgcolor="grey" align="left">T &rarr; &bull;F</td></tr>
+            <tr><td bgcolor="grey" align="left">F &rarr; &bull;( E )</td></tr>
+            <tr><td bgcolor="grey" align="left">F &rarr; &bull;id</td></tr>
+        </table>>];
+    s7[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s7</b></td></tr>
+            <tr><td align="left">T &rarr; T *&bull;F</td></tr>
+            <tr><td bgcolor="grey" align="left">F &rarr; &bull;( E )</td></tr>
+            <tr><td bgcolor="grey" align="left">F &rarr; &bull;id</td></tr>
+        </table>>];
+    s8[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s8</b></td></tr>
+            <tr><td align="left">E &rarr; E&bull;+ T</td></tr>
+            <tr><td align="left">F &rarr; ( E&bull;)</td></tr>
+        </table>>];
+    s9[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s9</b></td></tr>
+            <tr><td align="left">E &rarr; E + T&bull;</td></tr>
+            <tr><td align="left">T &rarr; T&bull;* F</td></tr>
+        </table>>];
+    s10[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s10</b></td></tr>
+            <tr><td align="left">T &rarr; T * F&bull;</td></tr>
+        </table>>];
+    s11[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s11</b></td></tr>
+            <tr><td align="left">F &rarr; ( E )&bull;</td></tr>
+        </table>>];
+    
+    q->s0;
+    s1->accept[label="&#9633;"];
+    s0->s1[label="E"];
+    s0->s3[label="F"];
+    s0->s2[label="T"];
+    s0->s4[label="("];
+    s0->s5[label="id"];
+    s1->s6[label="+"];
+    s2->s7[label="*"];
+    s4->s4[label="("];
+    s4->s5[label="id"];
+    s4->s8[label="E"];
+    s4->s2[label="T"];
+    s4->s3[label="F"];
+    s6->s3[label="F"];
+    s6->s5[label="id"];
+    s6->s4[label="("];
+    s6->s9[label="T"];
+    s7->s5[label="id"];
+    s7->s10[label="F"];
+    s7->s4[label="("];
+    s8->s11[label=")"];
+    s8->s6[label="+"];
+    s9->s7[label="*"];
+}

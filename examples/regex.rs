@@ -54,7 +54,7 @@ fn main() {
     let parser = def.build(strategy::LR1).unwrap();
     println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());  
 
-    std::fs::write("lexer.c.txt", codegen::c::lexer(String::new(), "RegEx_Lexer", &parser.lexer).unwrap()).unwrap();
+    std::fs::write("lexer.h", codegen::c::lexer(String::new(), "RegEx_Lexer", &parser.lexer).unwrap()).unwrap();
 
     // let text = "('A'..'Z' | 'a'..'z' | '_') ('A'..'Z' | 'a'..'z' | '0'..'9' | '_')* - '_'+";
 }

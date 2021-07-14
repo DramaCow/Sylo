@@ -1,11 +1,8 @@
 
 #[macro_use] extern crate sylo;
 
-use sylo::lang::{
-    re,
-    lr::{LALR1ABuilder, StateReductionPair},
-};
 use std::time::Instant;
+use sylo::langcore::{re, lr::{LALR1ABuilder, StateReductionPair}};
 
 fn main() {
     let timer = Instant::now();

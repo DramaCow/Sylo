@@ -1,25 +1,23 @@
-//! This is Sylo
+//! Sylo is currently in early development and is highly unstable.
+//! Use is not yet recommended.
 
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::similar_names)]
 // #![warn(missing_docs)]
 
-pub/*(crate)*/ mod utils;
-pub mod lang;
+mod utils;
 
-pub mod lexer;
-pub mod parser;
-pub mod cst;
-
-pub mod codegen;
+pub mod langcore;
 
 #[macro_use]
-mod macros;
+mod parsing;
+pub use parsing::{lexer, parser, cst, codegen};
 
-// =================
-// === INTERNALS ===
-// =================
+pub mod bindings {
+    #![allow(non_upper_case_globals)]
+    #![allow(non_camel_case_types)]
+    #![allow(non_snake_case)]
 
-#[cfg(test)]
-mod tests;
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}
