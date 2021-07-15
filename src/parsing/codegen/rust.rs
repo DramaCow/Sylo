@@ -34,8 +34,6 @@ pub fn lexer<W: Write>(fmt: W, name: &str, lexer: &Lexer) -> Result<W, std::fmt:
     for (_, ttype) in ttypes.iter().enumerate().filter(|(i, _)| if let Command::Emit = lexer.table.commands[*i] { true } else { false }) {
         writeln!(fmt, "    {ttype},", ttype=ttype)?;
     }
-    writeln!(fmt, "    TT_ERROR,")?;
-    writeln!(fmt, "    TT_SKIP,")?;
     writeln!(fmt, "}}")?;
     writeln!(fmt)?;
     writeln!(fmt, "#[derive(Debug)]")?;
@@ -52,11 +50,15 @@ pub fn lexer<W: Write>(fmt: W, name: &str, lexer: &Lexer) -> Result<W, std::fmt:
     writeln!(fmt, "    }}")?;
     writeln!(fmt, "}}")?;
     writeln!(fmt)?;
-    writeln!(fmt, "// *** LEXER TABLE START ***")?;
+    writeln!(fmt, "enum LastAcceptTType {{")?;
+    writeln!(fmt, "    Tok(TokenType),")?;
+    writeln!(fmt, "    Error,")?;
+    writeln!(fmt, "    Skip,")?;
+    writeln!(fmt, "}}")?;
     writeln!(fmt)?;
     writeln!(fmt, "struct Context {{")?;
     writeln!(fmt, "    start_index: usize,")?;
-    writeln!(fmt, "    last_accept_ttype: TokenType,")?;
+    writeln!(fmt, "    last_accept_ttype: LastAcceptTType,")?;
     writeln!(fmt, "    last_accept_index: usize,")?;
     writeln!(fmt, "}}")?;
     writeln!(fmt)?;
@@ -68,12 +70,14 @@ pub fn lexer<W: Write>(fmt: W, name: &str, lexer: &Lexer) -> Result<W, std::fmt:
     writeln!(fmt)?;
     writeln!(fmt, "        let ctx = Context {{")?;
     writeln!(fmt, "            start_index: self.index,")?;
-    writeln!(fmt, "            last_accept_ttype: TokenType::TT_ERROR,")?;
+    writeln!(fmt, "            last_accept_ttype: LastAcceptTType::Error,")?;
     writeln!(fmt, "            last_accept_index: 0,")?;
     writeln!(fmt, "        }};")?;
     writeln!(fmt)?;
     writeln!(fmt, "        self.s0(ctx)")?;
     writeln!(fmt, "    }}")?;
+    writeln!(fmt)?;
+    writeln!(fmt, "// *** LEXER TABLE START ***")?;
     writeln!(fmt)?;
     fmt.indent();
     for (i, state) in rep::Lexer::new(name, lexer).states.iter().enumerate() {
@@ -99,9 +103,9 @@ pub fn lexer<W: Write>(fmt: W, name: &str, lexer: &Lexer) -> Result<W, std::fmt:
             // `i` is a labelled state
             if let Some(class) = state.class {
                 let ttype = if let Command::Skip = lexer.table.command(class) {
-                    "TT_SKIP"
+                    "LastAcceptTType::Skip".to_string()
                 } else {
-                    &ttypes[class]
+                    format!("LastAcceptTType::Tok(TokenType::{ttype})", ttype=ttypes[class])
                 };
 
                 // If `i` can only transition to labelled states, then either
@@ -110,7 +114,7 @@ pub fn lexer<W: Write>(fmt: W, name: &str, lexer: &Lexer) -> Result<W, std::fmt:
                 // maximal munch). As such, there would be no need for the
                 // last accept token type or index to be stored. 
                 if state.can_transition_to_unlabelled_state {
-                    writeln!(fmt, "ctx.last_accept_ttype = TokenType::{ttype};", ttype=ttype)?;
+                    writeln!(fmt, "ctx.last_accept_ttype = {ttype};", ttype=ttype)?;
                     writeln!(fmt, "ctx.last_accept_index = self.index;")?;
                 }
             }
@@ -160,22 +164,26 @@ pub fn lexer<W: Write>(fmt: W, name: &str, lexer: &Lexer) -> Result<W, std::fmt:
         writeln!(fmt, "}}\n")?;
     }
     fmt.unindent();
-    writeln!(fmt, "    fn sink(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {{")?;
-    writeln!(fmt, "        if let TokenType::TT_ERROR = ctx.last_accept_ttype {{")?;
-    writeln!(fmt, "            let pos = self.index;")?;
-    writeln!(fmt, "            self.index = usize::MAX; // forces next iteration to return None")?;
-    writeln!(fmt, "            Some(Err(ScanError {{ pos }}))")?;
-    writeln!(fmt, "        }} else if let TokenType::TT_SKIP = ctx.last_accept_ttype {{")?;
-    writeln!(fmt, "            self.index = ctx.last_accept_index;")?;
-    writeln!(fmt, "            self.begin()")?;
-    writeln!(fmt, "        }} else {{")?;
-    writeln!(fmt, "            self.index = ctx.last_accept_index;")?;
-    writeln!(fmt, "            Some(Ok(Token {{ ttype: ctx.last_accept_ttype, span: ctx.start_index..ctx.last_accept_index }}))")?;
+    writeln!(fmt, "// ***  LEXER TABLE END  ***")?;
+    writeln!(fmt)?;
+    writeln!(fmt, "    fn sink(&mut self, ctx: Context) -> Option<<Self as Iterator>::Item> {{")?;
+    writeln!(fmt, "        match ctx.last_accept_ttype {{")?;
+    writeln!(fmt, "            LastAcceptTType::Tok(ttype) => {{")?;
+    writeln!(fmt, "                self.index = ctx.last_accept_index;")?;
+    writeln!(fmt, "                Some(Ok(Token {{ ttype, span: ctx.start_index..ctx.last_accept_index }}))")?;
+    writeln!(fmt, "            }}")?;
+    writeln!(fmt, "            LastAcceptTType::Error => {{")?;
+    writeln!(fmt, "                let pos = self.index;")?;
+    writeln!(fmt, "                self.index = usize::MAX; // forces next iteration to return None")?;
+    writeln!(fmt, "                Some(Err(ScanError {{ pos }}))")?;
+    writeln!(fmt, "            }}")?;
+    writeln!(fmt, "            LastAcceptTType::Skip => {{")?;
+    writeln!(fmt, "                self.index = ctx.last_accept_index;")?;
+    writeln!(fmt, "                self.begin()")?;
+    writeln!(fmt, "            }}")?;
     writeln!(fmt, "        }}")?;
     writeln!(fmt, "    }}")?;
     writeln!(fmt, "}}")?;
-    writeln!(fmt)?;
-    writeln!(fmt, "// ***  LEXER TABLE END  ***")?;
     
     Ok(fmt.build())
 }
