@@ -1,23 +1,15 @@
 use std::ops::Range;
-use std::marker::PhantomData;
 use super::{Command, LexTable};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Token<'a, I: 'a>
-where
-    I: AsRef<[u8]> + ?Sized
-{
-    pub span: Range<usize>,
+pub struct Token {
     pub class: usize,
-    _phantom: PhantomData<&'a I>,
+    pub span: Range<usize>,
 }
 
-pub struct Scan<'a, S, I>
-where
-    I: ?Sized
-{
+pub struct Scan<'a, S> {
     table: &'a S,
-    input: &'a I,
+    input: &'a [u8],
     index: usize,
 }
 
@@ -26,27 +18,19 @@ pub struct ScanError {
     pos: usize,
 }
 
-impl<'a, S, I> Scan<'a, S, I>
-where
-    S: LexTable,
-    I: AsRef<[u8]> + ?Sized
-{
+impl<'a, S: LexTable> Scan<'a, S> {
     #[must_use]
-    pub fn new(table: &'a S, input: &'a I) -> Self {
+    pub fn new<I: AsRef<[u8]> + ?Sized>(table: &'a S, input: &'a I) -> Self {
         Self {
             table,
-            input,
+            input: input.as_ref(),
             index: 0,
         }
     }
 }
 
-impl<'a, S, I> Iterator for Scan<'a, S, I> 
-where
-    S: LexTable,
-    I: AsRef<[u8]> + ?Sized
-{
-    type Item = Result<Token<'a, I>, ScanError>;
+impl<'a, S: LexTable> Iterator for Scan<'a, S> {
+    type Item = Result<Token, ScanError>;
 
     fn next(&mut self) -> Option<Self::Item> {       
         while self.index < self.input.as_ref().len() {
@@ -77,7 +61,7 @@ where
                 self.index = index;
 
                 match self.table.command(class) {
-                    Command::Emit => return Some(Ok(Token { span: i..self.index, class, _phantom: PhantomData })),
+                    Command::Emit => return Some(Ok(Token { span: i..self.index, class })),
                     Command::Skip => (),
                 };
             // landed on an accept state in the past
@@ -86,7 +70,7 @@ where
                 self.index = last_accept_index;
 
                 match self.table.command(class) {
-                    Command::Emit => return Some(Ok(Token { span: i..self.index, class, _phantom: PhantomData })), 
+                    Command::Emit => return Some(Ok(Token { span: i..self.index, class })), 
                     Command::Skip => (),
                 };
             // failed to match anything

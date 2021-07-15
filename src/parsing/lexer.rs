@@ -12,7 +12,7 @@ pub struct Lexer {
     pub(super) table: re::NaiveLexTable,
 }
 
-pub type Scan<'a, I> = re::Scan<'a, re::NaiveLexTable, I>;
+pub type Scan<'a> = re::Scan<'a, re::NaiveLexTable>;
 
 impl LexerBuilder {
     #[must_use]
@@ -54,10 +54,7 @@ impl LexerBuilder {
 }
 
 impl<'a> Lexer {
-    pub fn scan<I>(&'a self, input: &'a I) -> Scan<'a, I>
-    where
-        I: AsRef<[u8]> + ?Sized
-    {
+    pub fn scan<I: AsRef<[u8]> + ?Sized>(&'a self, input: &'a I) -> Scan<'a> {
         Scan::new(&self.table, input)
     }
 }

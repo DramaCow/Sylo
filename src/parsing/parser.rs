@@ -34,7 +34,7 @@ pub struct Parser {
     pub parsing_table: lr1_table::NaiveLR1Table,
 }
 
-type Parse<'a, I, F> = lr1_table::Parse<'a, lr1_table::NaiveLR1Table, lexer::Scan<'a, I>, re::Token<'a, I>, F>;
+type Parse<'a, F> = lr1_table::Parse<'a, lr1_table::NaiveLR1Table, lexer::Scan<'a>, re::Token, F>;
 type ParseError = lr1_table::ParseError<re::ScanError>;
 
 impl ParserBuilder {
@@ -113,11 +113,8 @@ impl ParserBuilder {
 
 impl<'a> Parser {
     /// # Errors
-    pub fn parse<I>(&'a self, input: &'a I) -> Parse<'a, I, impl Fn(&re::Token<'a, I>) -> usize>
-    where
-        I: AsRef<[u8]> + ?Sized,
-    {
-        Parse::new(&self.parsing_table, self.lexer.scan(input), |token: &re::Token<'a, I>| token.class)
+    pub fn parse<I: AsRef<[u8]> + ?Sized>(&'a self, input: &'a I) -> Parse<'a, impl Fn(&re::Token) -> usize> {
+        Parse::new(&self.parsing_table, self.lexer.scan(input), |token: &re::Token| token.class)
     }
 
     /// # Errors
