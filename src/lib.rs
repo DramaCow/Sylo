@@ -6,7 +6,7 @@
 #![allow(clippy::similar_names)]
 // #![warn(missing_docs)]
 
-mod utils;
+pub mod utils;
 
 pub mod langcore;
 
@@ -18,6 +18,7 @@ mod bindings {
     #![allow(non_upper_case_globals)]
     #![allow(non_camel_case_types)]
     #![allow(non_snake_case)]
+    #![allow(deref_nullptr)]
     #![allow(dead_code)]
 
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));

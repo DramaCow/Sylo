@@ -1,46 +1,4 @@
-#include <stddef.h>
-#include <stdint.h>
-
-struct RegEx_Lexer {
-    const uint8_t *const input;
-    const size_t length;
-    size_t index;
-};
-
-enum RegEx_Lexer_TokenType {
-    STRING,
-    CHAR,
-    RANGE,
-    AND,
-    OR,
-    DIFF,
-    OPT,
-    STAR,
-    PLUS,
-    NOT,
-    LPAREN,
-    RPAREN,
-    TT_ERROR = -1,
-    TT_SKIP = -2,
-};
-
-struct RegEx_Lexer_Token {
-    enum RegEx_Lexer_TokenType type;
-    size_t span_start;
-    size_t span_end;
-};
-
-struct RegEx_Lexer_Error {
-    size_t pos;
-};
-
-struct RegEx_Lexer_Item {
-    enum { OK = 0, ERR = 1, NONE = -1 } tag;
-    union {
-        struct RegEx_Lexer_Token token;
-        struct RegEx_Lexer_Error error;
-    };
-};
+#include "lexer.h"
 
 static inline struct RegEx_Lexer_Item RegEx_Lexer_Item_newToken(enum RegEx_Lexer_TokenType type, size_t span_start, size_t span_end) {
     return (struct RegEx_Lexer_Item) { .tag = OK, .token = { type, span_start, span_end } };

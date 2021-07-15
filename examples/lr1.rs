@@ -1,10 +1,7 @@
 
 #[macro_use] extern crate sylo;
 
-use sylo::lang::{
-    re,
-    lr::LR1ABuilder,
-};
+use sylo::langcore::{re, lr::LR1ABuilder};
 use std::time::Instant;
 
 fn main() {

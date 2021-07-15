@@ -69,7 +69,7 @@ impl Scan<'_> {
             last_accept_index: 0,
         };
 
-        self.s0(ctx)
+        self.state0(ctx)
     }
 
     fn s0(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {

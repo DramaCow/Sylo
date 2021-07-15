@@ -13,13 +13,13 @@ pub fn lexer<W: Write>(fmt: W, name: &str, lexer: &Lexer) -> Result<W, std::fmt:
     writeln!(fmt, "#include <stddef.h>")?;
     writeln!(fmt, "#include <stdint.h>")?;
     writeln!(fmt)?;
-    writeln!(fmt, "struct {} {{", name)?;
+    writeln!(fmt, "struct {name} {{", name=name)?;
     writeln!(fmt, "    const uint8_t *const input;")?;
     writeln!(fmt, "    const size_t length;")?;
     writeln!(fmt, "    size_t index;")?;
     writeln!(fmt, "}};")?;
     writeln!(fmt)?;
-    writeln!(fmt, "enum {}_TokenType {{", name)?;
+    writeln!(fmt, "enum {name}_TokenType {{", name=name)?;
     for (_, ttype) in ttypes.iter().enumerate().filter(|(i, _)| if let Command::Emit = lexer.table.commands[*i] { true } else { false }) {
         writeln!(fmt, "    {ttype},", ttype=ttype)?;
     }

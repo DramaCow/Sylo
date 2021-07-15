@@ -2,7 +2,7 @@
 #[macro_use] extern crate sylo;
 
 use std::time::Instant;
-use sylo::lang::re;
+use sylo::langcore::re;
 use sylo::parser::strategy;
 
 fn main() {
