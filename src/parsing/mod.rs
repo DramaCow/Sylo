@@ -1,3 +1,5 @@
+#![allow(clippy::items_after_statements)]
+
 pub mod lexer;
 pub mod parser;
 pub mod cst;

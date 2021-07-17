@@ -200,11 +200,7 @@ pub fn parser<W: Write>(fmt: W, name: &str, parser: &Parser) -> Result<W, std::f
     let parser = par::LR1Parser::new(name, parser);
     
     writeln!(fmt, "pub fn parse<I: AsRef<[u8]> + ?Sized>(input: &I) -> Result<Variable, ParseError> {{")?;
-    writeln!(fmt, "    let mut parse = Parse {{ input: scan(input), next_token: None, trace: Vec::new() }};")?;
-    writeln!(fmt, "    parse.update()?;")?;
-    writeln!(fmt, "    let result = parse.s0();")?;
-    writeln!(fmt, "    if let Err(_) = result {{ println!(\"{{:?}}\", parse.trace); }}")?;
-    writeln!(fmt, "    Ok(parse.s0()?.0)")?;
+    writeln!(fmt, "    Parse {{ input: scan(input), next_token: None }}.begin()")?;
     writeln!(fmt, "}}")?;
     writeln!(fmt)?;
     writeln!(fmt, "#[derive(Debug, Clone, Copy)]")?;
@@ -217,7 +213,6 @@ pub fn parser<W: Write>(fmt: W, name: &str, parser: &Parser) -> Result<W, std::f
     writeln!(fmt, "pub struct Parse<'a> {{")?;
     writeln!(fmt, "    input: Scan<'a>,")?;
     writeln!(fmt, "    next_token: Option<Token>,")?;
-    writeln!(fmt, "    trace: Vec<usize>,")?;
     writeln!(fmt, "}}")?;
     writeln!(fmt)?;
     writeln!(fmt, "#[derive(Debug)]")?;
@@ -228,6 +223,11 @@ pub fn parser<W: Write>(fmt: W, name: &str, parser: &Parser) -> Result<W, std::f
     writeln!(fmt, "}}")?;
     writeln!(fmt)?;
     writeln!(fmt, "impl Parse<'_> {{")?;
+    writeln!(fmt, "    fn begin(mut self) -> Result<Variable, ParseError> {{")?;
+    writeln!(fmt, "        self.update()?;")?;
+    writeln!(fmt, "        Ok(self.s0()?.0)")?;
+    writeln!(fmt, "    }}")?;
+    writeln!(fmt)?;
     writeln!(fmt, "    fn update(&mut self) -> Result<(), ParseError> {{")?;
     writeln!(fmt, "        self.next_token = self.input.next().transpose().map_err(|err| {{ ParseError::InputError(err) }})?;")?;
     writeln!(fmt, "        Ok(())")?;
@@ -237,7 +237,7 @@ pub fn parser<W: Write>(fmt: W, name: &str, parser: &Parser) -> Result<W, std::f
     let mut uses_decrement = false;
     for (i, state) in parser.states.iter().enumerate() {
         writeln!(fmt, "fn s{}(&mut self) -> Result<(Variable, usize), ParseError> {{", i)?;
-        writeln!(fmt, "    self.trace.push({state});", state=i)?;
+        // writeln!(fmt, "    print!(\"{state} \");", state=i)?;
         fmt.indent();
         if !state.ttrans.is_empty() {
             if state.has_shift_transitions {
@@ -272,7 +272,7 @@ pub fn parser<W: Write>(fmt: W, name: &str, parser: &Parser) -> Result<W, std::f
                 }
                 match ttran.action {
                     Action::Invalid => panic!(),
-                    Action::Accept => { writeln!(fmt, "return Ok((Variable::{varname}(0), {count})),", varname=parser.varnames[0], count=0)?; } // TODO:
+                    Action::Accept => { writeln!(fmt, "return Ok((Variable::{varname}(0), 1)),", varname=parser.varnames[0])?; } // TODO:
                     Action::Shift(dst) => { writeln!(fmt, "{{ self.update()?; self.s{dst}() }}", dst=dst)?; }
                     Action::Reduce(p) => {
                         let r = parser.reductions[p];
