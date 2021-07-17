@@ -5,11 +5,13 @@ extern crate sylo;
 use sylo::re;
 
 fn main() {
-    let text = "('A'..'Z' | 'a'..'z' | '_') ('A'..'Z' | 'a'..'z' | '0'..'9' | '_')* - '_'+";
+    let text = "('A'..'Z' | '_')+";
 
     let tokens: Vec<_> = re::scan(text).collect::<Result<_,_>>().unwrap();
 
     for token in tokens {
-        println!("{}\t{:?}", &text[token.span], token.ttype);
+        println!("{}\t{:?}", &text[token.span.0..token.span.1], token.ttype);
     }
+
+    println!("{:?}", re::parse(text));
 }

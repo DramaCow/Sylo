@@ -1,10 +1,11 @@
 use std::collections::{BTreeMap, btree_map::Entry::{Occupied, Vacant}};
-use crate::langcore::re::LexTable;
+use crate::langcore::re::{LexTable, Command};
 use crate::lexer;
 
 pub struct Lexer {
     pub name: String,
     pub ttypes: Vec<String>,
+    pub commands: Vec<Command>,
     pub states: Vec<State>,
 }
 
@@ -25,6 +26,7 @@ impl Lexer {
         Self {
             name: name.to_string(),
             ttypes: lexer.vocab.to_vec(),
+            commands: lexer.table.commands.to_vec(),
             states: lexer.table.next.chunks_exact(256).enumerate().map(|(i, row)| State::new(lexer, i, row)).collect(),
         }
     }
