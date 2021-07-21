@@ -5,6 +5,7 @@ pub enum Symbol {
 }
 
 /// Barebones representation of a context free grammar.
+#[derive(Clone)]
 pub struct Grammar {
     symbols:  Vec<Symbol>,
     alts:     Vec<usize>,  // start index of each alt in symbols
@@ -143,6 +144,7 @@ impl GrammarBuilder {
         }
     }
 
+    /// # Panics
     #[must_use]
     pub fn rule(mut self, rule: &[&[Symbol]]) -> Self {
         self.grammar.rules.push(self.grammar.rules.last().unwrap() + rule.len());
@@ -154,6 +156,7 @@ impl GrammarBuilder {
     }
 
     /// # Errors
+    /// # Panics
     pub fn build(mut self) -> Result<Grammar, GrammarBuildError> {
         // Iterates through each rule and checks to see
         // if each variable is valid. If not, user receives 

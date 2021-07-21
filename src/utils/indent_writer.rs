@@ -53,7 +53,7 @@ impl<W: Write> Write for IndentWriter<W> {
         for substr in split {
             if substr.is_empty() {
                 self.written_to_line = false;
-                write!(self.fmt, "\n")?;
+                writeln!(self.fmt)?;
             } else {
                 self.written_to_line = true;
                 write!(self.fmt, "\n{:width$}{}", "", substr, width = self.indent_count)?;

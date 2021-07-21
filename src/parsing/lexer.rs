@@ -1,23 +1,20 @@
 use crate::langcore::re::{self, RegEx};
 
-#[derive(Default)]
-pub struct LexerBuilder {
-    vocab: Vec<String>,
-    regexes: Vec<re::RegEx>,
-    commands: Vec<re::Command>,
+pub struct LexerDefBuilder {
+    def: LexerDef,
 }
 
-pub struct Lexer {
+pub struct LexerDef {
     pub vocab: Vec<String>,
-    pub(super) table: re::NaiveLexTable,
+    pub regexes: Vec<re::RegEx>,
+    pub commands: Vec<re::Command>,
 }
 
-pub type Scan<'a> = re::Scan<'a, re::NaiveLexTable>;
-
-impl LexerBuilder {
+impl LexerDefBuilder {
     #[must_use]
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self { vocab: Vec::new(), regexes: Vec::new(), commands: Vec::new() }
+        Self { def: LexerDef { vocab: Vec::new(), regexes: Vec::new(), commands: Vec::new() } }
     }
 
     pub fn rule(&mut self, label: String, regex: RegEx) -> &mut Self {
@@ -30,9 +27,28 @@ impl LexerBuilder {
 
     #[must_use]
     pub fn vocab(&self) -> &[String] {
-        &self.vocab
+        &self.def.vocab
     }
 
+    /// # Panics
+    #[must_use]
+    pub fn build(self) -> LexerDef {
+        if self.def.regexes.is_empty() {
+            panic!("Need at least 1 RegEx.")
+        }
+        self.def
+    }
+
+    fn _rule_interal(&mut self, label: String, regex: RegEx, command: re::Command) -> &mut Self {
+        self.def.vocab.push(label);
+        self.def.regexes.push(regex);
+        self.def.commands.push(command);
+        self
+    }
+}
+
+impl LexerDef {
+    /// # Panics
     #[must_use]
     pub fn build(&self) -> Lexer {
         if self.regexes.is_empty() {
@@ -44,14 +60,14 @@ impl LexerBuilder {
             table: re::NaiveLexTable::new(&self.regexes, self.commands.iter().copied()),
         }
     }
-
-    fn _rule_interal(&mut self, label: String, regex: RegEx, command: re::Command) -> &mut Self {
-        self.vocab.push(label);
-        self.regexes.push(regex);
-        self.commands.push(command);
-        self
-    }
 }
+
+pub struct Lexer {
+    pub vocab: Vec<String>,
+    pub(super) table: re::NaiveLexTable,
+}
+
+pub type Scan<'a> = re::Scan<'a, re::NaiveLexTable>;
 
 impl<'a> Lexer {
     pub fn scan<I: AsRef<[u8]> + ?Sized>(&'a self, input: &'a I) -> Scan<'a> {

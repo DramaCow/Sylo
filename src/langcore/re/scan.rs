@@ -41,7 +41,7 @@ impl<'a, S: LexTable> Iterator for Scan<'a, S> {
             let mut last_accept_index = 0_usize;
 
             // simulate dfa until hit the sink state or end of input
-            for byte in self.input.as_ref()[self.index..].iter().copied() {            
+            for byte in self.input[self.index..].iter().copied() {            
                 if state == self.table.sink() {
                     break;
                 }

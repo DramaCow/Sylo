@@ -46,11 +46,7 @@ impl CharSet {
 
     #[must_use]
     pub fn min(&self) -> Option<u8> {
-        if let Some(interval) = self.intervals.first() {
-            Some(interval.0)
-        } else {
-            None
-        }
+        self.intervals.first().map(|interval| interval.0)
     }
 
     #[must_use]

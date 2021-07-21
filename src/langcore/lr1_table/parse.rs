@@ -1,3 +1,5 @@
+#![allow(clippy::option_if_let_else)]
+
 use std::mem;
 use super::{Action, LR1Table};
 

@@ -401,21 +401,23 @@ where
     F: Fn(CharSet, &CharSet) -> CharSet,
 {
     let mut sets: Vec<&CharSet> = Vec::new();
-    let mut refs: Vec<RegEx> = Vec::new();
+    let mut refs: Vec<&RegEx> = Vec::new();
 
     for re in res {
         if let Operator::Set(a) = re.operator() {
             sets.push(a);
         } else {
-            refs.push(re.clone());
+            refs.push(re);
         }
     }
 
-    if let Some(first) = sets.pop() {
-        let re = RegEx::new(Operator::Set(sets.into_iter().fold(first.clone(), |acc, x| f(acc, x))));
-        refs.into_iter().merge(once(re)).collect()
+    #[allow(clippy::option_if_let_else)]
+    if let Some(last) = sets.pop() {
+        let reduced_set = sets.into_iter().fold(last.clone(), |acc, x| f(acc, x));
+        let re = RegEx::new(Operator::Set(reduced_set));
+        refs.into_iter().merge(once(&re)).cloned().collect()
     } else {
-        refs
+        refs.into_iter().cloned().collect()
     }
 }
 

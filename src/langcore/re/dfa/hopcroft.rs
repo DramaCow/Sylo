@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashSet, HashMap};
+use std::collections::{BTreeSet, HashSet, HashMap, hash_map::Entry};
 use super::{DFA, State};
 
 pub fn minimize(dfa: &DFA) -> DFA {
@@ -21,9 +21,9 @@ pub fn minimize(dfa: &DFA) -> DFA {
 
         for &source in set {
             for (&symbol, dest) in &dfa.states[source].next {
-                if !next.contains_key(&symbol) {
+                if let Entry::Vacant(e) = next.entry(symbol) {
                     if let Some(id) = partition.iter().skip(1).position(|set| set.contains(&dest)) {
-                        next.insert(symbol, id + 1);
+                        e.insert(id + 1);
                     }
                 }
             }

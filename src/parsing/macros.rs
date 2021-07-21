@@ -14,7 +14,7 @@ macro_rules! parser {
             $(
                 $crate::_precedence_internal![__PARSER_DEF__ 0_usize ; [] $(% $assoc $($token)+)*];
             )?
-            __PARSER_DEF__
+            __PARSER_DEF__.build()
         }
     };
 }
@@ -47,11 +47,11 @@ macro_rules! _lexer_def_internal {
     };
     (@ _ $count:expr ; $($id:expr , $command:ident $label:ident $regex:expr);+) => {
         {
-            let mut lexer = $crate::lexer::LexerBuilder::new();
+            let mut lexer = $crate::lexer::LexerDefBuilder::new();
             $(
                 $crate::_lexer_rule![lexer $label $regex , $command];
             )+
-            lexer
+            lexer.build()
         }
     };
     (@ $out:ident $count:expr ; $($id:expr , $command:ident $label:ident $regex:expr);+) => {
@@ -101,7 +101,7 @@ macro_rules! _parser_def_internal {
                 #[allow(non_upper_case_globals)]
                 const $label: $crate::langcore::cfg::Symbol = $crate::langcore::cfg::Symbol::Variable($id); 
             )+
-            $crate::parser::ParserBuilder::new(
+            $crate::parser::ParserDefBuilder::new(
                 $lexer_def,
                 vec![$(stringify!($label).to_string()),+],
                 $crate::langcore::cfg::GrammarBuilder::new()$(.rule($rule))+.build().unwrap(),
