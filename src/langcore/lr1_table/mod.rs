@@ -11,9 +11,6 @@ pub use self::construct::{
     ConstructionError,
     Conflict,
     LR1TableConstructionStrategy,
-    //
-    with_conflict_resolution,
-    construct,
 };
 
 mod parse;
@@ -28,6 +25,8 @@ pub mod strategy;
 // =================
 // === INTERNALS ===
 // =================
+
+mod inner;
 
 #[cfg(test)]
 mod tests;

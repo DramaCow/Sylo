@@ -1,7 +1,7 @@
 
 #[macro_use] extern crate sylo;
 
-use sylo::langcore::{re, lr::LR1ABuilder};
+use sylo::langcore::{re, lr::LR1A};
 use std::time::Instant;
 
 fn main() {
@@ -25,7 +25,7 @@ fn main() {
         }
     };
 
-    let lr1a = LR1ABuilder::new(&def.grammar).build();
+    let lr1a = LR1A::new(&def.grammar);
     std::fs::write("_graph.dot", lr1a.dot(&def.grammar, &["id", "(", ")", "+", "*"], &def.var_names).unwrap()).unwrap();
     println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());
 }

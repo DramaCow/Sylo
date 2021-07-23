@@ -10,11 +10,8 @@ pub use self::lalr1::LALR1;
 
 use super::{
     Action,
-    Reduction,
     Conflict,
     ConstructionError,
     NaiveLR1Table,
     LR1TableConstructionStrategy
 };
-
-mod inner;

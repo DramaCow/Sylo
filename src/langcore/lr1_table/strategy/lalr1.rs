@@ -2,15 +2,15 @@ use std::iter::Copied;
 use std::collections::hash_set;
 use crate::langcore::cfg::{Grammar, Symbol};
 use crate::langcore::lr::{LALR1A, LALR1ABuilder, LR0Item};
-use super::{inner, NaiveLR1Table, Conflict, Action, ConstructionError, LR1TableConstructionStrategy};
+use super::{super::inner, NaiveLR1Table, Conflict, Action, ConstructionError, LR1TableConstructionStrategy};
 
 pub struct LALR1;
 
 impl LR1TableConstructionStrategy for LALR1 {
-    fn construct<F: FnMut(Conflict) -> Result<Action, Conflict>>(self, grammar: &Grammar, conflict_resolution: F) -> Result<NaiveLR1Table, ConstructionError> {
+    fn construct<F: FnMut(Conflict) -> Result<Action, Conflict>>(grammar: &Grammar, conflict_resolution: F) -> Result<NaiveLR1Table, ConstructionError> {
         let lalr1a = LALR1ABuilder::new(grammar).build();
         let builder = TableBuilder { grammar, lalr1a };
-        inner::BuildLR1Table::build(&builder, grammar, conflict_resolution)
+        inner::BuildLR1Table::build_lr1_table(&builder, grammar, conflict_resolution)
     }
 }
 
@@ -23,14 +23,14 @@ struct TableBuilder<'a> {
     lalr1a: LALR1A,
 }
 
-type Iter<'a> = Copied<hash_set::Iter<'a, Option<usize>>>;
+impl inner::ItemSets for TableBuilder<'_> {
+    type Item = LR0Item;
 
-impl<'a> inner::BuildLR1Table<'a, LR0Item, Iter<'a>> for TableBuilder<'a> {
     fn state_count(&self) -> usize {
         self.lalr1a.states().len()
     }
 
-    fn items(&self, state: usize) -> &[LR0Item] {
+    fn items(&self, state: usize) -> &[Self::Item] {
         &self.lalr1a.states()[state].items
     }
 
@@ -38,23 +38,23 @@ impl<'a> inner::BuildLR1Table<'a, LR0Item, Iter<'a>> for TableBuilder<'a> {
         self.lalr1a.states()[state].next.get(&symbol).copied()
     }
 
-    fn production(&self, item: &LR0Item) -> usize {
+    fn production(&self, item: &Self::Item) -> usize {
         item.production
     }
 
-    fn is_complete(&self, item: &LR0Item) -> bool {
+    fn is_complete(&self, item: &Self::Item) -> bool {
         item.is_complete(self.grammar)
     }
 
-    fn symbol_at_dot(&self, item: &LR0Item) -> Option<Symbol> {
+    fn symbol_at_dot(&self, item: &Self::Item) -> Option<Symbol> {
         item.symbol_at_dot(self.grammar)
-    }
-
-    fn lookaheads(&'a self, state: usize, item: &LR0Item) -> Iter<'a> {
-        self.lalr1a.lookaheads(state, item.production).iter().copied()
     }
 }
 
-pub trait MyTrait<I: IntoIterator<Item = usize>> {
-    fn iter(&self) -> I;
+impl<'a> inner::Lookaheads<'a> for TableBuilder<'a> {
+    type Output = Copied<hash_set::Iter<'a, Option<usize>>>;
+
+    fn lookaheads(&'a self, state: usize, item: &Self::Item) -> Self::Output {
+        self.lalr1a.lookaheads(state, item.production).iter().copied()
+    }
 }

@@ -9,9 +9,9 @@ mod lr0a;
 mod lalr1a;
 mod lr1a;
 pub use self::{
-    lr0a::{LR0A, LR0ABuilder},
+    lr0a::LR0A,
     lalr1a::{LALR1A, LALR1ABuilder, NonterminalTransition, StateReductionPair},
-    lr1a::{LR1A, LR1ABuilder},
+    lr1a::LR1A,
 };
 
 // =================

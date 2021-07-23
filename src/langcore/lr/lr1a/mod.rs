@@ -15,6 +15,11 @@ pub struct State {
 
 impl LR1A {
     #[must_use]
+    pub fn new(grammar: &Grammar) -> Self {
+        LR1ABuilder::new(grammar).build()
+    }
+
+    #[must_use]
     pub fn states(&self) -> &[State] {
         &self.states
     }
@@ -37,7 +42,7 @@ impl LR1A {
 }
 
 mod builder;
-pub use builder::LR1ABuilder;
+use builder::LR1ABuilder;
 
 mod graphviz;
 pub use graphviz::LR1ADotWriter;

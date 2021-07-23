@@ -1,5 +1,5 @@
-use crate::langcore::cfg::Grammar;
-use super::{Action, NaiveLR1Table};
+use crate::langcore::cfg::{Grammar};
+use super::{inner, Action, NaiveLR1Table};
 
 #[derive(Debug)]
 pub struct ConstructionError {
@@ -15,24 +15,16 @@ pub enum Conflict {
 
 pub trait LR1TableConstructionStrategy {
     /// # Errors
-    fn construct<F: FnMut(Conflict) -> Result<Action, Conflict>>(self, grammar: &Grammar, conflict_resolution: F) -> Result<NaiveLR1Table, ConstructionError>;
+    fn construct<F: FnMut(Conflict) -> Result<Action, Conflict>>(grammar: &Grammar, conflict_resolution: F) -> Result<NaiveLR1Table, ConstructionError>;
 }
 
-// helper functions
-
-/// # Errors
-pub fn with_conflict_resolution<S, F>(grammar: &Grammar, strategy: S, conflict_resolution: F) -> Result<NaiveLR1Table, ConstructionError>
-where
-    S: LR1TableConstructionStrategy,
-    F: FnMut(Conflict) -> Result<Action, Conflict>
-{
-    S::construct(strategy, grammar, conflict_resolution)
-}
-
-/// # Errors
-pub fn construct<S>(grammar: &Grammar, strategy: S) -> Result<NaiveLR1Table, ConstructionError>
-where
-    S: LR1TableConstructionStrategy,
-{
-    S::construct(strategy, grammar, |conflict: Conflict| { Err(conflict) })
-}
+// impl<'a, T> LR1TableConstructionStrategy<'a> for T
+// where
+//     T: From<&'a Grammar> + inner::BuildLR1Table<'a>
+// {
+//     fn construct<F: FnMut(Conflict) -> Result<Action, Conflict>>(grammar: &'a Grammar, conflict_resolution: F) -> Result<NaiveLR1Table, ConstructionError> {
+//         let tmp = T::from(grammar);
+//         inner::BuildLR1Table::build_lr1_table(&tmp, grammar, conflict_resolution)
+//         // tmp.build_lr1_table(grammar, conflict_resolution)
+//     }
+// }

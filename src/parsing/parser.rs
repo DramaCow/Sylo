@@ -110,11 +110,11 @@ impl ParserDef {
     }
 
     /// # Errors
-    pub fn build<S: strategy::Strategy>(&self, strategy: S) -> Result<Parser, lr1_table::ConstructionError> {
+    pub fn build<S: strategy::Strategy>(&self) -> Result<Parser, lr1_table::ConstructionError> {
         Ok(Parser {
             lexer: self.lexer_def.build(),
             var_names: self.var_names.clone(),
-            parsing_table: lr1_table::with_conflict_resolution(&self.grammar, strategy, self.conflict_resolution())?,
+            parsing_table: S::construct(&self.grammar, self.conflict_resolution())?,
         })
     }
 }

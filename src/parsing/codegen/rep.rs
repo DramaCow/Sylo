@@ -51,8 +51,8 @@ pub struct Transition {
 
 impl LR1Parser {
     /// # Errors
-    pub fn new(name: &str, def: &parser::ParserDef, strategy: impl parser::strategy::Strategy) -> Result<Self, lr1_table::ConstructionError> {
-        let parsing_table = lr1_table::with_conflict_resolution(&def.grammar, strategy, def.conflict_resolution())?;
+    pub fn new<S: parser::strategy::Strategy>(name: &str, def: &parser::ParserDef) -> Result<Self, lr1_table::ConstructionError> {
+        let parsing_table = S::construct(&def.grammar, def.conflict_resolution())?;
 
         let action_rows = parsing_table.actions.chunks_exact(parsing_table.word_count);
         let goto_rows = parsing_table.gotos.chunks_exact(parsing_table.var_count);

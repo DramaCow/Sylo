@@ -2,7 +2,7 @@
 
 use std::collections::{HashSet, HashMap};
 use crate::langcore::cfg::{Grammar, Symbol, nullability};
-use crate::langcore::lr::{LR0A, LR0ABuilder};
+use crate::langcore::lr::LR0A;
 use crate::utils::transitive_closure;
 use super::{LALR1A, StateReductionPair};
 
@@ -23,7 +23,7 @@ pub struct NonterminalTransition {
 impl<'a> LALR1ABuilder<'a> {
     #[must_use]
     pub fn new(grammar: &'a Grammar) -> Self {
-        let lr0a = LR0ABuilder::new(grammar).build();
+        let lr0a = LR0A::new(grammar);
 
         let nonterminal_transitions: Vec<_> = lr0a.states().iter().enumerate().flat_map(|(p, state)| {
             state.next.keys().filter_map(move |&symbol| {

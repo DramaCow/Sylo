@@ -5,11 +5,8 @@ use crate::langcore::cfg::Symbol;
 
 pub trait BuildItemSets<T: Ord + std::hash::Hash + std::fmt::Debug> {
     fn start_item(&self) -> T;
-    
     fn advance(&self, item: &T) -> T;
-
     fn symbol_at_dot(&self, item: &T) -> Option<Symbol>;
-
     fn closure(&self, items: &BTreeSet<T>) -> BTreeSet<T>;
 
     fn goto<'a, I: Iterator<Item=&'a T>>(&self, items: I, x: &Symbol) -> BTreeSet<T>
