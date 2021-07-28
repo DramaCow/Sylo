@@ -50,7 +50,7 @@ impl inner::ItemSets for TableBuilder<'_> {
     }    
 }
 
-impl<'a> inner::Lookaheads<'a> for TableBuilder<'_> {
+impl inner::Lookaheads<'_> for TableBuilder<'_> {
     type Output = Once<Option<usize>>;
 
     fn lookaheads(&self, _: usize, item: &Self::Item) -> Self::Output {

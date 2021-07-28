@@ -51,7 +51,7 @@ impl inner::ItemSets for TableBuilder<'_> {
     }
 }
 
-impl<'a> inner::Lookaheads<'a> for TableBuilder<'a> {
+impl<'a> inner::Lookaheads<'a> for TableBuilder<'_> {
     type Output = Copied<hash_set::Iter<'a, Option<usize>>>;
 
     fn lookaheads(&'a self, state: usize, item: &Self::Item) -> Self::Output {
