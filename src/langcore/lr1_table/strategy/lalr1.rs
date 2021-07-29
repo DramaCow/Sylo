@@ -2,26 +2,27 @@ use std::iter::Copied;
 use std::collections::hash_set;
 use crate::langcore::cfg::{Grammar, Symbol};
 use crate::langcore::lr::{LALR1A, LALR1ABuilder, LR0Item};
-use super::{super::inner, NaiveLR1Table, Conflict, Action, ConstructionError, LR1TableConstructionStrategy};
+use super::{super::inner};
 
 pub struct LALR1;
 
-impl LR1TableConstructionStrategy for LALR1 {
-    fn construct<F: FnMut(Conflict) -> Result<Action, Conflict>>(grammar: &Grammar, conflict_resolution: F) -> Result<NaiveLR1Table, ConstructionError> {
+impl<'a> inner::InnerStrategy<'a> for LALR1 {
+    type Builder = TableBuilder<'a>;
+    
+    fn builder(&self, grammar: &'a Grammar) -> Self::Builder {
         let lalr1a = LALR1ABuilder::new(grammar).build();
-        let builder = TableBuilder { grammar, lalr1a };
-        inner::BuildLR1Table::build_lr1_table(&builder, grammar, conflict_resolution)
+        TableBuilder { grammar, lalr1a }
     }
+}
+
+pub struct TableBuilder<'a> {
+    grammar: &'a Grammar,
+    lalr1a: LALR1A,
 }
 
 // =================
 // === INTERNALS ===
 // =================
-
-struct TableBuilder<'a> {
-    grammar: &'a Grammar,
-    lalr1a: LALR1A,
-}
 
 impl inner::ItemSets for TableBuilder<'_> {
     type Item = LR0Item;

@@ -9,8 +9,7 @@ fn parentheses_grammar() {
         .rule(&[&[Word(0), Var(0), Word(1)], &[Word(0), Word(1)]])
         .build().unwrap();
 
-    let parser = strategy::LR1::construct(&grammar, |conflict: Conflict| { Err(conflict) }).unwrap();
-    // let parser = strategy::LR1::build_table(strategy::LR1::new_builder(&grammar), &grammar, |conflict: Conflict| { Err(conflict) }).unwrap();
+    let parser = strategy::LR1::build(&strategy::LR1.builder(&grammar), &grammar, |conflict: Conflict| { Err(conflict) }).unwrap();
 
     // ad hoc ground truth
     let is_valid = |input: &[usize]| -> bool {
@@ -52,8 +51,7 @@ fn parentheses_grammar_2() {
         .rule(&[&[Word(0), Var(0), Word(1)], &[Word(0), Word(1)]])
         .build().unwrap();
 
-    let parser = strategy::LR1::construct(&grammar, |conflict: Conflict| { Err(conflict) }).unwrap();
-    // let parser = strategy::LR1::build_table(strategy::LR1::new_builder(&grammar), &grammar, |conflict: Conflict| { Err(conflict) }).unwrap();
+    let parser = strategy::LR1::build(&strategy::LR1.builder(&grammar), &grammar, |conflict: Conflict| { Err(conflict) }).unwrap();
 
     let input = vec![0, 0, 1, 1].into_iter().map(Ok::<_,()>);
 

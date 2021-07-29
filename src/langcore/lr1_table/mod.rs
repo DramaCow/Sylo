@@ -10,6 +10,7 @@ mod construct;
 pub use self::construct::{
     ConstructionError,
     Conflict,
+    LR1TableBuilder,
     LR1TableConstructionStrategy,
 };
 

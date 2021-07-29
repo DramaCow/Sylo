@@ -29,6 +29,12 @@ pub trait BuildLR1Table<'a> {
         F: FnMut(Conflict) -> Result<Action, Conflict>;
 }
 
+pub trait InnerStrategy<'a> {
+    type Builder;
+
+    fn builder(&self, grammar: &'a Grammar) -> Self::Builder;
+}
+
 impl<'a, T> BuildLR1Table<'a> for T
 where
     T: Lookaheads<'a>,

@@ -1,26 +1,28 @@
 use std::iter::{Once, once};
 use crate::langcore::cfg::{Grammar, Symbol};
 use crate::langcore::lr::{LR1A, LR1Item};
-use super::{super::inner, NaiveLR1Table, Conflict, Action, ConstructionError, LR1TableConstructionStrategy};
+use super::{super::inner};
 
 pub struct LR1;
 
-impl LR1TableConstructionStrategy for LR1 {
-    fn construct<F: FnMut(Conflict) -> Result<Action, Conflict>>(grammar: &Grammar, conflict_resolution: F) -> Result<NaiveLR1Table, ConstructionError> {
+// impl<'a> Strategy<TableBuilder<'a>> for LR1 {}
+impl<'a> inner::InnerStrategy<'a> for LR1 {
+    type Builder = TableBuilder<'a>;
+
+    fn builder(&self, grammar: &'a Grammar) -> Self::Builder {
         let lr1a = LR1A::new(grammar);
-        let builder = TableBuilder { grammar, lr1a };
-        inner::BuildLR1Table::build_lr1_table(&builder, grammar, conflict_resolution)
+        TableBuilder { grammar, lr1a }
     }
+}
+
+pub struct TableBuilder<'a> {
+    grammar: &'a Grammar,
+    lr1a: LR1A,
 }
 
 // =================
 // === INTERNALS ===
 // =================
-
-struct TableBuilder<'a> {
-    grammar: &'a Grammar,
-    lr1a: LR1A,
-}
 
 impl inner::ItemSets for TableBuilder<'_> {
     type Item = LR1Item;
