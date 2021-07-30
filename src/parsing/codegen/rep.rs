@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, btree_map::Entry::{Occupied, Vacant}};
 use crate::langcore::re::{LexTable, Command};
 use crate::langcore::cfg::Grammar;
-use crate::langcore::lr1_table::{self, Action, Reduction, LR1TableBuilder};
+use crate::langcore::lr1_table::{self, Action, Reduction};
 use crate::lexer;
 use crate::parser;
 use parser::strategy;
@@ -54,11 +54,10 @@ impl LR1Parser {
     /// # Errors
     pub fn new<'a, S>(name: &str, def: &'a parser::ParserDef, strategy: &S) -> Result<Self, lr1_table::ConstructionError>
     where
-        S::Builder: LR1TableBuilder,
         S: strategy::Strategy<'a>,
+        // S::Builder: ItemSets,
     {
         let builder = strategy.builder(&def.grammar);
-
         let parsing_table = S::build(&builder, &def.grammar, def.conflict_resolution())?;
 
         let action_rows = parsing_table.actions.chunks_exact(parsing_table.word_count);

@@ -44,6 +44,3 @@ where
         <Self::Builder as inner::BuildLR1Table>::build_lr1_table(builder, grammar, conflict_resolution)
     }
 }
-
-pub trait LR1TableBuilder {}
-impl<T: for<'b> inner::BuildLR1Table<'b>> LR1TableBuilder for T {}

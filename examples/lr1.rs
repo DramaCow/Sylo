@@ -2,11 +2,11 @@
 #[macro_use] extern crate sylo;
 
 use sylo::langcore::{re, lr::LR1A};
-use std::time::Instant;
+use sylo::codegen;
+use sylo::langcore::lr1_table::LR1TableConstructionStrategy;
+use sylo::parser::strategy;
 
 fn main() {
-    let timer = Instant::now();
-
     let def = parser! {
         {
             id:     re::range('a', 'z').plus(),
@@ -27,5 +27,7 @@ fn main() {
 
     let lr1a = LR1A::new(&def.grammar);
     std::fs::write("_graph.dot", lr1a.dot(&def.grammar, &["id", "(", ")", "+", "*"], &def.var_names).unwrap()).unwrap();
-    println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());
+
+    // std::fs::write("src/parsing/re.rs", codegen::rep::LR1Parser::new("RegEx", &def, &strategy::LR1).unwrap().to_rust(String::new()).unwrap()).unwrap();
+
 }

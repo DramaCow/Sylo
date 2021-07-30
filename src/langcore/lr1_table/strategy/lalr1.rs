@@ -43,6 +43,10 @@ impl inner::ItemSets for TableBuilder<'_> {
         item.production
     }
 
+    fn pos(&self, item: &Self::Item) -> usize {
+        item.pos
+    }
+
     fn is_complete(&self, item: &Self::Item) -> bool {
         item.is_complete(self.grammar)
     }

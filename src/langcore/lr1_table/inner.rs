@@ -12,6 +12,7 @@ pub trait ItemSets {
     fn transition(&self, state: usize, symbol: Symbol) -> Option<usize>;
     
     fn production(&self, item: &Self::Item) -> usize;
+    fn pos(&self, item:&Self::Item) -> usize;
     fn is_complete(&self, item: &Self::Item) -> bool;
     fn symbol_at_dot(&self, item: &Self::Item) -> Option<Symbol>;
 }

@@ -110,10 +110,7 @@ impl ParserDef {
     }
 
     /// # Errors
-    pub fn build<'a, S>(&'a self, strategy: &S) -> Result<Parser, lr1_table::ConstructionError>
-    where
-        S: strategy::Strategy<'a>,
-    {
+    pub fn build<'a, S: strategy::Strategy<'a>>(&'a self, strategy: &S) -> Result<Parser, lr1_table::ConstructionError> {
         Ok(Parser {
             lexer: self.lexer_def.build(),
             var_names: self.var_names.clone(),
