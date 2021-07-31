@@ -12,6 +12,7 @@ pub use self::construct::{
     Conflict,
     LR1TableConstruction,
     LR1TableBuilderStrategy,
+    LongestCommonPrecedingSubpath,
 };
 
 mod parse;

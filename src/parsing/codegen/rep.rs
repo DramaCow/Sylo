@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, btree_map::Entry::{Occupied, Vacant}};
 use crate::langcore::re::{LexTable, Command};
-use crate::langcore::cfg::Grammar;
-use crate::langcore::lr1_table::{self, Action, Reduction, LR1TableConstruction};
+use crate::langcore::cfg::{Grammar, Symbol};
+use crate::langcore::lr1_table::{self, Action, Reduction, LR1TableBuilderStrategy, LongestCommonPrecedingSubpath};
 use crate::lexer;
 use crate::parser;
 
@@ -18,6 +18,7 @@ pub struct ParserState {
     pub ttrans: Vec<TTransition>,
     pub nttrans: Vec<NTTransition>,
     pub has_shift_transitions: bool,
+    pub input_symbols: Vec<Symbol>, // TODO: this doesn't need to be copied, could be a slice
 }
 
 pub struct TTransition {
@@ -51,13 +52,13 @@ pub struct Transition {
 
 impl LR1Parser {
     /// # Errors
-    pub fn new</*<'a>,*/ S>(name: &str, def: &/*<'a>*/ parser::ParserDef, strategy: &S) -> Result<Self, lr1_table::ConstructionError>
+    pub fn new<'a, S>(name: &str, def: &'a parser::ParserDef, strategy: &S) -> Result<Self, lr1_table::ConstructionError>
     where
-        S: LR1TableConstruction/*<'a>*/,
-        // S::Builder: ItemSets,
+        S: LR1TableBuilderStrategy<'a>,
+        S::Builder: LongestCommonPrecedingSubpath,
     {
-        // let builder = strategy.builder(&def.grammar);
-        let parsing_table = strategy.construct(&def.grammar, def.conflict_resolution())?;
+        let builder = strategy.builder(&def.grammar);
+        let parsing_table = S::build(&builder, &def.grammar, def.conflict_resolution())?;
 
         let action_rows = parsing_table.actions.chunks_exact(parsing_table.word_count);
         let goto_rows = parsing_table.gotos.chunks_exact(parsing_table.var_count);
@@ -68,13 +69,15 @@ impl LR1Parser {
             varnames: def.var_names.clone(),
             reductions: parsing_table.reductions,
             grammar: def.grammar.clone(),
-            states: action_rows.zip(goto_rows).map(|(action_row, goto_row)| ParserState::new(action_row, goto_row)).collect(),
+            states: action_rows.zip(goto_rows).enumerate().map(|(i, (action_row, goto_row))| {
+                ParserState::new(action_row, goto_row, builder.longest_common_preceding_subpath(&def.grammar, i))
+            }).collect(),
         })
     }
 }
 
 impl ParserState {
-    fn new(action_row: &[Action], goto_row: &[Option<usize>]) -> Self {
+    fn new(action_row: &[Action], goto_row: &[Option<usize>], input_symbols: &[Symbol]) -> Self {
         let ttrans: Vec<_> = action_row.iter().enumerate().filter_map(|(word, &action)| {
             if let Action::Invalid = action {
                 None
@@ -89,7 +92,7 @@ impl ParserState {
 
         let has_shift_transitions = ttrans.iter().any(|ttran| matches!(ttran.action, Action::Shift(_)));
 
-        Self { ttrans, nttrans, has_shift_transitions }
+        Self { ttrans, nttrans, has_shift_transitions, input_symbols: input_symbols.to_vec() }
     }
 }
 
