@@ -1,9 +1,9 @@
 use crate::langcore::{re, cfg::{Grammar, Symbol}, lr1_table};
 use crate::{lexer, cst};
+use crate::langcore::lr1_table::LR1TableConstruction;
 
 pub mod strategy {
     use crate::langcore::lr1_table::{self, strategy};
-    pub use lr1_table::LR1TableConstructionStrategy as Strategy;
     pub use strategy::LALR1;
     pub use strategy::LR1;
 }
@@ -110,11 +110,11 @@ impl ParserDef {
     }
 
     /// # Errors
-    pub fn build<'a, S: strategy::Strategy<'a>>(&'a self, strategy: &S) -> Result<Parser, lr1_table::ConstructionError> {
+    pub fn build<S: LR1TableConstruction>(&self, strategy: &S) -> Result<Parser, lr1_table::ConstructionError> {
         Ok(Parser {
             lexer: self.lexer_def.build(),
             var_names: self.var_names.clone(),
-            parsing_table: S::build(&strategy.builder(&self.grammar), &self.grammar, self.conflict_resolution())?,
+            parsing_table: strategy.construct(&self.grammar, self.conflict_resolution())?,
         })
     }
 }

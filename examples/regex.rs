@@ -51,7 +51,7 @@ fn main() {
 
     // associativity doesn't matter for this production
     def.production_precedence[3] = Some(Precedence { level: 2, associativity: Associativity::Left }); 
-    
+
     let timer = Instant::now();
     std::fs::write("src/parsing/re.rs", codegen::rep::LR1Parser::new("RegEx", &def, &strategy::LR1).unwrap().to_rust(String::new()).unwrap()).unwrap();
     println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());  
