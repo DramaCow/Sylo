@@ -1,26 +1,27 @@
-#[allow(non_camel_case_types)]
-#[allow(unused_comparisons)]
-#[allow(dead_code)]
-#[allow(non_snake_case)]
-#[allow(unused_mut)]
-#[allow(clippy::match_same_arms)]
-#[allow(clippy::needless_return)]
-#[allow(clippy::unnecessary_wraps)]
+#![allow(non_camel_case_types)]
+#![allow(unused_comparisons)]
+#![allow(dead_code)]
+#![allow(non_snake_case)]
+#![allow(unused_mut)]
+#![allow(clippy::match_same_arms)]
+#![allow(clippy::needless_return)]
+#![allow(clippy::unnecessary_wraps)]
+#![allow(clippy::unit_arg)]
 
-type ExprProduct = i32;
+type ExprProduct = ();
 
 // Expr -> Expr or Expr
-fn p0(_: ExprProduct, _: Token, _: ExprProduct) -> ExprProduct {
+fn p0(_: ExprProduct, _: &[u8], _: ExprProduct) -> ExprProduct {
     todo!()
 }
 
 // Expr -> Expr and Expr
-fn p1(_: ExprProduct, _: Token, _: ExprProduct) -> ExprProduct {
+fn p1(_: ExprProduct, _: &[u8], _: ExprProduct) -> ExprProduct {
     todo!()
 }
 
 // Expr -> Expr diff Expr
-fn p2(_: ExprProduct, _: Token, _: ExprProduct) -> ExprProduct {
+fn p2(_: ExprProduct, _: &[u8], _: ExprProduct) -> ExprProduct {
     todo!()
 }
 
@@ -30,42 +31,42 @@ fn p3(_: ExprProduct, _: ExprProduct) -> ExprProduct {
 }
 
 // Expr -> Expr opt
-fn p4(_: ExprProduct, _: Token) -> ExprProduct {
+fn p4(_: ExprProduct, _: &[u8]) -> ExprProduct {
     todo!()
 }
 
 // Expr -> Expr star
-fn p5(_: ExprProduct, _: Token) -> ExprProduct {
+fn p5(_: ExprProduct, _: &[u8]) -> ExprProduct {
     todo!()
 }
 
 // Expr -> Expr plus
-fn p6(_: ExprProduct, _: Token) -> ExprProduct {
+fn p6(_: ExprProduct, _: &[u8]) -> ExprProduct {
     todo!()
 }
 
 // Expr -> not Expr
-fn p7(_: Token, _: ExprProduct) -> ExprProduct {
+fn p7(_: &[u8], _: ExprProduct) -> ExprProduct {
     todo!()
 }
 
 // Expr -> lparen Expr rparen
-fn p8(_: Token, _: ExprProduct, _: Token) -> ExprProduct {
+fn p8(_: &[u8], _: ExprProduct, _: &[u8]) -> ExprProduct {
     todo!()
 }
 
 // Expr -> string
-fn p9(_: Token) -> ExprProduct {
+fn p9(_: &[u8]) -> ExprProduct {
     todo!()
 }
 
 // Expr -> CHAR
-fn p10(_: Token) -> ExprProduct {
+fn p10(_: &[u8]) -> ExprProduct {
     todo!()
 }
 
 // Expr -> CHAR range CHAR
-fn p11(_: Token, _: Token, _: Token) -> ExprProduct {
+fn p11(_: &[u8], _: &[u8], _: &[u8]) -> ExprProduct {
     todo!()
 }
 
@@ -157,52 +158,26 @@ impl Scan<'_> {
         let ch = self.input[self.index];
         ctx.last_accept_ttype = LastAcceptTType::Skip;
         ctx.last_accept_index = self.index;
-        if ch == 0x2a { self.index += 1; return self.s1(ctx); }
-        if ch == 0x21 { self.index += 1; return self.s2(ctx); }
+        if ch == 0x22 { self.index += 1; return self.s1(ctx); }
+        if ch == 0x2b { self.index += 1; return self.s5(ctx); }
+        if ch == 0x3f { self.index += 1; return self.s6(ctx); }
+        if ch == 0x27 { self.index += 1; return self.s7(ctx); }
+        if ch == 0x2e { self.index += 1; return self.s11(ctx); }
+        if ch == 0x26 { self.index += 1; return self.s13(ctx); }
+        if ch == 0x2a { self.index += 1; return self.s14(ctx); }
+        if ch == 0x2d { self.index += 1; return self.s15(ctx); }
         if ch == 0x09 ||
            ch == 0x0a ||
            ch == 0x0d ||
-           ch == 0x20 { self.index += 1; return self.s3(ctx); }
-        if ch == 0x28 { self.index += 1; return self.s4(ctx); }
-        if ch == 0x26 { self.index += 1; return self.s5(ctx); }
-        if ch == 0x22 { self.index += 1; return self.s6(ctx); }
-        if ch == 0x29 { self.index += 1; return self.s10(ctx); }
-        if ch == 0x7c { self.index += 1; return self.s11(ctx); }
-        if ch == 0x3f { self.index += 1; return self.s12(ctx); }
-        if ch == 0x2d { self.index += 1; return self.s13(ctx); }
-        if ch == 0x2e { self.index += 1; return self.s14(ctx); }
-        if ch == 0x2b { self.index += 1; return self.s16(ctx); }
-        if ch == 0x27 { self.index += 1; return self.s17(ctx); }
+           ch == 0x20 { self.index += 1; return self.s16(ctx); }
+        if ch == 0x7c { self.index += 1; return self.s17(ctx); }
+        if ch == 0x29 { self.index += 1; return self.s18(ctx); }
+        if ch == 0x21 { self.index += 1; return self.s19(ctx); }
+        if ch == 0x28 { self.index += 1; return self.s20(ctx); }
         self.begin()
     }
 
     fn s1(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::star, span: (ctx.start_index, self.index) }))
-    }
-
-    fn s2(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::not, span: (ctx.start_index, self.index) }))
-    }
-
-    fn s3(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        if self.index >= self.input.len() { return self.sink(&ctx); }
-        let ch = self.input[self.index];
-        if ch == 0x09 ||
-           ch == 0x0a ||
-           ch == 0x0d ||
-           ch == 0x20 { self.index += 1; return self.s3(ctx); }
-        self.begin()
-    }
-
-    fn s4(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::lparen, span: (ctx.start_index, self.index) }))
-    }
-
-    fn s5(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::and, span: (ctx.start_index, self.index) }))
-    }
-
-    fn s6(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
         if self.index >= self.input.len() { return self.sink(&ctx); }
         let ch = self.input[self.index];
         if ch == 0x09 ||
@@ -212,9 +187,45 @@ impl Scan<'_> {
            ch == 0x21 ||
            (0x23..=0x5b).contains(&ch) ||
            (0x5d..=0x7e).contains(&ch) ||
-           (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s7(ctx); }
-        if ch == 0x5c { self.index += 1; return self.s8(ctx); }
+           (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s2(ctx); }
+        if ch == 0x5c { self.index += 1; return self.s4(ctx); }
         self.sink(&ctx)
+    }
+
+    fn s2(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+        if self.index >= self.input.len() { return self.sink(&ctx); }
+        let ch = self.input[self.index];
+        if ch == 0x09 ||
+           ch == 0x0a ||
+           ch == 0x0d ||
+           ch == 0x20 ||
+           ch == 0x21 ||
+           (0x23..=0x5b).contains(&ch) ||
+           (0x5d..=0x7e).contains(&ch) ||
+           (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s2(ctx); }
+        if ch == 0x22 { self.index += 1; return self.s3(ctx); }
+        if ch == 0x5c { self.index += 1; return self.s4(ctx); }
+        self.sink(&ctx)
+    }
+
+    fn s3(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+        Some(Ok(Token { ttype: TokenType::string, span: (ctx.start_index, self.index) }))
+    }
+
+    fn s4(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+        if self.index >= self.input.len() { return self.sink(&ctx); }
+        let ch = self.input[self.index];
+        if ch == 0x22 ||
+           ch == 0x5c { self.index += 1; return self.s2(ctx); }
+        self.sink(&ctx)
+    }
+
+    fn s5(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+        Some(Ok(Token { ttype: TokenType::plus, span: (ctx.start_index, self.index) }))
+    }
+
+    fn s6(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+        Some(Ok(Token { ttype: TokenType::opt, span: (ctx.start_index, self.index) }))
     }
 
     fn s7(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
@@ -227,87 +238,77 @@ impl Scan<'_> {
            ch == 0x21 ||
            (0x23..=0x5b).contains(&ch) ||
            (0x5d..=0x7e).contains(&ch) ||
-           (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s7(ctx); }
-        if ch == 0x5c { self.index += 1; return self.s8(ctx); }
-        if ch == 0x22 { self.index += 1; return self.s9(ctx); }
+           (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s8(ctx); }
+        if ch == 0x5c { self.index += 1; return self.s10(ctx); }
         self.sink(&ctx)
     }
 
     fn s8(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
         if self.index >= self.input.len() { return self.sink(&ctx); }
         let ch = self.input[self.index];
-        if ch == 0x22 ||
-           ch == 0x5c { self.index += 1; return self.s7(ctx); }
+        if ch == 0x27 { self.index += 1; return self.s9(ctx); }
         self.sink(&ctx)
     }
 
     fn s9(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::string, span: (ctx.start_index, self.index) }))
+        Some(Ok(Token { ttype: TokenType::CHAR, span: (ctx.start_index, self.index) }))
     }
 
     fn s10(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::rparen, span: (ctx.start_index, self.index) }))
-    }
-
-    fn s11(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::or, span: (ctx.start_index, self.index) }))
-    }
-
-    fn s12(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::opt, span: (ctx.start_index, self.index) }))
-    }
-
-    fn s13(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::diff, span: (ctx.start_index, self.index) }))
-    }
-
-    fn s14(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
         if self.index >= self.input.len() { return self.sink(&ctx); }
         let ch = self.input[self.index];
-        if ch == 0x2e { self.index += 1; return self.s15(ctx); }
+        if ch == 0x22 ||
+           ch == 0x5c { self.index += 1; return self.s8(ctx); }
         self.sink(&ctx)
     }
 
-    fn s15(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+    fn s11(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+        if self.index >= self.input.len() { return self.sink(&ctx); }
+        let ch = self.input[self.index];
+        if ch == 0x2e { self.index += 1; return self.s12(ctx); }
+        self.sink(&ctx)
+    }
+
+    fn s12(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
         Some(Ok(Token { ttype: TokenType::range, span: (ctx.start_index, self.index) }))
     }
 
-    fn s16(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::plus, span: (ctx.start_index, self.index) }))
+    fn s13(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+        Some(Ok(Token { ttype: TokenType::and, span: (ctx.start_index, self.index) }))
     }
 
-    fn s17(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+    fn s14(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+        Some(Ok(Token { ttype: TokenType::star, span: (ctx.start_index, self.index) }))
+    }
+
+    fn s15(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+        Some(Ok(Token { ttype: TokenType::diff, span: (ctx.start_index, self.index) }))
+    }
+
+    fn s16(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
         if self.index >= self.input.len() { return self.sink(&ctx); }
         let ch = self.input[self.index];
         if ch == 0x09 ||
            ch == 0x0a ||
            ch == 0x0d ||
-           ch == 0x20 ||
-           ch == 0x21 ||
-           (0x23..=0x5b).contains(&ch) ||
-           (0x5d..=0x7e).contains(&ch) ||
-           (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s18(ctx); }
-        if ch == 0x5c { self.index += 1; return self.s20(ctx); }
-        self.sink(&ctx)
+           ch == 0x20 { self.index += 1; return self.s16(ctx); }
+        self.begin()
+    }
+
+    fn s17(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+        Some(Ok(Token { ttype: TokenType::or, span: (ctx.start_index, self.index) }))
     }
 
     fn s18(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        if self.index >= self.input.len() { return self.sink(&ctx); }
-        let ch = self.input[self.index];
-        if ch == 0x27 { self.index += 1; return self.s19(ctx); }
-        self.sink(&ctx)
+        Some(Ok(Token { ttype: TokenType::rparen, span: (ctx.start_index, self.index) }))
     }
 
     fn s19(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::CHAR, span: (ctx.start_index, self.index) }))
+        Some(Ok(Token { ttype: TokenType::not, span: (ctx.start_index, self.index) }))
     }
 
     fn s20(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        if self.index >= self.input.len() { return self.sink(&ctx); }
-        let ch = self.input[self.index];
-        if ch == 0x22 ||
-           ch == 0x5c { self.index += 1; return self.s18(ctx); }
-        self.sink(&ctx)
+        Some(Ok(Token { ttype: TokenType::lparen, span: (ctx.start_index, self.index) }))
     }
 
 // ***  LEXER TABLE END  ***
@@ -396,7 +397,7 @@ impl Parse<'_> {
             }
         }
         let tuple = match self.next_token {
-            None => return Ok((Variable::Expr(0), 1)),
+            None => return Ok((Variable::Expr(arg), 1)),
             Some(t @ Token { ttype: TokenType::string, .. }) => { self.update()?; self.s4(t) }
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s5(t) }
             Some(t @ Token { ttype: TokenType::and, .. }) => { self.update()?; self.s8((arg, t)) }
@@ -456,35 +457,35 @@ impl Parse<'_> {
     
     fn s4(&mut self, arg: Token) -> Result<(Variable, usize), ParseError> {
         match self.next_token {
-            None => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
+            None => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
             token => return Err(ParseError::InvalidAction { state: 4, ttype: token.map(|token| token.ttype) }),
         }
     }
     
     fn s5(&mut self, arg: Token) -> Result<(Variable, usize), ParseError> {
         let tuple = match self.next_token {
-            None => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
+            None => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
             Some(t @ Token { ttype: TokenType::range, .. }) => { self.update()?; self.s19((arg, t)) }
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
             token => return Err(ParseError::InvalidAction { state: 5, ttype: token.map(|token| token.ttype) }),
         }?;
         decrement(tuple)
@@ -583,51 +584,51 @@ impl Parse<'_> {
     
     fn s10(&mut self, args: (ExprProduct, Token)) -> Result<(Variable, usize), ParseError> {
         match self.next_token {
-            None => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
+            None => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
             token => return Err(ParseError::InvalidAction { state: 10, ttype: token.map(|token| token.ttype) }),
         }
     }
     
     fn s11(&mut self, args: (ExprProduct, Token)) -> Result<(Variable, usize), ParseError> {
         match self.next_token {
-            None => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
+            None => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
             token => return Err(ParseError::InvalidAction { state: 11, ttype: token.map(|token| token.ttype) }),
         }
     }
     
     fn s12(&mut self, args: (ExprProduct, Token)) -> Result<(Variable, usize), ParseError> {
         match self.next_token {
-            None => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
+            None => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
             token => return Err(ParseError::InvalidAction { state: 12, ttype: token.map(|token| token.ttype) }),
         }
     }
@@ -644,7 +645,7 @@ impl Parse<'_> {
             }
         }
         let tuple = match self.next_token {
-            None => return Ok((Variable::Expr(p7(args.0, args.1)), 1)),
+            None => return Ok((Variable::Expr(p7(self.lexeme(&args.0), args.1)), 1)),
             Some(t @ Token { ttype: TokenType::string, .. }) => { self.update()?; self.s4(t) }
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s5(t) }
             Some(t @ Token { ttype: TokenType::and, .. }) => { self.update()?; self.s8((args.1, t)) }
@@ -732,35 +733,35 @@ impl Parse<'_> {
     
     fn s17(&mut self, arg: Token) -> Result<(Variable, usize), ParseError> {
         match self.next_token {
-            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
-            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p9(arg)), 0)),
+            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
             token => return Err(ParseError::InvalidAction { state: 17, ttype: token.map(|token| token.ttype) }),
         }
     }
     
     fn s18(&mut self, arg: Token) -> Result<(Variable, usize), ParseError> {
         let tuple = match self.next_token {
-            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
+            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
             Some(t @ Token { ttype: TokenType::range, .. }) => { self.update()?; self.s33((arg, t)) }
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
-            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p10(arg)), 0)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
+            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
             token => return Err(ParseError::InvalidAction { state: 18, ttype: token.map(|token| token.ttype) }),
         }?;
         decrement(tuple)
@@ -786,11 +787,11 @@ impl Parse<'_> {
             }
         }
         let tuple = match self.next_token {
-            None => return Ok((Variable::Expr(p0(args.0, args.1, args.2)), 2)),
+            None => return Ok((Variable::Expr(p0(args.0, self.lexeme(&args.1), args.2)), 2)),
             Some(t @ Token { ttype: TokenType::string, .. }) => { self.update()?; self.s4(t) }
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s5(t) }
             Some(t @ Token { ttype: TokenType::and, .. }) => { self.update()?; self.s8((args.2, t)) }
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p0(args.0, args.1, args.2)), 2)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p0(args.0, self.lexeme(&args.1), args.2)), 2)),
             Some(t @ Token { ttype: TokenType::diff, .. }) => { self.update()?; self.s9((args.2, t)) }
             Some(t @ Token { ttype: TokenType::opt, .. }) => { self.update()?; self.s10((args.2, t)) }
             Some(t @ Token { ttype: TokenType::star, .. }) => { self.update()?; self.s11((args.2, t)) }
@@ -814,12 +815,12 @@ impl Parse<'_> {
             }
         }
         let tuple = match self.next_token {
-            None => return Ok((Variable::Expr(p1(args.0, args.1, args.2)), 2)),
+            None => return Ok((Variable::Expr(p1(args.0, self.lexeme(&args.1), args.2)), 2)),
             Some(t @ Token { ttype: TokenType::string, .. }) => { self.update()?; self.s4(t) }
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s5(t) }
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p1(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p1(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p1(args.0, args.1, args.2)), 2)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p1(args.0, self.lexeme(&args.1), args.2)), 2)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p1(args.0, self.lexeme(&args.1), args.2)), 2)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p1(args.0, self.lexeme(&args.1), args.2)), 2)),
             Some(t @ Token { ttype: TokenType::opt, .. }) => { self.update()?; self.s10((args.2, t)) }
             Some(t @ Token { ttype: TokenType::star, .. }) => { self.update()?; self.s11((args.2, t)) }
             Some(t @ Token { ttype: TokenType::plus, .. }) => { self.update()?; self.s12((args.2, t)) }
@@ -842,12 +843,12 @@ impl Parse<'_> {
             }
         }
         let tuple = match self.next_token {
-            None => return Ok((Variable::Expr(p2(args.0, args.1, args.2)), 2)),
+            None => return Ok((Variable::Expr(p2(args.0, self.lexeme(&args.1), args.2)), 2)),
             Some(t @ Token { ttype: TokenType::string, .. }) => { self.update()?; self.s4(t) }
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s5(t) }
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p2(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p2(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p2(args.0, args.1, args.2)), 2)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p2(args.0, self.lexeme(&args.1), args.2)), 2)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p2(args.0, self.lexeme(&args.1), args.2)), 2)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p2(args.0, self.lexeme(&args.1), args.2)), 2)),
             Some(t @ Token { ttype: TokenType::opt, .. }) => { self.update()?; self.s10((args.2, t)) }
             Some(t @ Token { ttype: TokenType::star, .. }) => { self.update()?; self.s11((args.2, t)) }
             Some(t @ Token { ttype: TokenType::plus, .. }) => { self.update()?; self.s12((args.2, t)) }
@@ -951,68 +952,68 @@ impl Parse<'_> {
     
     fn s27(&mut self, args: (ExprProduct, Token)) -> Result<(Variable, usize), ParseError> {
         match self.next_token {
-            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p4(args.0, args.1)), 1)),
+            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
             token => return Err(ParseError::InvalidAction { state: 27, ttype: token.map(|token| token.ttype) }),
         }
     }
     
     fn s28(&mut self, args: (ExprProduct, Token)) -> Result<(Variable, usize), ParseError> {
         match self.next_token {
-            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p5(args.0, args.1)), 1)),
+            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
             token => return Err(ParseError::InvalidAction { state: 28, ttype: token.map(|token| token.ttype) }),
         }
     }
     
     fn s29(&mut self, args: (ExprProduct, Token)) -> Result<(Variable, usize), ParseError> {
         match self.next_token {
-            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
-            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p6(args.0, args.1)), 1)),
+            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
+            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
             token => return Err(ParseError::InvalidAction { state: 29, ttype: token.map(|token| token.ttype) }),
         }
     }
     
     fn s30(&mut self, args: (Token, ExprProduct, Token)) -> Result<(Variable, usize), ParseError> {
         match self.next_token {
-            None => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
+            None => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
             token => return Err(ParseError::InvalidAction { state: 30, ttype: token.map(|token| token.ttype) }),
         }
     }
@@ -1039,7 +1040,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::plus, .. }) => { self.update()?; self.s29((args.1, t)) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
-            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p7(args.0, args.1)), 1)),
+            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p7(self.lexeme(&args.0), args.1)), 1)),
             token => return Err(ParseError::InvalidAction { state: 31, ttype: token.map(|token| token.ttype) }),
         }?;
         on_return(self, tuple, args)
@@ -1083,17 +1084,17 @@ impl Parse<'_> {
     
     fn s34(&mut self, args: (Token, Token, Token)) -> Result<(Variable, usize), ParseError> {
         match self.next_token {
-            None => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
+            None => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
             token => return Err(ParseError::InvalidAction { state: 34, ttype: token.map(|token| token.ttype) }),
         }
     }
@@ -1113,14 +1114,14 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::string, .. }) => { self.update()?; self.s17(t) }
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s18(t) }
             Some(t @ Token { ttype: TokenType::and, .. }) => { self.update()?; self.s25((args.2, t)) }
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p0(args.0, args.1, args.2)), 2)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p0(args.0, self.lexeme(&args.1), args.2)), 2)),
             Some(t @ Token { ttype: TokenType::diff, .. }) => { self.update()?; self.s26((args.2, t)) }
             Some(t @ Token { ttype: TokenType::opt, .. }) => { self.update()?; self.s27((args.2, t)) }
             Some(t @ Token { ttype: TokenType::star, .. }) => { self.update()?; self.s28((args.2, t)) }
             Some(t @ Token { ttype: TokenType::plus, .. }) => { self.update()?; self.s29((args.2, t)) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
-            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p0(args.0, args.1, args.2)), 2)),
+            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p0(args.0, self.lexeme(&args.1), args.2)), 2)),
             token => return Err(ParseError::InvalidAction { state: 35, ttype: token.map(|token| token.ttype) }),
         }?;
         on_return(self, tuple, args)
@@ -1140,15 +1141,15 @@ impl Parse<'_> {
         let tuple = match self.next_token {
             Some(t @ Token { ttype: TokenType::string, .. }) => { self.update()?; self.s17(t) }
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s18(t) }
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p1(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p1(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p1(args.0, args.1, args.2)), 2)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p1(args.0, self.lexeme(&args.1), args.2)), 2)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p1(args.0, self.lexeme(&args.1), args.2)), 2)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p1(args.0, self.lexeme(&args.1), args.2)), 2)),
             Some(t @ Token { ttype: TokenType::opt, .. }) => { self.update()?; self.s27((args.2, t)) }
             Some(t @ Token { ttype: TokenType::star, .. }) => { self.update()?; self.s28((args.2, t)) }
             Some(t @ Token { ttype: TokenType::plus, .. }) => { self.update()?; self.s29((args.2, t)) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
-            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p1(args.0, args.1, args.2)), 2)),
+            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p1(args.0, self.lexeme(&args.1), args.2)), 2)),
             token => return Err(ParseError::InvalidAction { state: 36, ttype: token.map(|token| token.ttype) }),
         }?;
         on_return(self, tuple, args)
@@ -1168,15 +1169,15 @@ impl Parse<'_> {
         let tuple = match self.next_token {
             Some(t @ Token { ttype: TokenType::string, .. }) => { self.update()?; self.s17(t) }
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s18(t) }
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p2(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p2(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p2(args.0, args.1, args.2)), 2)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p2(args.0, self.lexeme(&args.1), args.2)), 2)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p2(args.0, self.lexeme(&args.1), args.2)), 2)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p2(args.0, self.lexeme(&args.1), args.2)), 2)),
             Some(t @ Token { ttype: TokenType::opt, .. }) => { self.update()?; self.s27((args.2, t)) }
             Some(t @ Token { ttype: TokenType::star, .. }) => { self.update()?; self.s28((args.2, t)) }
             Some(t @ Token { ttype: TokenType::plus, .. }) => { self.update()?; self.s29((args.2, t)) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
-            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p2(args.0, args.1, args.2)), 2)),
+            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p2(args.0, self.lexeme(&args.1), args.2)), 2)),
             token => return Err(ParseError::InvalidAction { state: 37, ttype: token.map(|token| token.ttype) }),
         }?;
         on_return(self, tuple, args)
@@ -1184,36 +1185,40 @@ impl Parse<'_> {
     
     fn s38(&mut self, args: (Token, ExprProduct, Token)) -> Result<(Variable, usize), ParseError> {
         match self.next_token {
-            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p8(args.0, args.1, args.2)), 2)),
+            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
             token => return Err(ParseError::InvalidAction { state: 38, ttype: token.map(|token| token.ttype) }),
         }
     }
     
     fn s39(&mut self, args: (Token, Token, Token)) -> Result<(Variable, usize), ParseError> {
         match self.next_token {
-            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
-            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p11(args.0, args.1, args.2)), 2)),
+            Some(Token { ttype: TokenType::string, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::CHAR, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::and, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::or, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::diff, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::opt, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::star, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
+            Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
             token => return Err(ParseError::InvalidAction { state: 39, ttype: token.map(|token| token.ttype) }),
         }
+    }
+    
+    fn lexeme(&self, token: &Token) -> &[u8] {
+        &self.input.input[token.span.0..token.span.1]
     }
 }
 

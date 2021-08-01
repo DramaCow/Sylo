@@ -163,7 +163,7 @@ impl rep::Lexer {
                     if let Command::Skip = self.commands[class] {
                         writeln!(fmt, "self.begin()")?;
                     } else {
-                        writeln!(fmt, "Some(Ok((Token {{ ttype: TokenType::{ttype}, span: (ctx.start_index, self.index) }}))", ttype=self.ttypes[class])?;
+                        writeln!(fmt, "Some(Ok(Token {{ ttype: TokenType::{ttype}, span: (ctx.start_index, self.index) }}))", ttype=self.ttypes[class])?;
                     }
                 } else {
                     writeln!(fmt, "self.sink(&ctx)")?;
@@ -206,14 +206,15 @@ impl rep::LR1Parser {
     pub fn to_rust<W: Write>(&self, fmt: W) -> Result<W, std::fmt::Error> {
         let mut fmt = IndentWriter::new(fmt);
 
-        writeln!(fmt, "#[allow(non_camel_case_types)]")?;
-        writeln!(fmt, "#[allow(unused_comparisons)]")?;
-        writeln!(fmt, "#[allow(dead_code)]")?;
-        writeln!(fmt, "#[allow(non_snake_case)]")?;
-        writeln!(fmt, "#[allow(unused_mut)]")?;
-        writeln!(fmt, "#[allow(clippy::match_same_arms)]")?;
-        writeln!(fmt, "#[allow(clippy::needless_return)]")?;
-        writeln!(fmt, "#[allow(clippy::unnecessary_wraps)]")?;
+        writeln!(fmt, "#![allow(non_camel_case_types)]")?;
+        writeln!(fmt, "#![allow(unused_comparisons)]")?;
+        writeln!(fmt, "#![allow(dead_code)]")?;
+        writeln!(fmt, "#![allow(non_snake_case)]")?;
+        writeln!(fmt, "#![allow(unused_mut)]")?;
+        writeln!(fmt, "#![allow(clippy::match_same_arms)]")?;
+        writeln!(fmt, "#![allow(clippy::needless_return)]")?;
+        writeln!(fmt, "#![allow(clippy::unnecessary_wraps)]")?;
+        writeln!(fmt, "#![allow(clippy::unit_arg)]")?;
         writeln!(fmt)?;
 
         // =====================
@@ -221,7 +222,7 @@ impl rep::LR1Parser {
         // =====================
 
         for varname in &self.varnames {
-            writeln!(fmt, "type {varname}Product = i32;", varname=varname)?; // TODO: product type is configurable per variable
+            writeln!(fmt, "type {varname}Product = ();", varname=varname)?; // TODO: product type is configurable per variable
         }
         writeln!(fmt)?;
         
@@ -247,7 +248,7 @@ impl rep::LR1Parser {
                 write!(fmt, "fn p{i}(", i=i)?;
                 for (i, &symbol) in rhs.iter().enumerate() {
                     match symbol {
-                        Symbol::Terminal(_) => write!(fmt, "_: Token")?,
+                        Symbol::Terminal(_) => write!(fmt, "_: &[u8]")?,
                         Symbol::Variable(A) => write!(fmt, "_: {varname}Product", varname=self.varnames[A])?,
                     }
                     if i < rhs.len()-1 {
@@ -305,163 +306,170 @@ impl rep::LR1Parser {
         writeln!(fmt, "        Ok(())")?;
         writeln!(fmt, "    }}")?;
         writeln!(fmt)?;
-        fmt.indent();
-
+        
         // ==============================
         // === parser state functions ===
         // ==============================
-
+        
         let mut uses_decrement = false;
-        for (i, state) in self.states.iter().enumerate() {
-            let arg = match state.input_symbols.len() {
-                x if x > 1 => {
-                    let arg_types: Vec<_> = state.input_symbols.iter().map(|&symbol| {
-                        match symbol {
+        {
+            fmt.indent();
+            for (i, state) in self.states.iter().enumerate() {
+                let arg = match state.input_symbols.len() {
+                    x if x > 1 => {
+                        let arg_types: Vec<_> = state.input_symbols.iter().map(|&symbol| {
+                            match symbol {
+                                Symbol::Terminal(_) => "Token".to_string(),
+                                Symbol::Variable(A) => format!("{varname}Product", varname=self.varnames[A]),
+                            }
+                        }).collect();
+                        Some(("args", format!("({})", arg_types.join(", "))))
+                    }
+                    x if x == 1 => {
+                        Some(("arg", match state.input_symbols[0] {
                             Symbol::Terminal(_) => "Token".to_string(),
                             Symbol::Variable(A) => format!("{varname}Product", varname=self.varnames[A]),
-                        }
-                    }).collect();
-                    Some(("args", format!("({})", arg_types.join(", "))))
-                }
-                x if x == 1 => {
-                    Some(("arg", match state.input_symbols[0] {
-                        Symbol::Terminal(_) => "Token".to_string(),
-                        Symbol::Variable(A) => format!("{varname}Product", varname=self.varnames[A]),
-                    }))
-                }
-                _ => {
-                    None
-                }
-            };
+                        }))
+                    }
+                    _ => {
+                        None
+                    }
+                };
 
-            // state function signature
-            match arg {
-                Some((name, ref r#type)) => writeln!(fmt, "fn s{}(&mut self, {argname}: {argtype}) -> Result<(Variable, usize), ParseError> {{", i, argname=name, argtype=r#type)?,
-                None => writeln!(fmt, "fn s{}(&mut self) -> Result<(Variable, usize), ParseError> {{", i)?,
-            }
-            fmt.indent();
+                // state function signature
+                match arg {
+                    Some((name, ref r#type)) => writeln!(fmt, "fn s{}(&mut self, {argname}: {argtype}) -> Result<(Variable, usize), ParseError> {{", i, argname=name, argtype=r#type)?,
+                    None => writeln!(fmt, "fn s{}(&mut self) -> Result<(Variable, usize), ParseError> {{", i)?,
+                }
+                fmt.indent();
 
-            if !state.ttrans.is_empty() {
-                if state.has_shift_transitions {
-                    if state.nttrans.is_empty() {
-                        uses_decrement = true;
-                    } else {
-                        // on_return function definition
-                        match arg {
-                            Some((name, ref r#type)) => writeln!(fmt, "fn on_return(parse: &mut Parse, (var, goto): (Variable, usize), {argname}: {argtype}) -> Result<(Variable, usize), ParseError> {{", argname=name, argtype=r#type)?,
-                            None => writeln!(fmt, "fn on_return(parse: &mut Parse, (var, goto): (Variable, usize)) -> Result<(Variable, usize), ParseError> {{")?,
-                        }
+                if !state.ttrans.is_empty() {
+                    if state.has_shift_transitions {
+                        if state.nttrans.is_empty() {
+                            uses_decrement = true;
+                        } else {
+                            // on_return function definition
+                            match arg {
+                                Some((name, ref r#type)) => writeln!(fmt, "fn on_return(parse: &mut Parse, (var, goto): (Variable, usize), {argname}: {argtype}) -> Result<(Variable, usize), ParseError> {{", argname=name, argtype=r#type)?,
+                                None => writeln!(fmt, "fn on_return(parse: &mut Parse, (var, goto): (Variable, usize)) -> Result<(Variable, usize), ParseError> {{")?,
+                            }
 
-                        {
-                            fmt.indent();
-                            writeln!(fmt, "if goto == 0 {{")?;
                             {
                                 fmt.indent();
-                                writeln!(fmt, "let tuple = match var {{")?;
-                                for nttran in &state.nttrans {
-                                    let dst = nttran.dst;
-                                    write!(fmt, "    Variable::{varname}(v) => parse.s{dst}(", varname=self.varnames[nttran.var], dst=dst)?;
-                                    arglist(&mut fmt, state, &self.states[dst], "v")?;
-                                    writeln!(fmt, "),")?;
+                                writeln!(fmt, "if goto == 0 {{")?;
+                                {
+                                    fmt.indent();
+                                    writeln!(fmt, "let tuple = match var {{")?;
+                                    for nttran in &state.nttrans {
+                                        let dst = nttran.dst;
+                                        write!(fmt, "    Variable::{varname}(v) => parse.s{dst}(", varname=self.varnames[nttran.var], dst=dst)?;
+                                        arglist(&mut fmt, state, &self.states[dst], "v")?;
+                                        writeln!(fmt, "),")?;
+                                    }
+                                    if state.nttrans.len() < self.varnames.len() {
+                                        writeln!(fmt, "    _ => return Err(ParseError::InvalidGoto {{ state: {state} }}),", state=i)?;
+                                    }
+                                    writeln!(fmt, "}}?;")?;
+                                    match arg {
+                                        Some((name, _)) => writeln!(fmt, "on_return(parse, tuple, {argname})", argname=name)?,
+                                        None => writeln!(fmt, "on_return(parse, tuple)")?,
+                                    }
+                                    fmt.unindent();
                                 }
-                                if state.nttrans.len() < self.varnames.len() {
-                                    writeln!(fmt, "    _ => return Err(ParseError::InvalidGoto {{ state: {state} }}),", state=i)?;
-                                }
-                                writeln!(fmt, "}}?;")?;
-                                match arg {
-                                    Some((name, _)) => writeln!(fmt, "on_return(parse, tuple, {argname})", argname=name)?,
-                                    None => writeln!(fmt, "on_return(parse, tuple)")?,
-                                }
+                                writeln!(fmt, "}} else {{")?;
+                                writeln!(fmt, "    Ok((var, goto - 1))")?;
+                                writeln!(fmt, "}}")?;
                                 fmt.unindent();
                             }
-                            writeln!(fmt, "}} else {{")?;
-                            writeln!(fmt, "    Ok((var, goto - 1))")?;
+                            
                             writeln!(fmt, "}}")?;
-                            fmt.unindent();
                         }
-                        
-                        writeln!(fmt, "}}")?;
+
+                        write!(fmt, "let tuple = ")?;   
                     }
 
-                    write!(fmt, "let tuple = ")?;   
-                }
-
-                writeln!(fmt, "match self.next_token {{")?;
-                {
-                    fmt.indent();
-                    for ttran in &state.ttrans {
-                        match ttran.action {
-                            Action::Invalid => panic!(),
-                            Action::Accept => {
-                                match ttran.word {
-                                    Some(word) => write!(fmt, "Some(Token {{ ttype: TokenType::{ttype}, .. }}) => ", ttype=self.lexer.ttypes[word])?,
-                                    None => write!(fmt, "None => ")?,
-                                }
-                                writeln!(fmt, "return Ok((Variable::{varname}(0), 1)),", varname=self.varnames[0])?;
-                            }
-                            Action::Shift(dst) => {
-                                match ttran.word {
-                                    Some(word) => write!(fmt, "Some(t @ Token {{ ttype: TokenType::{ttype}, .. }}) => ", ttype=self.lexer.ttypes[word])?,
-                                    None => write!(fmt, "None => ")?,
-                                }
-                                write!(fmt, "{{ self.update()?; self.s{dst}(", dst=dst)?;
-                                arglist(&mut fmt, state, &self.states[dst], "t")?;
-                                writeln!(fmt, ") }}")?;
-                            }
-                            Action::Reduce(p) => {
-                                match ttran.word {
-                                    Some(word) => write!(fmt, "Some(Token {{ ttype: TokenType::{ttype}, .. }}) => ", ttype=self.lexer.ttypes[word])?,
-                                    None => write!(fmt, "None => ")?,
-                                }
-                                let r = self.reductions[p];
-                                write!(fmt, "return Ok((Variable::{varname}(p{i}(", varname=self.varnames[r.var], i=p)?;
-                                let input_symbols = &state.input_symbols;
-                                let alt = self.grammar.alt(p);
-                                let offset = input_symbols.len() - alt.len();
-                                for i in offset..input_symbols.len() {
-                                    if input_symbols.len() == 1 {
-                                        write!(fmt, "arg")?;
-                                    } else {
-                                        write!(fmt, "args.{i}", i=i)?;
+                    writeln!(fmt, "match self.next_token {{")?;
+                    {
+                        fmt.indent();
+                        for ttran in &state.ttrans {
+                            match ttran.action {
+                                Action::Invalid => panic!(),
+                                Action::Accept => {
+                                    match ttran.word {
+                                        Some(word) => write!(fmt, "Some(Token {{ ttype: TokenType::{ttype}, .. }}) => ", ttype=self.lexer.ttypes[word])?,
+                                        None => write!(fmt, "None => ")?,
                                     }
-                                    if i < input_symbols.len() - 1 {
-                                        write!(fmt, ", ")?;
-                                    }
+                                    writeln!(fmt, "return Ok((Variable::{varname}(arg), 1)),", varname=self.varnames[0])?;
                                 }
-                                writeln!(fmt, ")), {count})),", count=r.count-1)?;
-                            }
-                        };
-                    }
-                    if state.ttrans.len() < self.lexer.ttype_count {
-                        writeln!(fmt, "token => return Err(ParseError::InvalidAction {{ state: {state}, ttype: token.map(|token| token.ttype) }}),", state=i)?;
-                    }
-                    fmt.unindent();
-                }
-                write!(fmt, "}}")?;
+                                Action::Shift(dst) => {
+                                    match ttran.word {
+                                        Some(word) => write!(fmt, "Some(t @ Token {{ ttype: TokenType::{ttype}, .. }}) => ", ttype=self.lexer.ttypes[word])?,
+                                        None => write!(fmt, "None => ")?,
+                                    }
+                                    write!(fmt, "{{ self.update()?; self.s{dst}(", dst=dst)?;
+                                    arglist(&mut fmt, state, &self.states[dst], "t")?;
+                                    writeln!(fmt, ") }}")?;
+                                }
+                                Action::Reduce(p) => {
+                                    match ttran.word {
+                                        Some(word) => write!(fmt, "Some(Token {{ ttype: TokenType::{ttype}, .. }}) => ", ttype=self.lexer.ttypes[word])?,
+                                        None => write!(fmt, "None => ")?,
+                                    }
+                                    let r = self.reductions[p];
+                                    write!(fmt, "return Ok((Variable::{varname}(p{i}(", varname=self.varnames[r.var], i=p)?;
+                                    let input_symbols = &state.input_symbols;
+                                    let alt = self.grammar.alt(p);
+                                    let offset = input_symbols.len() - alt.len();
+                                    for i in offset..input_symbols.len() {
+                                        let arg = if input_symbols.len() == 1 { "arg".to_string() } else { format!("args.{i}", i=i) };
 
-                if state.has_shift_transitions {
-                    writeln!(fmt, "?;")?;
-                    if state.nttrans.is_empty() {
-                        writeln!(fmt, "decrement(tuple)")?;
+                                        match input_symbols[i] {
+                                            Symbol::Terminal(_) => write!(fmt, "self.lexeme(&{arg})", arg=arg)?,
+                                            Symbol::Variable(_) => write!(fmt, "{arg}", arg=arg)?,
+                                        }
+
+                                        if i < input_symbols.len() - 1 {
+                                            write!(fmt, ", ")?;
+                                        }
+                                    }
+                                    writeln!(fmt, ")), {count})),", count=r.count-1)?;
+                                }
+                            };
+                        }
+                        if state.ttrans.len() < self.lexer.ttype_count {
+                            writeln!(fmt, "token => return Err(ParseError::InvalidAction {{ state: {state}, ttype: token.map(|token| token.ttype) }}),", state=i)?;
+                        }
+                        fmt.unindent();
+                    }
+                    write!(fmt, "}}")?;
+
+                    if state.has_shift_transitions {
+                        writeln!(fmt, "?;")?;
+                        if state.nttrans.is_empty() {
+                            writeln!(fmt, "decrement(tuple)")?;
+                        } else {
+                            match arg {
+                                Some((name, _)) => writeln!(fmt, "on_return(self, tuple, {argname})", argname=name)?,
+                                None => writeln!(fmt, "on_return(self, tuple)")?,
+                            }
+                        }
                     } else {
-                        match arg {
-                            Some((name, _)) => writeln!(fmt, "on_return(self, tuple, {argname})", argname=name)?,
-                            None => writeln!(fmt, "on_return(self, tuple)")?,
-                        }
+                        writeln!(fmt)?;
                     }
-                } else {
+                }
+
+                fmt.unindent();
+                writeln!(fmt, "}}")?;
+
+                if i < self.states.len() - 1 {
                     writeln!(fmt)?;
                 }
             }
 
-            fmt.unindent();
+            writeln!(fmt, "\nfn lexeme(&self, token: &Token) -> &[u8] {{")?;
+            writeln!(fmt, "    &self.input.input[token.span.0..token.span.1]")?;
             writeln!(fmt, "}}")?;
-
-            if i < self.states.len() - 1 {
-                writeln!(fmt)?;
-            }
         }
-
         fmt.unindent();
         
         writeln!(fmt, "}}")?;
