@@ -105,59 +105,68 @@ impl rep::Lexer {
                     writeln!(fmt, "self.sink(&ctx)")?;
                 }
             } else {
-                writeln!(fmt, "if self.index >= self.input.len() {{ return self.sink(&ctx); }}")?;
-                writeln!(fmt, "let ch = self.input[self.index];")?;
-                // writeln!(fmt, "NEXT_CHAR(ch)")?;
+                // writeln!(fmt, "if self.index >= self.input.len() {{ return self.sink(&ctx); }}")?;
+                writeln!(fmt, "if self.index < self.input.len() {{")?;
 
-                // `i` is a labelled state
-                if let Some(class) = state.class {
-                    let ttype = if let Command::Skip = self.commands[class] {
-                        "LastAcceptTType::Skip".to_string()
-                    } else {
-                        format!("LastAcceptTType::Tok(TokenType::{ttype})", ttype=self.ttypes[class])
-                    };
+                {
+                    fmt.indent();
 
-                    // If `i` can only transition to labelled states, then either
-                    // its corresponding token will be returned immediately or the
-                    // token of any destination state will take priority (due to
-                    // maximal munch). As such, there would be no need for the
-                    // last accept token type or index to be stored. 
-                    if state.can_transition_to_unlabelled_state {
-                        writeln!(fmt, "ctx.last_accept_ttype = {ttype};", ttype=ttype)?;
-                        writeln!(fmt, "ctx.last_accept_index = self.index;")?;
-                    }
-                }
+                    writeln!(fmt, "let ch = self.input[self.index];")?;
+                    // writeln!(fmt, "NEXT_CHAR(ch)")?;
 
-                // Transitions to non-sink states. Semantically speaking, if any no
-                // transition is taken, then we transition to the sink state.
-                for rep::Transition { intervals, dst } in &state.transitions {
-                    write!(fmt, "if ")?;
-
-                    for (i, &(start, end)) in intervals.iter().enumerate() {
-                        if i > 0 {
-                            write!(fmt, "   ")?;
-                        }
-
-                        #[allow(clippy::comparison_chain)]
-                        if start + 1 < end {
-                            // write!(fmt, "(0x{:02x?} <= ch && ch <= 0x{:02x?})", start, end)?;
-                            write!(fmt, "(0x{:02x?}..=0x{:02x?}).contains(&ch)", start, end)?;
-                        } else if start + 1 == end {
-                            writeln!(fmt, "ch == 0x{:02x?} ||", start)?;
-                            write!(fmt, "   ch == 0x{:02x?}", end)?;
+                    // `i` is a labelled state
+                    if let Some(class) = state.class {
+                        let ttype = if let Command::Skip = self.commands[class] {
+                            "LastAcceptTType::Skip".to_string()
                         } else {
-                            write!(fmt, "ch == 0x{:02x?}", start)?;
-                        }
+                            format!("LastAcceptTType::Tok(TokenType::{ttype})", ttype=self.ttypes[class])
+                        };
 
-                        if i < intervals.len() - 1 {
-                            writeln!(fmt, " ||")?;
+                        // If `i` can only transition to labelled states, then either
+                        // its corresponding token will be returned immediately or the
+                        // token of any destination state will take priority (due to
+                        // maximal munch). As such, there would be no need for the
+                        // last accept token type or index to be stored. 
+                        if state.can_transition_to_unlabelled_state {
+                            writeln!(fmt, "ctx.last_accept_ttype = {ttype};", ttype=ttype)?;
+                            writeln!(fmt, "ctx.last_accept_index = self.index;")?;
                         }
                     }
 
-                    writeln!(fmt, " {{ self.index += 1; return self.s{dst}(ctx); }}", dst=dst)?;
-                    // writeln!(fmt, ") GOTO({});", dst)?;
+                    // Transitions to non-sink states. Semantically speaking, if any no
+                    // transition is taken, then we transition to the sink state.
+                    for rep::Transition { intervals, dst } in &state.transitions {
+                        write!(fmt, "if ")?;
+
+                        for (i, &(start, end)) in intervals.iter().enumerate() {
+                            if i > 0 {
+                                write!(fmt, "   ")?;
+                            }
+
+                            #[allow(clippy::comparison_chain)]
+                            if start + 1 < end {
+                                // write!(fmt, "(0x{:02x?} <= ch && ch <= 0x{:02x?})", start, end)?;
+                                write!(fmt, "(0x{:02x?}..=0x{:02x?}).contains(&ch)", start, end)?;
+                            } else if start + 1 == end {
+                                writeln!(fmt, "ch == 0x{:02x?} ||", start)?;
+                                write!(fmt, "   ch == 0x{:02x?}", end)?;
+                            } else {
+                                write!(fmt, "ch == 0x{:02x?}", start)?;
+                            }
+
+                            if i < intervals.len() - 1 {
+                                writeln!(fmt, " ||")?;
+                            }
+                        }
+
+                        writeln!(fmt, " {{ self.index += 1; return self.s{dst}(ctx); }}", dst=dst)?;
+                        // writeln!(fmt, ") GOTO({});", dst)?;
+                    }
+
+                    fmt.unindent();
                 }
-                
+                writeln!(fmt, "}}")?;
+                    
                 // `i` is a labelled state
                 if let Some(class) = state.class {
                     if let Command::Skip = self.commands[class] {
@@ -272,8 +281,12 @@ impl rep::LR1Parser {
         // === parser boilerplate ===
         // ==========================
 
-        writeln!(fmt, "pub fn parse<I: AsRef<[u8]> + ?Sized>(input: &I) -> Result<Variable, ParseError> {{")?;
-        writeln!(fmt, "    Parse {{ input: scan(input), next_token: None }}.begin()")?;
+        writeln!(fmt, "pub fn parse<I: AsRef<[u8]> + ?Sized>(input: &I) -> Result<{varname}Product, ParseError> {{", varname=self.varnames[0])?;
+        writeln!(fmt, "    let res = Parse {{ input: scan(input), next_token: None }}.begin();")?;
+        writeln!(fmt, "    match res? {{")?;
+        writeln!(fmt, "        Variable::{varname}(product) => Ok(product),", varname=self.varnames[0])?;
+        writeln!(fmt, "        _ => unreachable!(),")?;
+        writeln!(fmt, "    }}")?;
         writeln!(fmt, "}}")?;
         writeln!(fmt)?;
         writeln!(fmt, "#[derive(Debug, Clone, Copy)]")?;

@@ -1,7 +1,6 @@
 
 #[macro_use] extern crate sylo;
 
-use std::time::Instant;
 use sylo::langcore::re;
 use sylo::parser::strategy;
 use sylo::codegen;
@@ -9,7 +8,7 @@ use sylo::codegen;
 fn main() {
     let def = parser! {
         {
-            id:     re::range('a', 'z').plus(),
+            num:    re::literal("-").opt().then(&re::range('1', '9')).then(&re::range('0', '9').star()).or(&re::literal("0")),
             lparen: re::literal("("),
             rparen: re::literal(")"),
             add:    re::literal("+"),
@@ -21,7 +20,7 @@ fn main() {
             T : T mul F
               | F,
             F : lparen E rparen
-              | id,
+              | num,
         }
     };
 

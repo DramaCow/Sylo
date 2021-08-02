@@ -158,74 +158,50 @@ impl Scan<'_> {
         let ch = self.input[self.index];
         ctx.last_accept_ttype = LastAcceptTType::Skip;
         ctx.last_accept_index = self.index;
-        if ch == 0x22 { self.index += 1; return self.s1(ctx); }
-        if ch == 0x2b { self.index += 1; return self.s5(ctx); }
-        if ch == 0x3f { self.index += 1; return self.s6(ctx); }
-        if ch == 0x27 { self.index += 1; return self.s7(ctx); }
-        if ch == 0x2e { self.index += 1; return self.s11(ctx); }
-        if ch == 0x26 { self.index += 1; return self.s13(ctx); }
-        if ch == 0x2a { self.index += 1; return self.s14(ctx); }
-        if ch == 0x2d { self.index += 1; return self.s15(ctx); }
+        if ch == 0x2a { self.index += 1; return self.s1(ctx); }
+        if ch == 0x2b { self.index += 1; return self.s2(ctx); }
+        if ch == 0x28 { self.index += 1; return self.s3(ctx); }
+        if ch == 0x7c { self.index += 1; return self.s4(ctx); }
+        if ch == 0x2e { self.index += 1; return self.s5(ctx); }
         if ch == 0x09 ||
            ch == 0x0a ||
            ch == 0x0d ||
-           ch == 0x20 { self.index += 1; return self.s16(ctx); }
-        if ch == 0x7c { self.index += 1; return self.s17(ctx); }
-        if ch == 0x29 { self.index += 1; return self.s18(ctx); }
-        if ch == 0x21 { self.index += 1; return self.s19(ctx); }
-        if ch == 0x28 { self.index += 1; return self.s20(ctx); }
+           ch == 0x20 { self.index += 1; return self.s7(ctx); }
+        if ch == 0x22 { self.index += 1; return self.s8(ctx); }
+        if ch == 0x26 { self.index += 1; return self.s12(ctx); }
+        if ch == 0x21 { self.index += 1; return self.s13(ctx); }
+        if ch == 0x29 { self.index += 1; return self.s14(ctx); }
+        if ch == 0x2d { self.index += 1; return self.s15(ctx); }
+        if ch == 0x3f { self.index += 1; return self.s16(ctx); }
+        if ch == 0x27 { self.index += 1; return self.s17(ctx); }
         self.begin()
     }
 
     fn s1(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        if self.index >= self.input.len() { return self.sink(&ctx); }
-        let ch = self.input[self.index];
-        if ch == 0x09 ||
-           ch == 0x0a ||
-           ch == 0x0d ||
-           ch == 0x20 ||
-           ch == 0x21 ||
-           (0x23..=0x5b).contains(&ch) ||
-           (0x5d..=0x7e).contains(&ch) ||
-           (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s2(ctx); }
-        if ch == 0x5c { self.index += 1; return self.s4(ctx); }
-        self.sink(&ctx)
+        Some(Ok(Token { ttype: TokenType::star, span: (ctx.start_index, self.index) }))
     }
 
     fn s2(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        if self.index >= self.input.len() { return self.sink(&ctx); }
-        let ch = self.input[self.index];
-        if ch == 0x09 ||
-           ch == 0x0a ||
-           ch == 0x0d ||
-           ch == 0x20 ||
-           ch == 0x21 ||
-           (0x23..=0x5b).contains(&ch) ||
-           (0x5d..=0x7e).contains(&ch) ||
-           (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s2(ctx); }
-        if ch == 0x22 { self.index += 1; return self.s3(ctx); }
-        if ch == 0x5c { self.index += 1; return self.s4(ctx); }
-        self.sink(&ctx)
-    }
-
-    fn s3(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::string, span: (ctx.start_index, self.index) }))
-    }
-
-    fn s4(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        if self.index >= self.input.len() { return self.sink(&ctx); }
-        let ch = self.input[self.index];
-        if ch == 0x22 ||
-           ch == 0x5c { self.index += 1; return self.s2(ctx); }
-        self.sink(&ctx)
-    }
-
-    fn s5(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
         Some(Ok(Token { ttype: TokenType::plus, span: (ctx.start_index, self.index) }))
     }
 
+    fn s3(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+        Some(Ok(Token { ttype: TokenType::lparen, span: (ctx.start_index, self.index) }))
+    }
+
+    fn s4(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+        Some(Ok(Token { ttype: TokenType::or, span: (ctx.start_index, self.index) }))
+    }
+
+    fn s5(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+        if self.index >= self.input.len() { return self.sink(&ctx); }
+        let ch = self.input[self.index];
+        if ch == 0x2e { self.index += 1; return self.s6(ctx); }
+        self.sink(&ctx)
+    }
+
     fn s6(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::opt, span: (ctx.start_index, self.index) }))
+        Some(Ok(Token { ttype: TokenType::range, span: (ctx.start_index, self.index) }))
     }
 
     fn s7(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
@@ -234,51 +210,63 @@ impl Scan<'_> {
         if ch == 0x09 ||
            ch == 0x0a ||
            ch == 0x0d ||
-           ch == 0x20 ||
-           ch == 0x21 ||
-           (0x23..=0x5b).contains(&ch) ||
-           (0x5d..=0x7e).contains(&ch) ||
-           (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s8(ctx); }
-        if ch == 0x5c { self.index += 1; return self.s10(ctx); }
-        self.sink(&ctx)
+           ch == 0x20 { self.index += 1; return self.s7(ctx); }
+        self.begin()
     }
 
     fn s8(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
         if self.index >= self.input.len() { return self.sink(&ctx); }
         let ch = self.input[self.index];
-        if ch == 0x27 { self.index += 1; return self.s9(ctx); }
+        if ch == 0x09 ||
+           ch == 0x0a ||
+           ch == 0x0d ||
+           ch == 0x20 ||
+           ch == 0x21 ||
+           (0x23..=0x5b).contains(&ch) ||
+           (0x5d..=0x7e).contains(&ch) ||
+           (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s9(ctx); }
+        if ch == 0x5c { self.index += 1; return self.s11(ctx); }
         self.sink(&ctx)
     }
 
     fn s9(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::CHAR, span: (ctx.start_index, self.index) }))
+        if self.index >= self.input.len() { return self.sink(&ctx); }
+        let ch = self.input[self.index];
+        if ch == 0x09 ||
+           ch == 0x0a ||
+           ch == 0x0d ||
+           ch == 0x20 ||
+           ch == 0x21 ||
+           (0x23..=0x5b).contains(&ch) ||
+           (0x5d..=0x7e).contains(&ch) ||
+           (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s9(ctx); }
+        if ch == 0x22 { self.index += 1; return self.s10(ctx); }
+        if ch == 0x5c { self.index += 1; return self.s11(ctx); }
+        self.sink(&ctx)
     }
 
     fn s10(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        if self.index >= self.input.len() { return self.sink(&ctx); }
-        let ch = self.input[self.index];
-        if ch == 0x22 ||
-           ch == 0x5c { self.index += 1; return self.s8(ctx); }
-        self.sink(&ctx)
+        Some(Ok(Token { ttype: TokenType::string, span: (ctx.start_index, self.index) }))
     }
 
     fn s11(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
         if self.index >= self.input.len() { return self.sink(&ctx); }
         let ch = self.input[self.index];
-        if ch == 0x2e { self.index += 1; return self.s12(ctx); }
+        if ch == 0x22 ||
+           ch == 0x5c { self.index += 1; return self.s9(ctx); }
         self.sink(&ctx)
     }
 
     fn s12(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::range, span: (ctx.start_index, self.index) }))
-    }
-
-    fn s13(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
         Some(Ok(Token { ttype: TokenType::and, span: (ctx.start_index, self.index) }))
     }
 
+    fn s13(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+        Some(Ok(Token { ttype: TokenType::not, span: (ctx.start_index, self.index) }))
+    }
+
     fn s14(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::star, span: (ctx.start_index, self.index) }))
+        Some(Ok(Token { ttype: TokenType::rparen, span: (ctx.start_index, self.index) }))
     }
 
     fn s15(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
@@ -286,29 +274,41 @@ impl Scan<'_> {
     }
 
     fn s16(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+        Some(Ok(Token { ttype: TokenType::opt, span: (ctx.start_index, self.index) }))
+    }
+
+    fn s17(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
         if self.index >= self.input.len() { return self.sink(&ctx); }
         let ch = self.input[self.index];
         if ch == 0x09 ||
            ch == 0x0a ||
            ch == 0x0d ||
-           ch == 0x20 { self.index += 1; return self.s16(ctx); }
-        self.begin()
-    }
-
-    fn s17(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::or, span: (ctx.start_index, self.index) }))
+           ch == 0x20 ||
+           ch == 0x21 ||
+           (0x23..=0x5b).contains(&ch) ||
+           (0x5d..=0x7e).contains(&ch) ||
+           (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s18(ctx); }
+        if ch == 0x5c { self.index += 1; return self.s20(ctx); }
+        self.sink(&ctx)
     }
 
     fn s18(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::rparen, span: (ctx.start_index, self.index) }))
+        if self.index >= self.input.len() { return self.sink(&ctx); }
+        let ch = self.input[self.index];
+        if ch == 0x27 { self.index += 1; return self.s19(ctx); }
+        self.sink(&ctx)
     }
 
     fn s19(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::not, span: (ctx.start_index, self.index) }))
+        Some(Ok(Token { ttype: TokenType::CHAR, span: (ctx.start_index, self.index) }))
     }
 
     fn s20(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::lparen, span: (ctx.start_index, self.index) }))
+        if self.index >= self.input.len() { return self.sink(&ctx); }
+        let ch = self.input[self.index];
+        if ch == 0x22 ||
+           ch == 0x5c { self.index += 1; return self.s18(ctx); }
+        self.sink(&ctx)
     }
 
 // ***  LEXER TABLE END  ***
@@ -332,8 +332,12 @@ impl Scan<'_> {
     }
 }
 
-pub fn parse<I: AsRef<[u8]> + ?Sized>(input: &I) -> Result<Variable, ParseError> {
-    Parse { input: scan(input), next_token: None }.begin()
+pub fn parse<I: AsRef<[u8]> + ?Sized>(input: &I) -> Result<ExprProduct, ParseError> {
+    let res = Parse { input: scan(input), next_token: None }.begin();
+    match res? {
+        Variable::Expr(product) => Ok(product),
+        _ => unreachable!(),
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
