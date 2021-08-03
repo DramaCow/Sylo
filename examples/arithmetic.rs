@@ -24,5 +24,6 @@ fn main() {
         }
     };
 
-    std::fs::write("examples/arithmetic_parser.rs", codegen::rep::LR1Parser::new("Arithmetic", &def, &strategy::LR1).unwrap().to_rust(String::new()).unwrap()).unwrap();
+    let parser = codegen::ir::Parser::new("Arithmetic", &def, &strategy::LR1).unwrap();
+    std::fs::write("src/parsing/re.rs", codegen::RustWriter::new(String::new()).parser(&parser).unwrap().build()).unwrap();
 }

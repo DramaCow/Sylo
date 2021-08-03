@@ -111,11 +111,6 @@ pub struct Token {
     pub span: (usize, usize),
 }
 
-pub struct TokenView<'a, T> {
-    token: Token,
-    input: &'a T
-}
-
 impl<'a> Iterator for Scan<'a> {
     type Item = Result<Token, ScanError>;
 
@@ -154,49 +149,58 @@ impl Scan<'_> {
 // *** LEXER TABLE START ***
 
     fn s0(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        if self.index >= self.input.len() { return self.sink(&ctx); }
-        let ch = self.input[self.index];
-        ctx.last_accept_ttype = LastAcceptTType::Skip;
-        ctx.last_accept_index = self.index;
-        if ch == 0x2a { self.index += 1; return self.s1(ctx); }
-        if ch == 0x2b { self.index += 1; return self.s2(ctx); }
-        if ch == 0x28 { self.index += 1; return self.s3(ctx); }
-        if ch == 0x7c { self.index += 1; return self.s4(ctx); }
-        if ch == 0x2e { self.index += 1; return self.s5(ctx); }
-        if ch == 0x09 ||
-           ch == 0x0a ||
-           ch == 0x0d ||
-           ch == 0x20 { self.index += 1; return self.s7(ctx); }
-        if ch == 0x22 { self.index += 1; return self.s8(ctx); }
-        if ch == 0x26 { self.index += 1; return self.s12(ctx); }
-        if ch == 0x21 { self.index += 1; return self.s13(ctx); }
-        if ch == 0x29 { self.index += 1; return self.s14(ctx); }
-        if ch == 0x2d { self.index += 1; return self.s15(ctx); }
-        if ch == 0x3f { self.index += 1; return self.s16(ctx); }
-        if ch == 0x27 { self.index += 1; return self.s17(ctx); }
+        if self.index < self.input.len() {
+            let ch = self.input[self.index];
+            ctx.last_accept_ttype = LastAcceptTType::Skip;
+            ctx.last_accept_index = self.index;
+            if ch == 0x09 ||
+               ch == 0x0a ||
+               ch == 0x0d ||
+               ch == 0x20 { self.index += 1; return self.s1(ctx); }
+            if ch == 0x3f { self.index += 1; return self.s2(ctx); }
+            if ch == 0x21 { self.index += 1; return self.s3(ctx); }
+            if ch == 0x29 { self.index += 1; return self.s4(ctx); }
+            if ch == 0x2e { self.index += 1; return self.s5(ctx); }
+            if ch == 0x28 { self.index += 1; return self.s7(ctx); }
+            if ch == 0x2b { self.index += 1; return self.s8(ctx); }
+            if ch == 0x22 { self.index += 1; return self.s9(ctx); }
+            if ch == 0x26 { self.index += 1; return self.s13(ctx); }
+            if ch == 0x27 { self.index += 1; return self.s14(ctx); }
+            if ch == 0x2d { self.index += 1; return self.s18(ctx); }
+            if ch == 0x7c { self.index += 1; return self.s19(ctx); }
+            if ch == 0x2a { self.index += 1; return self.s20(ctx); }
+        }
         self.begin()
     }
 
     fn s1(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::star, span: (ctx.start_index, self.index) }))
+        if self.index < self.input.len() {
+            let ch = self.input[self.index];
+            if ch == 0x09 ||
+               ch == 0x0a ||
+               ch == 0x0d ||
+               ch == 0x20 { self.index += 1; return self.s1(ctx); }
+        }
+        self.begin()
     }
 
     fn s2(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::plus, span: (ctx.start_index, self.index) }))
+        Some(Ok(Token { ttype: TokenType::opt, span: (ctx.start_index, self.index) }))
     }
 
     fn s3(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::lparen, span: (ctx.start_index, self.index) }))
+        Some(Ok(Token { ttype: TokenType::not, span: (ctx.start_index, self.index) }))
     }
 
     fn s4(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::or, span: (ctx.start_index, self.index) }))
+        Some(Ok(Token { ttype: TokenType::rparen, span: (ctx.start_index, self.index) }))
     }
 
     fn s5(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        if self.index >= self.input.len() { return self.sink(&ctx); }
-        let ch = self.input[self.index];
-        if ch == 0x2e { self.index += 1; return self.s6(ctx); }
+        if self.index < self.input.len() {
+            let ch = self.input[self.index];
+            if ch == 0x2e { self.index += 1; return self.s6(ctx); }
+        }
         self.sink(&ctx)
     }
 
@@ -205,110 +209,110 @@ impl Scan<'_> {
     }
 
     fn s7(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        if self.index >= self.input.len() { return self.sink(&ctx); }
-        let ch = self.input[self.index];
-        if ch == 0x09 ||
-           ch == 0x0a ||
-           ch == 0x0d ||
-           ch == 0x20 { self.index += 1; return self.s7(ctx); }
-        self.begin()
+        Some(Ok(Token { ttype: TokenType::lparen, span: (ctx.start_index, self.index) }))
     }
 
     fn s8(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        if self.index >= self.input.len() { return self.sink(&ctx); }
-        let ch = self.input[self.index];
-        if ch == 0x09 ||
-           ch == 0x0a ||
-           ch == 0x0d ||
-           ch == 0x20 ||
-           ch == 0x21 ||
-           (0x23..=0x5b).contains(&ch) ||
-           (0x5d..=0x7e).contains(&ch) ||
-           (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s9(ctx); }
-        if ch == 0x5c { self.index += 1; return self.s11(ctx); }
-        self.sink(&ctx)
+        Some(Ok(Token { ttype: TokenType::plus, span: (ctx.start_index, self.index) }))
     }
 
     fn s9(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        if self.index >= self.input.len() { return self.sink(&ctx); }
-        let ch = self.input[self.index];
-        if ch == 0x09 ||
-           ch == 0x0a ||
-           ch == 0x0d ||
-           ch == 0x20 ||
-           ch == 0x21 ||
-           (0x23..=0x5b).contains(&ch) ||
-           (0x5d..=0x7e).contains(&ch) ||
-           (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s9(ctx); }
-        if ch == 0x22 { self.index += 1; return self.s10(ctx); }
-        if ch == 0x5c { self.index += 1; return self.s11(ctx); }
+        if self.index < self.input.len() {
+            let ch = self.input[self.index];
+            if ch == 0x09 ||
+               ch == 0x0a ||
+               ch == 0x0d ||
+               ch == 0x20 ||
+               ch == 0x21 ||
+               (0x23..=0x5b).contains(&ch) ||
+               (0x5d..=0x7e).contains(&ch) ||
+               (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s10(ctx); }
+            if ch == 0x5c { self.index += 1; return self.s12(ctx); }
+        }
         self.sink(&ctx)
     }
 
     fn s10(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::string, span: (ctx.start_index, self.index) }))
-    }
-
-    fn s11(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        if self.index >= self.input.len() { return self.sink(&ctx); }
-        let ch = self.input[self.index];
-        if ch == 0x22 ||
-           ch == 0x5c { self.index += 1; return self.s9(ctx); }
+        if self.index < self.input.len() {
+            let ch = self.input[self.index];
+            if ch == 0x09 ||
+               ch == 0x0a ||
+               ch == 0x0d ||
+               ch == 0x20 ||
+               ch == 0x21 ||
+               (0x23..=0x5b).contains(&ch) ||
+               (0x5d..=0x7e).contains(&ch) ||
+               (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s10(ctx); }
+            if ch == 0x22 { self.index += 1; return self.s11(ctx); }
+            if ch == 0x5c { self.index += 1; return self.s12(ctx); }
+        }
         self.sink(&ctx)
     }
 
+    fn s11(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
+        Some(Ok(Token { ttype: TokenType::string, span: (ctx.start_index, self.index) }))
+    }
+
     fn s12(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::and, span: (ctx.start_index, self.index) }))
+        if self.index < self.input.len() {
+            let ch = self.input[self.index];
+            if ch == 0x22 ||
+               ch == 0x5c { self.index += 1; return self.s10(ctx); }
+        }
+        self.sink(&ctx)
     }
 
     fn s13(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::not, span: (ctx.start_index, self.index) }))
+        Some(Ok(Token { ttype: TokenType::and, span: (ctx.start_index, self.index) }))
     }
 
     fn s14(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::rparen, span: (ctx.start_index, self.index) }))
+        if self.index < self.input.len() {
+            let ch = self.input[self.index];
+            if ch == 0x09 ||
+               ch == 0x0a ||
+               ch == 0x0d ||
+               ch == 0x20 ||
+               ch == 0x21 ||
+               (0x23..=0x5b).contains(&ch) ||
+               (0x5d..=0x7e).contains(&ch) ||
+               (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s15(ctx); }
+            if ch == 0x5c { self.index += 1; return self.s17(ctx); }
+        }
+        self.sink(&ctx)
     }
 
     fn s15(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::diff, span: (ctx.start_index, self.index) }))
+        if self.index < self.input.len() {
+            let ch = self.input[self.index];
+            if ch == 0x27 { self.index += 1; return self.s16(ctx); }
+        }
+        self.sink(&ctx)
     }
 
     fn s16(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::opt, span: (ctx.start_index, self.index) }))
+        Some(Ok(Token { ttype: TokenType::CHAR, span: (ctx.start_index, self.index) }))
     }
 
     fn s17(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        if self.index >= self.input.len() { return self.sink(&ctx); }
-        let ch = self.input[self.index];
-        if ch == 0x09 ||
-           ch == 0x0a ||
-           ch == 0x0d ||
-           ch == 0x20 ||
-           ch == 0x21 ||
-           (0x23..=0x5b).contains(&ch) ||
-           (0x5d..=0x7e).contains(&ch) ||
-           (0xa0..=0xff).contains(&ch) { self.index += 1; return self.s18(ctx); }
-        if ch == 0x5c { self.index += 1; return self.s20(ctx); }
+        if self.index < self.input.len() {
+            let ch = self.input[self.index];
+            if ch == 0x22 ||
+               ch == 0x5c { self.index += 1; return self.s15(ctx); }
+        }
         self.sink(&ctx)
     }
 
     fn s18(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        if self.index >= self.input.len() { return self.sink(&ctx); }
-        let ch = self.input[self.index];
-        if ch == 0x27 { self.index += 1; return self.s19(ctx); }
-        self.sink(&ctx)
+        Some(Ok(Token { ttype: TokenType::diff, span: (ctx.start_index, self.index) }))
     }
 
     fn s19(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        Some(Ok(Token { ttype: TokenType::CHAR, span: (ctx.start_index, self.index) }))
+        Some(Ok(Token { ttype: TokenType::or, span: (ctx.start_index, self.index) }))
     }
 
     fn s20(&mut self, mut ctx: Context) -> Option<<Self as Iterator>::Item> {
-        if self.index >= self.input.len() { return self.sink(&ctx); }
-        let ch = self.input[self.index];
-        if ch == 0x22 ||
-           ch == 0x5c { self.index += 1; return self.s18(ctx); }
-        self.sink(&ctx)
+        Some(Ok(Token { ttype: TokenType::star, span: (ctx.start_index, self.index) }))
     }
 
 // ***  LEXER TABLE END  ***
@@ -332,6 +336,7 @@ impl Scan<'_> {
     }
 }
 
+/// # Errors
 pub fn parse<I: AsRef<[u8]> + ?Sized>(input: &I) -> Result<ExprProduct, ParseError> {
     let res = Parse { input: scan(input), next_token: None }.begin();
     match res? {
@@ -384,7 +389,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s5(t) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s2(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s3(t) }
-            token => return Err(ParseError::InvalidAction { state: 0, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 0, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple)
     }
@@ -412,7 +417,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::plus, .. }) => { self.update()?; self.s12((arg, t)) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s2(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s3(t) }
-            token => return Err(ParseError::InvalidAction { state: 1, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 1, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, arg)
     }
@@ -433,7 +438,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s5(t) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s2(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s3(t) }
-            token => return Err(ParseError::InvalidAction { state: 2, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 2, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, arg)
     }
@@ -454,7 +459,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s18(t) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
-            token => return Err(ParseError::InvalidAction { state: 3, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 3, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, arg)
     }
@@ -472,7 +477,7 @@ impl Parse<'_> {
             Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
             Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
             Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
-            token => return Err(ParseError::InvalidAction { state: 4, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 4, ttype: t.map(|t| t.ttype) }),
         }
     }
     
@@ -490,7 +495,7 @@ impl Parse<'_> {
             Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
             Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
             Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
-            token => return Err(ParseError::InvalidAction { state: 5, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 5, ttype: t.map(|t| t.ttype) }),
         }?;
         decrement(tuple)
     }
@@ -518,7 +523,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::plus, .. }) => { self.update()?; self.s12((args.1, t)) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s2(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s3(t) }
-            token => return Err(ParseError::InvalidAction { state: 6, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 6, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -539,7 +544,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s5(t) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s2(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s3(t) }
-            token => return Err(ParseError::InvalidAction { state: 7, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 7, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -560,7 +565,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s5(t) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s2(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s3(t) }
-            token => return Err(ParseError::InvalidAction { state: 8, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 8, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -581,7 +586,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s5(t) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s2(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s3(t) }
-            token => return Err(ParseError::InvalidAction { state: 9, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 9, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -599,7 +604,7 @@ impl Parse<'_> {
             Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
             Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
             Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
-            token => return Err(ParseError::InvalidAction { state: 10, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 10, ttype: t.map(|t| t.ttype) }),
         }
     }
     
@@ -616,7 +621,7 @@ impl Parse<'_> {
             Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
             Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
             Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
-            token => return Err(ParseError::InvalidAction { state: 11, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 11, ttype: t.map(|t| t.ttype) }),
         }
     }
     
@@ -633,7 +638,7 @@ impl Parse<'_> {
             Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
             Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
             Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
-            token => return Err(ParseError::InvalidAction { state: 12, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 12, ttype: t.map(|t| t.ttype) }),
         }
     }
     
@@ -660,7 +665,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::plus, .. }) => { self.update()?; self.s12((args.1, t)) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s2(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s3(t) }
-            token => return Err(ParseError::InvalidAction { state: 13, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 13, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -688,7 +693,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
             Some(t @ Token { ttype: TokenType::rparen, .. }) => { self.update()?; self.s30((args.0, args.1, t)) }
-            token => return Err(ParseError::InvalidAction { state: 14, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 14, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -709,7 +714,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s18(t) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
-            token => return Err(ParseError::InvalidAction { state: 15, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 15, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, arg)
     }
@@ -730,7 +735,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s18(t) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
-            token => return Err(ParseError::InvalidAction { state: 16, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 16, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, arg)
     }
@@ -748,7 +753,7 @@ impl Parse<'_> {
             Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
             Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
             Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p9(self.lexeme(&arg))), 0)),
-            token => return Err(ParseError::InvalidAction { state: 17, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 17, ttype: t.map(|t| t.ttype) }),
         }
     }
     
@@ -766,7 +771,7 @@ impl Parse<'_> {
             Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
             Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
             Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p10(self.lexeme(&arg))), 0)),
-            token => return Err(ParseError::InvalidAction { state: 18, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 18, ttype: t.map(|t| t.ttype) }),
         }?;
         decrement(tuple)
     }
@@ -774,7 +779,7 @@ impl Parse<'_> {
     fn s19(&mut self, args: (Token, Token)) -> Result<(Variable, usize), ParseError> {
         let tuple = match self.next_token {
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s34((args.0, args.1, t)) }
-            token => return Err(ParseError::InvalidAction { state: 19, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 19, ttype: t.map(|t| t.ttype) }),
         }?;
         decrement(tuple)
     }
@@ -802,7 +807,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::plus, .. }) => { self.update()?; self.s12((args.2, t)) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s2(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s3(t) }
-            token => return Err(ParseError::InvalidAction { state: 20, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 20, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -830,7 +835,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::plus, .. }) => { self.update()?; self.s12((args.2, t)) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s2(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s3(t) }
-            token => return Err(ParseError::InvalidAction { state: 21, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 21, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -858,7 +863,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::plus, .. }) => { self.update()?; self.s12((args.2, t)) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s2(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s3(t) }
-            token => return Err(ParseError::InvalidAction { state: 22, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 22, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -886,7 +891,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
             Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p3(args.0, args.1)), 1)),
-            token => return Err(ParseError::InvalidAction { state: 23, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 23, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -907,7 +912,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s18(t) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
-            token => return Err(ParseError::InvalidAction { state: 24, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 24, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -928,7 +933,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s18(t) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
-            token => return Err(ParseError::InvalidAction { state: 25, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 25, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -949,7 +954,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s18(t) }
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
-            token => return Err(ParseError::InvalidAction { state: 26, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 26, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -967,7 +972,7 @@ impl Parse<'_> {
             Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
             Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
             Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p4(args.0, self.lexeme(&args.1))), 1)),
-            token => return Err(ParseError::InvalidAction { state: 27, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 27, ttype: t.map(|t| t.ttype) }),
         }
     }
     
@@ -984,7 +989,7 @@ impl Parse<'_> {
             Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
             Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
             Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p5(args.0, self.lexeme(&args.1))), 1)),
-            token => return Err(ParseError::InvalidAction { state: 28, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 28, ttype: t.map(|t| t.ttype) }),
         }
     }
     
@@ -1001,7 +1006,7 @@ impl Parse<'_> {
             Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
             Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
             Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p6(args.0, self.lexeme(&args.1))), 1)),
-            token => return Err(ParseError::InvalidAction { state: 29, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 29, ttype: t.map(|t| t.ttype) }),
         }
     }
     
@@ -1018,7 +1023,7 @@ impl Parse<'_> {
             Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
             Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
             Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
-            token => return Err(ParseError::InvalidAction { state: 30, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 30, ttype: t.map(|t| t.ttype) }),
         }
     }
     
@@ -1045,7 +1050,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
             Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p7(self.lexeme(&args.0), args.1)), 1)),
-            token => return Err(ParseError::InvalidAction { state: 31, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 31, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -1073,7 +1078,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
             Some(t @ Token { ttype: TokenType::rparen, .. }) => { self.update()?; self.s38((args.0, args.1, t)) }
-            token => return Err(ParseError::InvalidAction { state: 32, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 32, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -1081,7 +1086,7 @@ impl Parse<'_> {
     fn s33(&mut self, args: (Token, Token)) -> Result<(Variable, usize), ParseError> {
         let tuple = match self.next_token {
             Some(t @ Token { ttype: TokenType::CHAR, .. }) => { self.update()?; self.s39((args.0, args.1, t)) }
-            token => return Err(ParseError::InvalidAction { state: 33, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 33, ttype: t.map(|t| t.ttype) }),
         }?;
         decrement(tuple)
     }
@@ -1099,7 +1104,7 @@ impl Parse<'_> {
             Some(Token { ttype: TokenType::plus, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
             Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
             Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
-            token => return Err(ParseError::InvalidAction { state: 34, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 34, ttype: t.map(|t| t.ttype) }),
         }
     }
     
@@ -1126,7 +1131,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
             Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p0(args.0, self.lexeme(&args.1), args.2)), 2)),
-            token => return Err(ParseError::InvalidAction { state: 35, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 35, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -1154,7 +1159,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
             Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p1(args.0, self.lexeme(&args.1), args.2)), 2)),
-            token => return Err(ParseError::InvalidAction { state: 36, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 36, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -1182,7 +1187,7 @@ impl Parse<'_> {
             Some(t @ Token { ttype: TokenType::not, .. }) => { self.update()?; self.s15(t) }
             Some(t @ Token { ttype: TokenType::lparen, .. }) => { self.update()?; self.s16(t) }
             Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p2(args.0, self.lexeme(&args.1), args.2)), 2)),
-            token => return Err(ParseError::InvalidAction { state: 37, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 37, ttype: t.map(|t| t.ttype) }),
         }?;
         on_return(self, tuple, args)
     }
@@ -1200,7 +1205,7 @@ impl Parse<'_> {
             Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
             Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
             Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p8(self.lexeme(&args.0), args.1, self.lexeme(&args.2))), 2)),
-            token => return Err(ParseError::InvalidAction { state: 38, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 38, ttype: t.map(|t| t.ttype) }),
         }
     }
     
@@ -1217,7 +1222,7 @@ impl Parse<'_> {
             Some(Token { ttype: TokenType::not, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
             Some(Token { ttype: TokenType::lparen, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
             Some(Token { ttype: TokenType::rparen, .. }) => return Ok((Variable::Expr(p11(self.lexeme(&args.0), self.lexeme(&args.1), self.lexeme(&args.2))), 2)),
-            token => return Err(ParseError::InvalidAction { state: 39, ttype: token.map(|token| token.ttype) }),
+            t => return Err(ParseError::InvalidAction { state: 39, ttype: t.map(|t| t.ttype) }),
         }
     }
     

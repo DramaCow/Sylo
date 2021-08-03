@@ -53,7 +53,8 @@ fn main() {
     def.production_precedence[3] = Some(Precedence { level: 2, associativity: Associativity::Left }); 
 
     let timer = Instant::now();
-    std::fs::write("src/parsing/re.rs", codegen::rep::LR1Parser::new("RegEx", &def, &strategy::LR1).unwrap().to_rust(String::new()).unwrap()).unwrap();
+    let parser = codegen::ir::Parser::new("RegEx", &def, &strategy::LR1).unwrap();
+    std::fs::write("src/parsing/re.rs", codegen::RustWriter::new(String::new()).parser(&parser).unwrap().build()).unwrap();
     println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());  
 
     // let text = "('A'..'Z' | 'a'..'z' | '_') ('A'..'Z' | 'a'..'z' | '0'..'9' | '_')* - '_'+";

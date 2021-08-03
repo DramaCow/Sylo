@@ -5,7 +5,7 @@ use crate::langcore::lr1_table::{self, Action, Reduction, LR1TableBuilderStrateg
 use crate::lexer;
 use crate::parser;
 
-pub struct LR1Parser {
+pub struct Parser {
     pub name: String,
     pub lexer: Lexer,
     pub varnames: Vec<String>,
@@ -15,10 +15,11 @@ pub struct LR1Parser {
 }
 
 pub struct ParserState {
+    pub id: usize,
+    pub input_symbols: Vec<Symbol>, // TODO: this doesn't need to be copied, could be a slice
     pub ttrans: Vec<TTransition>,
     pub nttrans: Vec<NTTransition>,
     pub has_shift_transitions: bool,
-    pub input_symbols: Vec<Symbol>, // TODO: this doesn't need to be copied, could be a slice
 }
 
 pub struct TTransition {
@@ -40,6 +41,7 @@ pub struct Lexer {
 }
 
 pub struct LexerState {
+    pub id: usize,
     pub transitions: Vec<Transition>,
     pub can_transition_to_unlabelled_state: bool,
     pub class: Option<usize>,
@@ -50,7 +52,7 @@ pub struct Transition {
     pub dst: usize,
 }
 
-impl LR1Parser {
+impl Parser {
     /// # Errors
     pub fn new<'a, S>(name: &str, def: &'a parser::ParserDef, strategy: &S) -> Result<Self, lr1_table::ConstructionError>
     where
@@ -70,14 +72,14 @@ impl LR1Parser {
             reductions: parsing_table.reductions,
             grammar: def.grammar.clone(),
             states: action_rows.zip(goto_rows).enumerate().map(|(i, (action_row, goto_row))| {
-                ParserState::new(action_row, goto_row, builder.longest_common_preceding_subpath(&def.grammar, i))
+                ParserState::new(i, builder.longest_common_preceding_subpath(&def.grammar, i), action_row, goto_row)
             }).collect(),
         })
     }
 }
 
 impl ParserState {
-    fn new(action_row: &[Action], goto_row: &[Option<usize>], input_symbols: &[Symbol]) -> Self {
+    fn new(id: usize, input_symbols: &[Symbol], action_row: &[Action], goto_row: &[Option<usize>]) -> Self {
         let ttrans: Vec<_> = action_row.iter().enumerate().filter_map(|(word, &action)| {
             if let Action::Invalid = action {
                 None
@@ -92,7 +94,7 @@ impl ParserState {
 
         let has_shift_transitions = ttrans.iter().any(|ttran| matches!(ttran.action, Action::Shift(_)));
 
-        Self { ttrans, nttrans, has_shift_transitions, input_symbols: input_symbols.to_vec() }
+        Self { id, input_symbols: input_symbols.to_vec(), ttrans, nttrans, has_shift_transitions }
     }
 }
 
@@ -141,6 +143,7 @@ impl LexerState {
         }
 
         Self {
+            id: index,
             transitions: transitions.into_iter().map(|(dst, intervals)| Transition { intervals, dst }).collect(),
             can_transition_to_unlabelled_state,
             class: lexer.table.class(index),
