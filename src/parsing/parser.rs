@@ -37,7 +37,7 @@ impl ParserDefBuilder {
     #[must_use]
     pub fn new(lexer_def: lexer::LexerDef, var_names: Vec<String>, grammar: Grammar) -> Self {
         let word_count = grammar.word_count();
-        let production_count = grammar.production_count();
+        let production_count = grammar.productions().len();
 
         Self {
             def: ParserDef {
@@ -64,7 +64,7 @@ impl ParserDefBuilder {
     pub fn build(mut self) -> ParserDef {
         // In case where no production precedence has been specified, production precedence
         // is defaulted to the precedence of the rightmost token (that has some precedence).
-        for (i, alt) in self.def.grammar.rules().flat_map(|rule| rule.alts()).enumerate() {
+        for (i, alt) in self.def.grammar.rules().into_iter().flat_map(|rule| rule.alts()).enumerate() {
             if self.def.production_precedence[i].is_none() {
                 self.def.production_precedence[i] = alt.iter().rev().find_map(|&symbol| {
                     if let Symbol::Terminal(a) = symbol {

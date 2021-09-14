@@ -10,7 +10,7 @@ pub struct LR0ABuilder<'a> {
 
 impl inner::BuildItemSets<LR0Item> for LR0ABuilder<'_> {
     fn start_item(&self) -> LR0Item {
-        LR0Item::new(self.grammar.production_count() - 1, 0)
+        LR0Item::new(self.grammar.productions().len() - 1, 0)
     }
 
     fn advance(&self, item: &LR0Item) -> LR0Item {
@@ -32,7 +32,7 @@ impl inner::BuildItemSets<LR0Item> for LR0ABuilder<'_> {
 
             for item in &items {
                 if let Some(Symbol::Variable(A)) = item.symbol_at_dot(self.grammar) {
-                    for alt in self.grammar.rule(A).alt_indices() {
+                    for alt in self.grammar.rules().get(A).alt_indices() {
                         if new_items.insert(LR0Item::new(alt, 0)) {
                             done = false;
                         }

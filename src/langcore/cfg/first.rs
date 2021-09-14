@@ -43,7 +43,6 @@ impl Index<usize> for First {
 // === INTERNALS ===
 // =================
 
-
 /// Let `A ~ B` hold iff there is a production of the form `A -> pX...`, where
 /// `p` is a nullable sequence of symbols. Let `~+` be the transitive closure
 /// of relation `~`.
@@ -57,12 +56,12 @@ impl Index<usize> for First {
 /// 
 /// Hence, we can compute `first` by applying the transitive closure algorithm.
 fn compute_var_firsts_v2(grammar: &Grammar, nullable: &[bool]) -> Vec<BTreeSet<usize>> {
-    let var_count = grammar.var_count();
+    let var_count = grammar.rules().len();
     let mut first = vec![BTreeSet::new(); var_count];
     let mut dependency_matrix = vec![false; var_count * var_count];
     
     // Initialise first to trivial values and fill dependency_matrix
-    for (A, rule) in grammar.rules().enumerate() {
+    for (A, rule) in grammar.rules().into_iter().enumerate() {
         for alt in rule.alts() {            
             for &symbol in alt {
                 match symbol {

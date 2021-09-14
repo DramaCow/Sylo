@@ -14,7 +14,6 @@ where
     lr1a: &'a LR1A,
     grammar: &'a Grammar,
     labelling: F,
-    alt2var: Vec<usize>,
 }
 
 impl<'a, W, F, T> LR1ADotWriter<'a, W, F, T>
@@ -25,14 +24,11 @@ where
 {
     #[must_use]
     pub fn new(fmt: W, lr1a: &'a LR1A, grammar: &'a Grammar, labelling: F) -> Self {
-        let alt2var: Vec<_> = grammar.rules().enumerate().flat_map(|(i, rule)| rule.alts().map(move |_| i)).collect();
-
         Self {
             fmt: IndentWriter::new(fmt),
             lr1a,
             grammar,
             labelling,
-            alt2var,
         }
     }
 
@@ -72,8 +68,10 @@ where
             items.sort_by(|a, b| {
                 match (a.lr0_item.is_kernel_item(self.grammar), b.lr0_item.is_kernel_item(self.grammar)) {
                     (false, false) | (true, true) => {
-                        let c1 = self.alt2var[a.lr0_item.production] == self.grammar.var_count() - 1;
-                        let c2 = self.alt2var[b.lr0_item.production] == self.grammar.var_count() - 1;
+                        let prod_a = self.grammar.productions().get(a.lr0_item.production);
+                        let prod_b = self.grammar.productions().get(b.lr0_item.production);
+                        let c1 = prod_a.0 == self.grammar.rules().len() - 1;
+                        let c2 = prod_b.0 == self.grammar.rules().len() - 1;
                         match (c1, c2) {
                             (false, false) | (true, true) => a.cmp(&b),
                             (false, true) => Greater,
@@ -106,12 +104,12 @@ where
     }
 
     fn format_item(&self, item: &LR1Item) -> String {
-        let alt = self.grammar.alt(item.lr0_item.production);
+        let (lhs, rhs) = self.grammar.productions().get(item.lr0_item.production);
 
         format!("{} &rarr; {}&bull;{}, {}",
-            (self.labelling)(Symbol::Variable(self.alt2var[item.lr0_item.production])),
-            alt[..item.lr0_item.pos].iter().map(|&symbol| (self.labelling)(symbol).to_string()).collect::<Vec<_>>().join(" "),
-            alt[item.lr0_item.pos..].iter().map(|&symbol| (self.labelling)(symbol).to_string()).collect::<Vec<_>>().join(" "),
+            (self.labelling)(Symbol::Variable(lhs)),
+            rhs[..item.lr0_item.pos].iter().map(|&symbol| (self.labelling)(symbol).to_string()).collect::<Vec<_>>().join(" "),
+            rhs[item.lr0_item.pos..].iter().map(|&symbol| (self.labelling)(symbol).to_string()).collect::<Vec<_>>().join(" "),
             item.lookahead.map_or("$".to_string(), |a| format!("{}", (self.labelling)(Symbol::Terminal(a)))),
         )
     }

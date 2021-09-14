@@ -47,14 +47,14 @@ where
         F: FnMut(Conflict) -> Result<Action, Conflict>,
     {       
         let word_count = grammar.word_count() + 1; // +1 for eof
-        let var_count = grammar.var_count() - 1; // implicit start variable not needed in goto table
+        let var_count = grammar.rules().len() - 1; // implicit start variable not needed in goto table
         let num_states = self.state_count();
 
         let mut table = NaiveLR1Table {
             actions: vec![Action::Invalid; word_count * num_states],
             gotos: vec![None; var_count * num_states],
-            reductions:
-                grammar.rules().enumerate().flat_map(|(i, rule)| {
+            reductions: //grammar.productions().into_iter().map(|(lhs, rhs)| Reduction { var: lhs, count: rhs.len() }).collect(),
+                grammar.rules().into_iter().enumerate().flat_map(|(i, rule)| {
                     rule.alts().map(move |alt| Reduction { var: i, count: alt.len() })
                 }).collect(),
             word_count,

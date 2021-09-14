@@ -1,7 +1,7 @@
 mod table;
+use self::table::Reduction;
 pub use self::table::{
     Action,
-    Reduction,
     LR1Table,
     NaiveLR1Table,
 };

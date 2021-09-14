@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, btree_map::Entry::{Occupied, Vacant}};
 use crate::langcore::re::{LexTable, Command};
 use crate::langcore::cfg::{Grammar, Symbol};
-use crate::langcore::lr1_table::{self, Action, Reduction, LR1TableBuilderStrategy, LongestCommonPrecedingSubpath};
+use crate::langcore::lr1_table::{self, Action, LR1TableBuilderStrategy, LongestCommonPrecedingSubpath};
 use crate::lexer;
 use crate::parser;
 
@@ -9,7 +9,6 @@ pub struct Parser {
     pub name: String,
     pub lexer: Lexer,
     pub varnames: Vec<String>,
-    pub reductions: Vec<Reduction>,
     pub grammar: Grammar,
     pub states: Vec<ParserState>,
 }
@@ -69,7 +68,6 @@ impl Parser {
             name: name.to_string(),
             lexer: Lexer::new(name, &def.lexer_def),
             varnames: def.var_names.clone(),
-            reductions: parsing_table.reductions,
             grammar: def.grammar.clone(),
             states: action_rows.zip(goto_rows).enumerate().map(|(i, (action_row, goto_row))| {
                 ParserState::new(i, builder.longest_common_preceding_subpath(&def.grammar, i), action_row, goto_row)

@@ -67,7 +67,7 @@ where
 
 #[allow(clippy::doc_markdown)]
 /// For some state q of an LRk automaton, the longest common preceding subpath is the longest
-/// sequence of edges a_1, .., a_n all paths from start node s to q are of the form
+/// sequence of edges a_1, .., a_n such that all paths from start node s to q are of the form
 /// b.., a_1, .., a_n.
 pub trait LongestCommonPrecedingSubpath {
     fn longest_common_preceding_subpath<'a>(&self, grammar: &'a Grammar, state: usize) -> &'a [Symbol];
@@ -76,6 +76,6 @@ pub trait LongestCommonPrecedingSubpath {
 impl<T: inner::ItemSets> LongestCommonPrecedingSubpath for T {
     fn longest_common_preceding_subpath<'a>(&self, grammar: &'a Grammar, state: usize) -> &'a [Symbol] {
         let max_item = self.items(state).iter().max_by_key(|&item| self.pos(item)).unwrap();
-        &grammar.alt(self.production(max_item))[..self.pos(max_item)]
+        &grammar.productions().get(self.production(max_item)).1[..self.pos(max_item)]
     }
 }

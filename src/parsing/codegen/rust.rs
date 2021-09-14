@@ -128,9 +128,6 @@ impl<W: Write> RustWriter<W> {
     /// # Errors
     /// # Panics
     pub fn parser(mut self, parser: &ir::Parser) -> Result<Self, std::fmt::Error> {
-        let productions = parser.reductions[..parser.reductions.len()-1].iter().map(|reduction| reduction.var)
-            .zip(parser.grammar.rules().flat_map(|rule| rule.alts()));
-
         writeln!(self.fmt, "#![allow(non_camel_case_types)]")?;
         writeln!(self.fmt, "#![allow(unused_comparisons)]")?;
         writeln!(self.fmt, "#![allow(dead_code)]")?;
@@ -145,8 +142,8 @@ impl<W: Write> RustWriter<W> {
             writeln!(self.fmt, "type {varname}Product = ();", varname=varname)?; // TODO: product type is configurable per variable
         }
         writeln!(self.fmt)?;
-        for (i, (lhs, rhs)) in productions.enumerate() {
-            if lhs < parser.grammar.var_count() - 1 { // ignore the augmented grammar rule
+        for (i, (lhs, rhs)) in parser.grammar.productions().into_iter().enumerate() {
+            if lhs < parser.grammar.rules().len() - 1 { // ignore the augmented grammar rule
                 // write comment
                 write!(self.fmt, "// {varname} ->", varname=parser.varnames[lhs])?;
                 for &symbol in rhs {
@@ -423,10 +420,10 @@ impl<W: Write> RustWriter<W> {
                                 Some(word) => write!(self.fmt, "Some(Token {{ ttype: TokenType::{ttype}, .. }}) => ", ttype=parser.lexer.ttypes[word])?,
                                 None => write!(self.fmt, "None => ")?,
                             }
-                            let r = parser.reductions[p];
-                            write!(self.fmt, "return Ok((Variable::{varname}(p{i}(", varname=parser.varnames[r.var], i=p)?;
+                            let (lhs, rhs) = parser.grammar.productions().get(p);
+                            write!(self.fmt, "return Ok((Variable::{varname}(p{i}(", varname=parser.varnames[lhs], i=p)?;
                             let input_symbols = &state.input_symbols;
-                            let alt = parser.grammar.alt(p);
+                            let alt = parser.grammar.productions().get(p).1;
                             let offset = input_symbols.len() - alt.len();
                             for i in offset..input_symbols.len() {
                                 let arg = if input_symbols.len() == 1 { "arg".to_string() } else { format!("args.{i}", i=i) };
@@ -440,7 +437,7 @@ impl<W: Write> RustWriter<W> {
                                     write!(self.fmt, ", ")?;
                                 }
                             }
-                            writeln!(self.fmt, ")), {count})),", count=r.count-1)?;
+                            writeln!(self.fmt, ")), {count})),", count=rhs.len()-1)?;
                         }
                     };
                 }

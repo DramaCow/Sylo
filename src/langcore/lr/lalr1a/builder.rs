@@ -159,7 +159,7 @@ impl LALR1ABuilder<'_> {
             let NonterminalTransition { state: p, var: B } = transition;
             let mut successors = HashSet::new();
 
-            for alt in self.grammar.rule(B).alts() {
+            for alt in self.grammar.rules().get(B).alts() {
                 let mut q = p;
 
                 for (i, &symbol) in alt.iter().enumerate() {
@@ -206,7 +206,7 @@ impl LALR1ABuilder<'_> {
 
         for (i, &transition) in self.nonterminal_transitions().iter().enumerate() {
             let NonterminalTransition { state: p, var: A } = transition;
-            let rule = self.grammar.rule(A);
+            let rule = self.grammar.rules().get(A);
             
             for (alt_index, alt) in rule.alt_indices().zip(rule.alts()) {
                 let q = alt.iter().fold(p, |q, symbol| states[q].next[symbol]);

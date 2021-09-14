@@ -14,7 +14,6 @@ where
     lalr1a: &'a LALR1A,
     grammar: &'a Grammar,
     labelling: F,
-    alt2var: Vec<usize>,
 }
 
 impl<'a, W, F, T> LALR1ADotWriter<'a, W, F, T>
@@ -25,14 +24,11 @@ where
 {
     #[must_use]
     pub fn new(fmt: W, lalr1a: &'a LALR1A, grammar: &'a Grammar, labelling: F) -> Self {
-        let alt2var: Vec<_> = grammar.rules().enumerate().flat_map(|(i, rule)| rule.alts().map(move |_| i)).collect();
-
         Self {
             fmt: IndentWriter::new(fmt),
             lalr1a,
             grammar,
             labelling,
-            alt2var,
         }
     }
 
@@ -74,8 +70,10 @@ where
             items.sort_by(|a, b| {
                 match (a.is_kernel_item(self.grammar), b.is_kernel_item(self.grammar)) {
                     (false, false) | (true, true) => {
-                        let c1 = self.alt2var[a.production] == self.grammar.var_count() - 1;
-                        let c2 = self.alt2var[b.production] == self.grammar.var_count() - 1;
+                        let prod_a = self.grammar.productions().get(a.production);
+                        let prod_b = self.grammar.productions().get(b.production);
+                        let c1 = prod_a.0 == self.grammar.rules().len() - 1;
+                        let c2 = prod_b.0 == self.grammar.rules().len() - 1;
                         match (c1, c2) {
                             (false, false) | (true, true) => a.cmp(&b),
                             (false, true) => Greater,
@@ -108,12 +106,12 @@ where
     }
 
     fn format_item(&self, state: usize, item: &LR0Item) -> String {
-        let alt = self.grammar.alt(item.production);
+        let (lhs, rhs) = self.grammar.productions().get(item.production);
         
         let prefix = format!("{} &rarr; {}&bull;{}",
-            (self.labelling)(Symbol::Variable(self.alt2var[item.production])),
-            alt[..item.pos].iter().map(|&symbol| (self.labelling)(symbol).to_string()).collect::<Vec<_>>().join(" "),
-            alt[item.pos..].iter().map(|&symbol| (self.labelling)(symbol).to_string()).collect::<Vec<_>>().join(" "),
+            (self.labelling)(Symbol::Variable(lhs)),
+            rhs[..item.pos].iter().map(|&symbol| (self.labelling)(symbol).to_string()).collect::<Vec<_>>().join(" "),
+            rhs[item.pos..].iter().map(|&symbol| (self.labelling)(symbol).to_string()).collect::<Vec<_>>().join(" "),
         );
 
         let state_reduction_pair = StateReductionPair { state, production: item.production };
