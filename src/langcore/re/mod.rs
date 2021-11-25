@@ -51,7 +51,7 @@ pub fn any(s: &str) -> RegEx {
 pub fn range(from: char, to: char) -> RegEx {
     #[allow(clippy::cast_possible_truncation)]
     fn range32(from: u32, to: u32, optional: bool) -> RegEx {
-        fn byte_range(from: u8, to: u8) -> RegEx {
+        fn range8(from: u8, to: u8) -> RegEx {
             RegEx::set(CharSet::range(from, to))
         }
     
@@ -60,28 +60,28 @@ pub fn range(from: char, to: char) -> RegEx {
     
         let regex = {
             if b_high == 0 {
-                byte_range(a_low, b_low)
+                range8(a_low, b_low)
             } else if a_high == b_high {
-                byte_range(a_low, b_low).then(&range32(a_high, b_high, false))
+                range8(a_low, b_low).then(&range32(a_high, b_high, false))
             } else if a_low == u8::MIN && b_low == u8::MAX {
-                byte_range(u8::MIN, u8::MAX).then(&range32(a_high, b_high, a_high == 0))
+                range8(u8::MIN, u8::MAX).then(&range32(a_high, b_high, a_high == 0))
             } else if a_low == u8::MIN {
-                byte_range(u8::MIN, b_low).then(&range32(a_high, b_high, a_high == 0))
-                .or(&byte_range(b_low + 1, u8::MAX).then(&range32(a_high, b_high - 1, a_high == 0)))
+                range8(u8::MIN, b_low).then(&range32(a_high, b_high, a_high == 0))
+                .or(&range8(b_low + 1, u8::MAX).then(&range32(a_high, b_high - 1, a_high == 0)))
             } else if b_low == u8::MAX {
-                byte_range(u8::MIN, a_low - 1).then(&range32(a_high + 1, b_high, false))
-                .or(&byte_range(a_low, u8::MAX).then(&range32(a_high, b_high, a_high == 0)))
+                range8(u8::MIN, a_low - 1).then(&range32(a_high + 1, b_high, false))
+                .or(&range8(a_low, u8::MAX).then(&range32(a_high, b_high, a_high == 0)))
             } else if b_low >= a_low {
-                byte_range(u8::MIN, a_low - 1).then(&range32(a_high + 1, b_high, false))
-                .or(&byte_range(a_low, b_low).then(&range32(a_high, b_high, a_high == 0)))
-                .or(&byte_range(b_low + 1, u8::MAX).then(&range32(a_high, b_high - 1, a_high == 0)))
+                range8(u8::MIN, a_low - 1).then(&range32(a_high + 1, b_high, false))
+                .or(&range8(a_low, b_low).then(&range32(a_high, b_high, a_high == 0)))
+                .or(&range8(b_low + 1, u8::MAX).then(&range32(a_high, b_high - 1, a_high == 0)))
             } else if b_high > a_high + 1 && b_low + 1 < a_low {
-                byte_range(u8::MIN, b_low).then(&range32(a_high + 1, b_high, false))
-                .or(&byte_range(b_low + 1, a_low - 1).then(&range32(a_high + 1, b_high - 1, false)))
-                .or(&byte_range(a_low, u8::MAX).then(&range32(a_high, b_high - 1, a_high == 0)))
+                range8(u8::MIN, b_low).then(&range32(a_high + 1, b_high, false))
+                .or(&range8(b_low + 1, a_low - 1).then(&range32(a_high + 1, b_high - 1, false)))
+                .or(&range8(a_low, u8::MAX).then(&range32(a_high, b_high - 1, a_high == 0)))
             } else {
-                byte_range(u8::MIN, b_low).then(&range32(a_high + 1, b_high, false))
-                .or(&byte_range(a_low, u8::MAX).then(&range32(a_high, b_high - 1, a_high == 0)))
+                range8(u8::MIN, b_low).then(&range32(a_high + 1, b_high, false))
+                .or(&range8(a_low, u8::MAX).then(&range32(a_high, b_high - 1, a_high == 0)))
             }
         };
     

@@ -303,6 +303,7 @@ impl RegEx {
         &*self.root
     }
 
+    /// Returns true iff recognizes epsilon.
     #[must_use]
     pub fn is_nullable(&self) -> bool {
         match self.operator() {
