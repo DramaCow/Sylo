@@ -6,20 +6,20 @@
 #![allow(clippy::similar_names)]
 // #![warn(missing_docs)]
 
-pub mod utils;
-
-pub mod langcore;
+pub mod ast;
+pub mod lexer;
+pub mod parser;
+pub mod re_parser;
 
 #[macro_use]
-mod parsing;
-pub use parsing::{lexer, parser, cst, codegen, re};
+mod macros;
 
-// mod bindings {
-//     #![allow(non_upper_case_globals)]
-//     #![allow(non_camel_case_types)]
-//     #![allow(non_snake_case)]
-//     #![allow(deref_nullptr)]
-//     #![allow(dead_code)]
+// =================
+// === INTERNALS ===
+// =================
 
-//     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
-// }
+pub(crate) use regex_deriv as re;
+pub(crate) use lr_parsing_tools as lr;
+
+#[cfg(test)]
+mod tests;

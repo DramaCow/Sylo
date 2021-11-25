@@ -1,9 +1,9 @@
-use crate::langcore::{re, cfg::{Grammar, Symbol}, lr1_table};
-use crate::{lexer, cst};
-use crate::langcore::lr1_table::LR1TableConstruction;
+use crate::re;
+use crate::lr::{grammar::{Grammar, Symbol}, table};
+use crate::lexer;
 
 pub mod strategy {
-    use crate::langcore::lr1_table::{self, strategy};
+    use crate::lr::table::strategy;
     pub use strategy::LALR1;
     pub use strategy::LR1;
 }
@@ -80,29 +80,29 @@ impl ParserDefBuilder {
 }
 
 impl ParserDef {
-    pub fn conflict_resolution(&self) -> impl FnMut(lr1_table::Conflict) -> Result<lr1_table::Action, lr1_table::Conflict> + '_ {
+    pub fn conflict_resolution(&self) -> impl FnMut(table::Conflict) -> Result<table::Action, table::Conflict> + '_ {
         move |conflict| {
             match conflict {
-                lr1_table::Conflict::ShiftReduce { word, next_state, production } => {
+                table::Conflict::ShiftReduce { word, next_state, production } => {
                     let tok  = if let Some(tok) = self.token_precedence[word].as_ref() {
                         tok
                     } else {
-                        return Ok(lr1_table::Action::Shift(next_state))
+                        return Ok(table::Action::Shift(next_state))
                     };
 
                     let prod = if let Some(prod) = self.production_precedence[production].as_ref() {
                         prod
                     } else {
-                        return Ok(lr1_table::Action::Shift(next_state))
+                        return Ok(table::Action::Shift(next_state))
                     };
 
                     if prod.level > tok.level || (prod.level == tok.level && prod.associativity == Associativity::Left) {
-                        Ok(lr1_table::Action::Reduce(production))
+                        Ok(table::Action::Reduce(production))
                     } else {
-                        Ok(lr1_table::Action::Shift(next_state))
+                        Ok(table::Action::Shift(next_state))
                     }
                 }
-                lr1_table::Conflict::ReduceReduce { .. } => {
+                table::Conflict::ReduceReduce { .. } => {
                     Err(conflict)
                 }
             }
@@ -110,11 +110,11 @@ impl ParserDef {
     }
 
     /// # Errors
-    pub fn build<S: LR1TableConstruction>(&self, strategy: &S) -> Result<Parser, lr1_table::ConstructionError> {
+    pub fn build<S: table::LR1TableConstruction>(&self, _: &S) -> Result<Parser, table::ConstructionError> {
         Ok(Parser {
             lexer: self.lexer_def.build(),
             var_names: self.var_names.clone(),
-            parsing_table: strategy.construct(&self.grammar, self.conflict_resolution())?,
+            parsing_table: S::construct(&self.grammar, self.conflict_resolution())?,
         })
     }
 }
@@ -122,29 +122,15 @@ impl ParserDef {
 pub struct Parser {
     pub lexer: lexer::Lexer,
     pub var_names: Vec<String>,
-    pub parsing_table: lr1_table::NaiveLR1Table,
+    pub parsing_table: table::NaiveLR1Table,
 }
 
-type Parse<'a, F> = lr1_table::Parse<'a, lr1_table::NaiveLR1Table, lexer::Scan<'a>, re::Token, F>;
-type ParseError = lr1_table::ParseError<re::ScanError>;
+type Parse<'a, F> = table::Parse<'a, table::NaiveLR1Table, lexer::Scan<'a>, re::Token, F>;
+type ParseError = table::ParseError<re::ScanError>;
 
 impl<'a> Parser {
     /// # Errors
     pub fn parse<I: AsRef<[u8]> + ?Sized>(&'a self, input: &'a I) -> Parse<'a, impl Fn(&re::Token) -> usize> {
         Parse::new(&self.parsing_table, self.lexer.scan(input), |token: &re::Token| token.class)
-    }
-
-    /// # Errors
-    pub fn cst(&'a self, text: &'a str) -> Result<cst::CST, ParseError> {
-        let mut builder = cst::CSTBuilder::new();
-
-        for res in self.parse(text) {
-            match res? {
-                lr1_table::Event::Shift(token) => builder.leaf(token.class, &text[token.span]),
-                lr1_table::Event::Reduce { var, child_count, production: _ } => builder.branch(var, child_count),
-            }
-        }
-
-        Ok(builder.build())
     }
 }

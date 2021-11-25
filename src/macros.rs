@@ -57,7 +57,7 @@ macro_rules! _lexer_def_internal {
     (@ $out:ident $count:expr ; $($id:expr , $command:ident $label:ident $regex:expr);+) => {
         $(
             #[allow(non_upper_case_globals)]
-            const $label: $crate::langcore::cfg::Symbol = $crate::langcore::cfg::Symbol::Terminal($id);
+            const $label: lr_parsing_tools::grammar::Symbol = lr_parsing_tools::grammar::Symbol::Terminal($id);
         )+
         const __WORD_COUNT__: usize = $count;
         let $out = _lexer_def_internal![@ _ $count ; $($id , $command $label $regex);+];
@@ -77,7 +77,7 @@ macro_rules! _precedence_internal {
         {
             $(
                 $(
-                    if let $crate::langcore::cfg::Symbol::Terminal(a) = $token {
+                    if let lr_parsing_tools::grammar::Symbol::Terminal(a) = $token {
                         $parser_def.set_token_precedence(a, $crate::parser::Precedence { level: $id, associativity: $crate::parser::Associativity::Left });
                     }
                 )+
@@ -99,12 +99,12 @@ macro_rules! _parser_def_internal {
         {
             $(
                 #[allow(non_upper_case_globals)]
-                const $label: $crate::langcore::cfg::Symbol = $crate::langcore::cfg::Symbol::Variable($id); 
+                const $label: lr_parsing_tools::grammar::Symbol = lr_parsing_tools::grammar::Symbol::Variable($id); 
             )+
             $crate::parser::ParserDefBuilder::new(
                 $lexer_def,
                 vec![$(stringify!($label).to_string()),+],
-                $crate::langcore::cfg::GrammarBuilder::new()$(.rule($rule))+.build().unwrap(),
+                lr_parsing_tools::grammar::GrammarBuilder::new()$(.rule($rule))+.build().unwrap(),
             )
         }
     };

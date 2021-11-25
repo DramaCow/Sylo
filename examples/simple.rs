@@ -1,34 +1,17 @@
 
-#[macro_use] extern crate sylo;
+extern crate sylo;
+extern crate regex_deriv;
 
-use std::time::Instant;
-use sylo::langcore::re;
-use sylo::parser::strategy;
+use sylo::ast::*;
+use regex_deriv as re;
 
 fn main() {
-    let timer = Instant::now();
-
-    let def = parser! {
-        {
-            [skip] _ws: re::any(" ,").plus(),
-            word:       re::range('a', 'z').plus(),
-            period:     re::literal("."),
-            ellipses:   re::literal("..."),
-        },
-        {
-            Paragraph : Sentences,
-            Sentences : Sentences Sentence
-                      | Sentence,
-            Sentence  : Words period
-                      | Words ellipses,
-            Words     : Words word
-                      | word,
-        }
-    };
-
-    let parser = def.build(&strategy::LR1).unwrap();
-    let text = "never gonna give you up. never gonna let you down...";
-    let cst = parser.cst(text).unwrap();
-    std::fs::write("_graph.dot", cst.dot(&parser).unwrap()).unwrap();
-    println!("Regex lexer-parser compiled in {:?}.", timer.elapsed());
+    let mut def = ParserDef::default();
+    def.tokens.push(Token { name: Ident("DIGIT".into()), regex: re::RegEx::range32('0' as u32, '9' as u32) });
+    def.rules.push(Rule {
+        name: Ident("Expr".into()),
+        expr: Expr::Opt(Box::new(Expr::Token(Ident("DIGIT".into())))),
+    });
+    let (lexicon, grammar) = def.compile();
+    println!("{:?}", grammar.productions().into_iter().collect::<Vec<_>>())
 }

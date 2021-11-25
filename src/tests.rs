@@ -1,4 +1,4 @@
-use crate::langcore::re;
+use regex_deriv as re;
 
 #[test]
 fn simple_lexer() {

@@ -1,13 +1,19 @@
-use crate::langcore::re::{self, RegEx};
+use regex_deriv as re;
 
 pub struct LexerDefBuilder {
     def: LexerDef,
 }
 
+#[derive(Clone, Copy)]
+pub enum Command {
+    Skip,
+    Emit,
+}
+
 pub struct LexerDef {
     pub vocab: Vec<String>,
     pub regexes: Vec<re::RegEx>,
-    pub commands: Vec<re::Command>,
+    pub commands: Vec<Command>,
 }
 
 impl LexerDefBuilder {
@@ -17,12 +23,12 @@ impl LexerDefBuilder {
         Self { def: LexerDef { vocab: Vec::new(), regexes: Vec::new(), commands: Vec::new() } }
     }
 
-    pub fn rule(&mut self, label: String, regex: RegEx) -> &mut Self {
-        self._rule_interal(label, regex, re::Command::Emit)
+    pub fn rule(&mut self, label: String, regex: re::RegEx) -> &mut Self {
+        self._rule_interal(label, regex, Command::Emit)
     }
 
-    pub fn skip(&mut self, label: String, regex: RegEx) -> &mut Self {
-        self._rule_interal(label, regex, re::Command::Skip)
+    pub fn skip(&mut self, label: String, regex: re::RegEx) -> &mut Self {
+        self._rule_interal(label, regex, Command::Skip)
     }
 
     #[must_use]
@@ -39,7 +45,7 @@ impl LexerDefBuilder {
         self.def
     }
 
-    fn _rule_interal(&mut self, label: String, regex: RegEx, command: re::Command) -> &mut Self {
+    fn _rule_interal(&mut self, label: String, regex: re::RegEx, command: Command) -> &mut Self {
         self.def.vocab.push(label);
         self.def.regexes.push(regex);
         self.def.commands.push(command);
@@ -57,7 +63,8 @@ impl LexerDef {
         
         Lexer {
             vocab: self.vocab.clone(),
-            table: re::NaiveLexTable::new(&self.regexes, self.commands.iter().copied()),
+            table: re::NaiveLexTable::new(&re::DFA::from(&self.regexes).minimize()),
+            commands: self.commands.clone(),
         }
     }
 }
@@ -65,6 +72,7 @@ impl LexerDef {
 pub struct Lexer {
     pub vocab: Vec<String>,
     pub(super) table: re::NaiveLexTable,
+    pub commands: Vec<Command>,
 }
 
 pub type Scan<'a> = re::Scan<'a, re::NaiveLexTable>;
