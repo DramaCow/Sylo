@@ -1,0 +1,54 @@
+use crate::ast_utils::{Grammar, Rule, NamedExpression, Expression};
+use crate::tok::{Token, ScanError};
+use std::str::FromStr;
+use std::iter::once;
+
+grammar<'input>(text: &'input str);
+
+pub Rule: Rule = {
+    <n:"IDENT"> "=" <e:Expr> => { Rule { name: n.to_string(), expr: e } },
+};
+
+pub Expr: Expression = {
+    <e:Production> <es:("|" <Production>)*> => { if es.is_empty() { e } else { Expression::Alt(once(e).chain(es).collect()) } },
+};
+
+pub Production: Expression = {
+    <nes:ProductionTerm+> <code:"CODE"> => { Expression::Seq(nes, code.to_string()) },
+};
+
+pub ProductionTerm: NamedExpression = {
+    <n:"IDENT"> ":" <e:Term> => { e.tag(Some(n.to_string())) },
+    <Term> => { <>.tag(None) }
+};
+
+pub Term: Expression = {
+    <e:Factor> "?" => { e.opt() },
+    <e:Factor> "*" => { e.star() },
+    <e:Factor> "+" => { e.plus() },
+    <Factor>,
+};
+
+pub Factor: Expression = {
+    "(" <Expr> ")",
+    <"IDENT"> => { Expression::Rule(<>.to_string()) },
+};
+
+extern {
+    type Location = usize;
+    type Error = ScanError;
+    enum Token<'input> {
+        "=" => Token::Equals,
+        "|" => Token::Bar,
+        "?" => Token::Opt,
+        "*" => Token::Star,
+        "+" => Token::Plus,
+        "(" => Token::LParen,
+        ")" => Token::RParen,
+        ":" => Token::Colon,
+        ";" => Token::Semi,
+        "IDENT" => Token::Ident(<&'input str>),
+        "CODE" => Token::Code(<&'input str>),
+        "LITERAL" => Token::Literal(<&'input str>),
+    }
+}

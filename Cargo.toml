@@ -5,9 +5,14 @@ authors = ["Sam C <sc14809@my.bristol.ac.uk>"]
 edition = "2018"
 publish = false
 
+[build-dependencies]
+lalrpop = "0.19.6"
+
 [dependencies]
 regex-deriv = { path = "../rust-regex-deriv" }
 lr-parsing-tools = { path = "../rust-lr-parsing-tools" }
+unicode-xid = "0.0.4"
+lalrpop-util = "0.19.6"
 
 [profile.release]
 debug = 1

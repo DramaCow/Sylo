@@ -1,4 +1,4 @@
-use std::collections::{HashSet, HashMap, hash_map::Entry::{Occupied, Vacant}};
+use std::collections::{HashMap, hash_map::Entry::{Occupied, Vacant}};
 use crate::re::{self, RegEx};
 use crate::lr::grammar::{Grammar, GrammarBuilder, Symbol, Symbol::Terminal as Word, Symbol::Variable as Var};
 
@@ -40,6 +40,28 @@ pub enum Expr<Ident, Code> {
     Opt(Box<Expr<Ident, Code>>),
     Star(Box<Expr<Ident, Code>>),
     Plus(Box<Expr<Ident, Code>>),
+}
+
+impl<Ident, Code> Expr<Ident, Code> {
+    #[must_use]
+    pub fn opt(self) -> Self {
+        Self::Opt(Box::new(self))
+    }
+
+    #[must_use]
+    pub fn star(self) -> Self {
+        Self::Star(Box::new(self))
+    }
+
+    #[must_use]
+    pub fn plus(self) -> Self {
+        Self::Plus(Box::new(self))
+    }
+
+    #[must_use]
+    pub fn tag(self, name: Option<Ident>) -> NamedExpr<Ident, Code> {
+        NamedExpr { name, expr: self }
+    }
 }
 
 impl<Ident, Code> ParserDef<Ident, Code>
