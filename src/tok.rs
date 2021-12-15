@@ -2,6 +2,8 @@ use std::ops::Range;
 use std::str::CharIndices;
 use unicode_xid::UnicodeXID;
 
+type Spanned<T> = (usize, T, usize);
+
 pub struct Scan<'a> {
     input: &'a str,
     chars: CharIndices<'a>,
@@ -24,6 +26,8 @@ pub enum Token<'a> {
     RParen,
     Colon,
     Semi,
+    Less,
+    Greater,
     Ident(&'a str),
     Code(&'a str),
     Literal(&'a str),
@@ -43,7 +47,7 @@ impl<'a> Scan<'a> {
     }
 
     #[allow(clippy::range_plus_one)]
-    fn code(&mut self, i0: usize) -> Result<Token<'a>, ScanError> {
+    fn code(&mut self, i0: usize) -> Result<Spanned<Token<'a>>, ScanError> {
         // TODO: consider '{'s that appear in comments
         self.advance();
         let mut balance = 0; // number of unclosed '{'
@@ -55,7 +59,7 @@ impl<'a> Scan<'a> {
                 Some((i, '}')) => {
                     self.advance();
                     if balance == 0 {
-                        return Ok(Token::Code(&self.input[i0+1..i]))
+                        return Ok((i0+1, Token::Code(&self.input[i0+1..i]), i))
                     };
                     balance -= 1;
                 },
@@ -91,22 +95,24 @@ impl<'a> Scan<'a> {
 }
 
 impl<'a> Iterator for Scan<'a> {
-    type Item = Result<Token<'a>, ScanError>;
+    type Item = Result<Spanned<Token<'a>>, ScanError>;
 
     #[allow(clippy::never_loop)]
     #[allow(clippy::range_plus_one)]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             return match self.next_char {
-                Some((i, '=')) => { self.advance(); Some(Ok(Token::Equals)) },
-                Some((i, '|')) => { self.advance(); Some(Ok(Token::Bar)) },
-                Some((i, '?')) => { self.advance(); Some(Ok(Token::Opt)) },
-                Some((i, '*')) => { self.advance(); Some(Ok(Token::Star)) },
-                Some((i, '+')) => { self.advance(); Some(Ok(Token::Plus)) },
-                Some((i, '(')) => { self.advance(); Some(Ok(Token::LParen)) },
-                Some((i, ')')) => { self.advance(); Some(Ok(Token::RParen)) },
-                Some((i, ':')) => { self.advance(); Some(Ok(Token::Colon)) },
-                Some((i, ';')) => { self.advance(); Some(Ok(Token::Semi)) },
+                Some((i, '=')) => { self.advance(); Some(Ok((i, Token::Equals , i+1))) },
+                Some((i, '|')) => { self.advance(); Some(Ok((i, Token::Bar    , i+1))) },
+                Some((i, '?')) => { self.advance(); Some(Ok((i, Token::Opt    , i+1))) },
+                Some((i, '*')) => { self.advance(); Some(Ok((i, Token::Star   , i+1))) },
+                Some((i, '+')) => { self.advance(); Some(Ok((i, Token::Plus   , i+1))) },
+                Some((i, '(')) => { self.advance(); Some(Ok((i, Token::LParen , i+1))) },
+                Some((i, ')')) => { self.advance(); Some(Ok((i, Token::RParen , i+1))) },
+                Some((i, ':')) => { self.advance(); Some(Ok((i, Token::Colon  , i+1))) },
+                Some((i, ';')) => { self.advance(); Some(Ok((i, Token::Semi   , i+1))) },
+                Some((i, '<')) => { self.advance(); Some(Ok((i, Token::Less   , i+1))) },
+                Some((i, '>')) => { self.advance(); Some(Ok((i, Token::Greater, i+1))) },
                 Some((i, '{')) => Some(self.code(i)),
                 Some((i, c)) if is_identifier_start(c) => {
                     self.advance();
@@ -114,16 +120,22 @@ impl<'a> Iterator for Scan<'a> {
                         'r' => {
                             match self.next_char {
                                 Some((_, '"')) => todo!(),
-                                _ => Some(Ok(Token::Ident(&self.input[i..self.ident_tail()]))),
+                                _ => {
+                                    let end = self.ident_tail();
+                                    Some(Ok((i, Token::Ident(&self.input[i..end]), end)))
+                                },
                             }
                          },
-                        _ => Some(Ok(Token::Ident(&self.input[i..self.ident_tail()]))),
+                        _ => {
+                            let end = self.ident_tail();
+                            Some(Ok((i, Token::Ident(&self.input[i..end]), end)))
+                        },
                     }
                 }
                 Some((i, '"')) => {
                     self.advance();
                     match self.string_or_char_literal('"') {
-                        Some(end) => Some(Ok(Token::Literal(&self.input[i+1..end]))),
+                        Some(end) => Some(Ok((i+1, Token::Literal(&self.input[i+1..end]), end))),
                         None => Some(Err(ScanError {})),
                     }
                 }

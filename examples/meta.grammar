@@ -1,0 +1,7 @@
+Grammar = Rule+;
+Rule = IDENT "equals" Expr ";" {};
+Expr = Production ("|" Production {})* {};
+Production = ProductionTerm+ CODE {};
+ProductionTerm = IDENT ":" Term {} | Term;
+Term = Factor "?" {} | Factor "*" {} | Factor "+" {} | Factor;
+Factor = "(" Expr ")" {} | IDENT;

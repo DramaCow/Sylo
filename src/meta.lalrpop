@@ -1,37 +1,43 @@
-use crate::ast_utils::{Grammar, Rule, NamedExpression, Expression};
+use crate::ast_utils::{Grammar, Rule, NamedExpr, Expr};
 use crate::tok::{Token, ScanError};
 use std::str::FromStr;
 use std::iter::once;
 
 grammar<'input>(text: &'input str);
 
+pub Grammar: Grammar = {
+    <Rule+> => { Grammar { tokens: Vec::new(), rules: <> } },
+}
+
 pub Rule: Rule = {
-    <n:"IDENT"> "=" <e:Expr> => { Rule { name: n.to_string(), expr: e } },
+    <n:"IDENT"> "=" <e:Expr> ";" => { Rule { name: n.to_string(), expr: e } },
 };
 
-pub Expr: Expression = {
-    <e:Production> <es:("|" <Production>)*> => { if es.is_empty() { e } else { Expression::Alt(once(e).chain(es).collect()) } },
+pub Expr: Expr = {
+    <e:Production> <es:("|" <Production>)*> => { if es.is_empty() { e } else { Expr::Alt(once(e).chain(es).collect()) } },
 };
 
-pub Production: Expression = {
-    <nes:ProductionTerm+> <code:"CODE"> => { Expression::Seq(nes, code.to_string()) },
+pub Production: Expr = {
+    <nes:ProductionTerm+> <code:"CODE"> => { Expr::Seq(nes, code.to_string()) },
+    Term,
 };
 
-pub ProductionTerm: NamedExpression = {
+pub ProductionTerm: NamedExpr = {
     <n:"IDENT"> ":" <e:Term> => { e.tag(Some(n.to_string())) },
     <Term> => { <>.tag(None) }
 };
 
-pub Term: Expression = {
+pub Term: Expr = {
     <e:Factor> "?" => { e.opt() },
     <e:Factor> "*" => { e.star() },
     <e:Factor> "+" => { e.plus() },
-    <Factor>,
+    Factor,
 };
 
-pub Factor: Expression = {
+pub Factor: Expr = {
     "(" <Expr> ")",
-    <"IDENT"> => { Expression::Rule(<>.to_string()) },
+    <"IDENT"> => { Expr::Rule(<>.to_string()) },
+    <"LITERAL"> => { Expr::Literal(<>.to_string()) },
 };
 
 extern {
@@ -47,6 +53,8 @@ extern {
         ")" => Token::RParen,
         ":" => Token::Colon,
         ";" => Token::Semi,
+        "<" => Token::Less,
+        ">" => Token::Greater,
         "IDENT" => Token::Ident(<&'input str>),
         "CODE" => Token::Code(<&'input str>),
         "LITERAL" => Token::Literal(<&'input str>),
