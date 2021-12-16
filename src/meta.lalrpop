@@ -6,8 +6,12 @@ use std::iter::once;
 grammar<'input>(text: &'input str);
 
 pub Grammar: Grammar = {
-    <Rule+> => { Grammar { tokens: Vec::new(), rules: <> } },
-}
+    Token* <Rule+> => { Grammar { tokens: Vec::new(), rules: <> } },
+};
+
+pub Token: () = {
+    <t:"TOKEN"> "=" <v:"LITERAL"> ";" => {}
+};
 
 pub Rule: Rule = {
     <n:"IDENT"> "=" <e:Expr> ";" => { Rule { name: n.to_string(), expr: e } },
@@ -37,6 +41,7 @@ pub Term: Expr = {
 pub Factor: Expr = {
     "(" <Expr> ")",
     <"IDENT"> => { Expr::Rule(<>.to_string()) },
+    <"TOKEN"> => { Expr::Token(<>.to_string()) },
     <"LITERAL"> => { Expr::Literal(<>.to_string()) },
 };
 
@@ -56,6 +61,7 @@ extern {
         "<" => Token::Less,
         ">" => Token::Greater,
         "IDENT" => Token::Ident(<&'input str>),
+        "TOKEN" => Token::Token(<&'input str>),
         "CODE" => Token::Code(<&'input str>),
         "LITERAL" => Token::Literal(<&'input str>),
     }

@@ -9,7 +9,8 @@ publish = false
 lalrpop = "0.19.6"
 
 [dependencies]
-regex-deriv = { path = "../rust-regex-deriv" }
+regex-deriv = { path = "../rust-regex-deriv/regex-deriv" }
+regex-deriv-syntax = { path = "../rust-regex-deriv/regex-deriv-syntax" }
 lr-parsing-tools = { path = "../rust-lr-parsing-tools" }
 unicode-xid = "0.0.4"
 lalrpop-util = "0.19.6"

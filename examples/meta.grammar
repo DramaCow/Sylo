@@ -1,7 +1,15 @@
+$IDENT = "something";
+$CODE = "something else";
+
 Grammar = Rule+;
-Rule = IDENT "equals" Expr ";" {};
+Rule = $IDENT "=" Expr ";" {};
 Expr = Production ("|" Production {})* {};
-Production = ProductionTerm+ CODE {};
-ProductionTerm = IDENT ":" Term {} | Term;
-Term = Factor "?" {} | Factor "*" {} | Factor "+" {} | Factor;
-Factor = "(" Expr ")" {} | IDENT;
+Production = ProductionTerm+ $CODE {};
+ProductionTerm = $IDENT ":" Term {}
+               | Term;
+Term = Factor "?" {}
+     | Factor "*" {}
+     | Factor "+" {}
+     | Factor;
+Factor = "(" Expr ")" {}
+       | $IDENT;

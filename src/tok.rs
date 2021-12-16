@@ -29,6 +29,7 @@ pub enum Token<'a> {
     Less,
     Greater,
     Ident(&'a str),
+    Token(&'a str),
     Code(&'a str),
     Literal(&'a str),
 }
@@ -130,6 +131,16 @@ impl<'a> Iterator for Scan<'a> {
                             let end = self.ident_tail();
                             Some(Ok((i, Token::Ident(&self.input[i..end]), end)))
                         },
+                    }
+                }
+                Some((i, '$')) => {
+                    match self.advance() {
+                        Some((_, c)) if is_identifier_start(c) => {
+                            self.advance();
+                            let end = self.ident_tail();
+                            Some(Ok((i+1, Token::Token(&self.input[i+1..end]), end)))
+                        },
+                        _ => Some(Err(ScanError {})),
                     }
                 }
                 Some((i, '"')) => {

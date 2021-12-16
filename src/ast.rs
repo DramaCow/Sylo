@@ -271,7 +271,7 @@ where
 {
     match parent {
         Expr::Literal(literal) => { fmt.push('"'); fmt.push_str(literal); fmt.push('"'); },
-        Expr::Token(ident) => fmt.push_str(ident.as_ref()),
+        Expr::Token(ident) => { fmt.push('$'); fmt.push_str(ident.as_ref()) },
         Expr::Rule(ident) => fmt.push_str(ident.as_ref()),
         Expr::Seq(named_exprs, code) => { fmt.push('('); unparse_named_expr(fmt, named_exprs, code); fmt.push(')'); }
         Expr::Alt(exprs) => {
