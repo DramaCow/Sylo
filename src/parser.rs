@@ -1,9 +1,8 @@
-use crate::re;
-use crate::lr::{grammar::{Grammar, Symbol}, table};
+use lr_parsing_tools::{grammar::{Grammar, Symbol}, table};
 use crate::lexer;
 
 pub mod strategy {
-    use crate::lr::table::strategy;
+    use lr_parsing_tools::table::strategy;
     pub use strategy::LALR1;
     pub use strategy::LR1;
 }
@@ -125,12 +124,12 @@ pub struct Parser {
     pub parsing_table: table::NaiveLR1Table,
 }
 
-type Parse<'a, F> = table::Parse<'a, table::NaiveLR1Table, lexer::Scan<'a>, re::Token, F>;
-type ParseError = table::ParseError<re::ScanError>;
+type Parse<'a, F> = table::Parse<'a, table::NaiveLR1Table, lexer::Scan<'a>, regex_deriv::Token, F>;
+type ParseError = table::ParseError<regex_deriv::ScanError>;
 
 impl<'a> Parser {
     /// # Errors
-    pub fn parse<I: AsRef<[u8]> + ?Sized>(&'a self, input: &'a I) -> Parse<'a, impl Fn(&re::Token) -> usize> {
-        Parse::new(&self.parsing_table, self.lexer.scan(input), |token: &re::Token| token.class)
+    pub fn parse<I: AsRef<[u8]> + ?Sized>(&'a self, input: &'a I) -> Parse<'a, impl Fn(&regex_deriv::Token) -> usize> {
+        Parse::new(&self.parsing_table, self.lexer.scan(input), |token: &regex_deriv::Token| token.class)
     }
 }

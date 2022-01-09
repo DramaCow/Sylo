@@ -1,68 +1,80 @@
-use crate::ast_utils::{Grammar, Rule, NamedExpr, Expr};
-use crate::tok::{Token, ScanError};
+use crate::{ast, tok};
 use std::str::FromStr;
 use std::iter::once;
 
 grammar<'input>(text: &'input str);
 
-pub Grammar: Grammar = {
-    Token* <Rule+> => { Grammar { tokens: Vec::new(), rules: <> } },
+pub Grammar: ast::Grammar = {
+    <tokens:Token*> <rules:Rule+> => ast::Grammar { tokens, rules },
 };
 
-pub Token: () = {
-    <t:"TOKEN"> "=" <v:"LITERAL"> ";" => {}
+Token: ast::Token = {
+    <t:"TOKEN"> "=" <regex:LiteralOrRegex> ";" => {
+        ast::Token {
+            name: t.to_string(),
+            regex,
+        }
+    },
 };
 
-pub Rule: Rule = {
-    <n:"IDENT"> "=" <e:Expr> ";" => { Rule { name: n.to_string(), expr: e } },
+LiteralOrRegex: regex_deriv::RegEx = {
+    <"LITERAL"> => ast::regex_literal(<>),
+    <"REGEX"> => regex_deriv_syntax::parse(<>).unwrap(),
 };
 
-pub Expr: Expr = {
-    <e:Production> <es:("|" <Production>)*> => { if es.is_empty() { e } else { Expr::Alt(once(e).chain(es).collect()) } },
+Rule: ast::Rule = {
+    <n:"IDENT"> "=" <e:Expr> ";" => ast::Rule { name: n.to_string(), expr: e },
 };
 
-pub Production: Expr = {
-    <nes:ProductionTerm+> <code:"CODE"> => { Expr::Seq(nes, code.to_string()) },
+Expr: ast::Expr = {
+    <e:Production> <es:("|" <Production>)*> => {
+        if es.is_empty() { e } else { ast::Expr::Alt(once(e).chain(es).collect()) }
+    },
+};
+
+Production: ast::Expr = {
+    <nes:ProductionTerm+> <code:"CODE"> => ast::Expr::Seq(nes, code.to_string()),
     Term,
 };
 
-pub ProductionTerm: NamedExpr = {
-    <n:"IDENT"> ":" <e:Term> => { e.tag(Some(n.to_string())) },
-    <Term> => { <>.tag(None) }
+ProductionTerm: ast::NamedExpr = {
+    <n:"IDENT"> ":" <e:Term> => e.tag(Some(n.to_string())),
+    <Term> => <>.tag(None),
 };
 
-pub Term: Expr = {
-    <e:Factor> "?" => { e.opt() },
-    <e:Factor> "*" => { e.star() },
-    <e:Factor> "+" => { e.plus() },
+Term: ast::Expr = {
+    <e:Factor> "?" => ast::Expr::Opt(Box::new(e)),
+    <e:Factor> "*" => ast::Expr::Star(Box::new(e)),
+    <e:Factor> "+" => ast::Expr::Plus(Box::new(e)),
     Factor,
 };
 
-pub Factor: Expr = {
+Factor: ast::Expr = {
     "(" <Expr> ")",
-    <"IDENT"> => { Expr::Rule(<>.to_string()) },
-    <"TOKEN"> => { Expr::Token(<>.to_string()) },
-    <"LITERAL"> => { Expr::Literal(<>.to_string()) },
+    <"IDENT"> => ast::Expr::Rule(<>.to_string()),
+    <"TOKEN"> => ast::Expr::Token(<>.to_string()),
+    <"LITERAL"> => ast::Expr::Literal(<>.to_string()),
 };
 
 extern {
     type Location = usize;
-    type Error = ScanError;
-    enum Token<'input> {
-        "=" => Token::Equals,
-        "|" => Token::Bar,
-        "?" => Token::Opt,
-        "*" => Token::Star,
-        "+" => Token::Plus,
-        "(" => Token::LParen,
-        ")" => Token::RParen,
-        ":" => Token::Colon,
-        ";" => Token::Semi,
-        "<" => Token::Less,
-        ">" => Token::Greater,
-        "IDENT" => Token::Ident(<&'input str>),
-        "TOKEN" => Token::Token(<&'input str>),
-        "CODE" => Token::Code(<&'input str>),
-        "LITERAL" => Token::Literal(<&'input str>),
+    type Error = tok::ScanError;
+    enum tok::Token<'input> {
+        "="       => tok::Token::Equals,
+        "|"       => tok::Token::Bar,
+        "?"       => tok::Token::Opt,
+        "*"       => tok::Token::Star,
+        "+"       => tok::Token::Plus,
+        "("       => tok::Token::LParen,
+        ")"       => tok::Token::RParen,
+        ":"       => tok::Token::Colon,
+        ";"       => tok::Token::Semi,
+        "<"       => tok::Token::Less,
+        ">"       => tok::Token::Greater,
+        "IDENT"   => tok::Token::Ident(<&'input str>),
+        "TOKEN"   => tok::Token::Token(<&'input str>),
+        "LITERAL" => tok::Token::Literal(<&'input str>),
+        "REGEX"   => tok::Token::RegEx(<&'input str>),
+        "CODE"    => tok::Token::Code(<&'input str>),
     }
 }

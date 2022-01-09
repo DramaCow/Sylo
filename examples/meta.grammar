@@ -1,5 +1,6 @@
 $IDENT = "something";
 $CODE = "something else";
+$REGEX = r#""something""#;
 
 Grammar = Rule+;
 Rule = $IDENT "=" Expr ";" {};

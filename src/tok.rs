@@ -1,4 +1,3 @@
-use std::ops::Range;
 use std::str::CharIndices;
 use unicode_xid::UnicodeXID;
 
@@ -30,8 +29,9 @@ pub enum Token<'a> {
     Greater,
     Ident(&'a str),
     Token(&'a str),
-    Code(&'a str),
     Literal(&'a str),
+    RegEx(&'a str),
+    Code(&'a str),
 }
 
 impl<'a> Scan<'a> {
@@ -70,6 +70,35 @@ impl<'a> Scan<'a> {
         }
     }
 
+    fn regex(&mut self, i0: usize) -> Result<Spanned<Token<'a>>, ScanError> {
+        let mut num_pounds: usize = 0;
+        loop {
+            match self.next_char {
+                Some((_, '#')) => num_pounds += 1,
+                Some((_, '"')) => { self.advance(); break; }
+                _ => return Err(ScanError {}),
+            }
+            self.advance();
+        }
+
+        let mut state: usize = 0;
+        loop {
+            let (i, c) = self.next_char.ok_or_else(|| ScanError {})?;
+            state = match (state, c) {
+                (_, '"') => 1,
+                (0, '#') => 0,
+                (_, '#') => state + 1, 
+                (_, _)   => 0,
+            };
+            self.advance();
+            if state == num_pounds + 1 {
+                let start = i0 + num_pounds + 1;
+                let end = i - num_pounds;
+                return Ok((start, Token::RegEx(&self.input[start..end]), end))
+            }
+        }
+    }
+    
     fn ident_tail(&mut self) -> usize {
         loop {
             match self.next_char {
@@ -120,7 +149,9 @@ impl<'a> Iterator for Scan<'a> {
                     match c {
                         'r' => {
                             match self.next_char {
-                                Some((_, '"')) => todo!(),
+                                Some((_, '"')) | Some((_, '#')) => {
+                                    Some(self.regex(i+1))
+                                },
                                 _ => {
                                     let end = self.ident_tail();
                                     Some(Ok((i, Token::Ident(&self.input[i..end]), end)))

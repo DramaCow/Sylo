@@ -21,12 +21,12 @@ use regex_deriv as re;
 //     assert!(tokens.iter().all(|token| token.class == 1));
 // }
 
-use crate::meta;
+// use crate::meta;
 
-#[test]
-fn calculator1() {
-    assert!(meta::TermParser::new().parse("22").is_ok());
-    assert!(meta::TermParser::new().parse("(22)").is_ok());
-    assert!(meta::TermParser::new().parse("((((22))))").is_ok());
-    assert!(meta::TermParser::new().parse("((22)").is_err());
-}
+// #[test]
+// fn calculator1() {
+//     assert!(meta::TermParser::new().parse("22").is_ok());
+//     assert!(meta::TermParser::new().parse("(22)").is_ok());
+//     assert!(meta::TermParser::new().parse("((((22))))").is_ok());
+//     assert!(meta::TermParser::new().parse("((22)").is_err());
+// }

@@ -1,14 +1,18 @@
 use std::collections::{HashMap, hash_map::Entry::{Occupied, Vacant}};
-use crate::re::RegEx;
-use crate::lr::grammar::{self as imp, Symbol::{Terminal as Word, Variable as Var}};
+use regex_deriv::{RegEx, ByteSet};
+use regex_deriv_syntax as re;
+use lr_parsing_tools::grammar::{self as imp, Symbol::{Terminal as Word, Variable as Var}};
 
-pub struct Grammar<Ident, Code> {
-    pub tokens: Vec<Token<Ident>>,
-    pub rules: Vec<Rule<Ident, Code>>,
+pub type Ident = String;
+pub type Code = String;
+
+pub struct Grammar {
+    pub tokens: Vec<Token>,
+    pub rules: Vec<Rule>,
 }
 
 #[derive(Clone)]
-pub enum Action<Code> {
+pub enum Action {
     Forward,
     Seq(Code),
     None,
@@ -16,59 +20,40 @@ pub enum Action<Code> {
     Vec,
 }
 
-pub struct Token<Ident> {
+pub struct Token {
     pub name: Ident,
     pub regex: RegEx,
 }
 
-pub struct Rule<Ident, Code> {
+pub struct Rule {
     pub name: Ident,
-    pub expr: Expr<Ident, Code>,
+    pub expr: Expr,
 }
 
-pub struct NamedExpr<Ident, Code> {
+pub struct NamedExpr {
     pub name: Option<Ident>,
-    pub expr: Expr<Ident, Code>,
+    pub expr: Expr,
 }
 
-pub enum Expr<Ident, Code> {
+pub enum Expr {
     Literal(String),
     Token(Ident),
     Rule(Ident),
-    Seq(Vec<NamedExpr<Ident, Code>>, Code),
-    Alt(Vec<Expr<Ident, Code>>),
-    Opt(Box<Expr<Ident, Code>>),
-    Star(Box<Expr<Ident, Code>>),
-    Plus(Box<Expr<Ident, Code>>),
+    Seq(Vec<NamedExpr>, Code),
+    Alt(Vec<Expr>),
+    Opt(Box<Expr>),
+    Star(Box<Expr>),
+    Plus(Box<Expr>),
 }
 
-impl<Ident, Code> Expr<Ident, Code> {
+impl Expr {
     #[must_use]
-    pub fn opt(self) -> Self {
-        Self::Opt(Box::new(self))
-    }
-
-    #[must_use]
-    pub fn star(self) -> Self {
-        Self::Star(Box::new(self))
-    }
-
-    #[must_use]
-    pub fn plus(self) -> Self {
-        Self::Plus(Box::new(self))
-    }
-
-    #[must_use]
-    pub fn tag(self, name: Option<Ident>) -> NamedExpr<Ident, Code> {
+    pub fn tag(self, name: Option<Ident>) -> NamedExpr {
         NamedExpr { name, expr: self }
     }
 }
 
-impl<Ident, Code> Grammar<Ident, Code>
-where
-    Ident: Clone + Eq + std::hash::Hash,
-    Code: Clone,
-{
+impl Grammar {
     #[must_use]
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
@@ -80,7 +65,7 @@ where
     pub fn compile(&self) -> (Vec<RegEx>, imp::Grammar) {
         let translator = Translator::new(self);
         
-        let lexicon = translator.literals.keys().map(|literal| crate::re::literal(&literal))
+        let lexicon: Vec<RegEx> = translator.literals.keys().map(|literal| regex_literal(&literal))
             .chain(self.tokens.iter().map(|token| token.regex.clone()))
             .collect();
 
@@ -92,26 +77,18 @@ where
     }
 
     #[must_use]
-    pub fn unparse(&self) -> String
-    where
-        Ident: AsRef<str>,
-        Code: AsRef<str>,
-    {
+    pub fn unparse(&self) -> String {
         self._unparse_imp(unparse_named_expr_full)
     }
 
     #[must_use]
-    pub fn unparse_anon(&self) -> String
-    where
-        Ident: AsRef<str>,
-    {
+    pub fn unparse_anon(&self) -> String {
         self._unparse_imp(unparse_named_expr_anon)
     }
     
     fn _unparse_imp<F>(&self, unparse_named_expr: F) -> String
     where
-        Ident: AsRef<str>,
-        F: Fn(&mut String, &[NamedExpr<Ident, Code>], &Code) + Copy,
+        F: Fn(&mut String, &[NamedExpr], &Code) + Copy,
     {
         let mut fmt = String::new();
         for rule in &self.rules {
@@ -128,31 +105,33 @@ where
 // === INTERNALS ===
 // =================
 
-struct Translator<Ident, Code> {
+pub(crate) fn regex_literal(text: &str) -> RegEx {
+    text.bytes().fold(RegEx::empty(), |acc, byte| {
+        acc.then(&RegEx::set(ByteSet::point(byte)))
+    })
+}
+
+struct Translator {
     literals: HashMap<String, imp::Symbol>,
     tokens: HashMap<Ident, imp::Symbol>,
     variables: HashMap<Ident, imp::Symbol>,
-    rules: Vec<Vec<Production<Code>>>,
+    rules: Vec<Vec<Production>>,
 }
 
 #[derive(Clone)]
-struct Production<Code> {
+struct Production {
     symbols: Vec<imp::Symbol>,
-    action: Action<Code>,
+    action: Action,
 }
 
-enum Ret<Code> {
+enum Ret {
     Symbol(imp::Symbol),
-    Production(Production<Code>),
-    Alt(Vec<Production<Code>>),
+    Production(Production),
+    Alt(Vec<Production>),
 }
 
-impl<Ident, Code> Translator<Ident, Code>
-where
-    Ident: Clone + Eq + std::hash::Hash,
-    Code: Clone,
-{
-    fn new(def: &Grammar<Ident, Code>) -> Self {
+impl Translator {
+    fn new(def: &Grammar) -> Self {
         let literals = {
             let mut literals = HashMap::new();
             def.rules.iter().fold(0, |acc, rule| collect_literals(&rule.expr, &mut literals, acc));
@@ -187,13 +166,13 @@ where
         translator
     }
 
-    fn add_rule(&mut self, productions: Vec<Production<Code>>) -> usize {
+    fn add_rule(&mut self, productions: Vec<Production>) -> usize {
         let index = self.rules.len();
         self.rules.push(productions);
         index
     }
 
-    fn get_symbol(&mut self, expr: &Expr<Ident, Code>) -> imp::Symbol {
+    fn get_symbol(&mut self, expr: &Expr) -> imp::Symbol {
         match self.visit(expr) {
             Ret::Symbol(symbol) => symbol,
             Ret::Production(production) => Var(self.add_rule(vec![production])),
@@ -201,7 +180,7 @@ where
         }
     }
 
-    fn visit(&mut self, parent: &Expr<Ident, Code>) -> Ret<Code> {
+    fn visit(&mut self, parent: &Expr) -> Ret {
         match parent {
             Expr::Literal(literal) => {
                 Ret::Symbol(self.literals[literal])
@@ -251,7 +230,7 @@ where
     }
 }
 
-fn collect_literals<Ident, Code>(parent: &Expr<Ident, Code>, literals: &mut HashMap<String, imp::Symbol>, count: usize) -> usize {
+fn collect_literals(parent: &Expr, literals: &mut HashMap<String, imp::Symbol>, count: usize) -> usize {
     match parent {
         Expr::Literal(literal)    => { literals.entry(literal.clone()).or_insert(Word(count)); count + 1 },
         Expr::Token(_)
@@ -264,10 +243,9 @@ fn collect_literals<Ident, Code>(parent: &Expr<Ident, Code>, literals: &mut Hash
     }
 }
 
-fn unparse_expr<Ident, Code, F>(fmt: &mut String, parent: &Expr<Ident, Code>, unparse_named_expr: F)
+fn unparse_expr<F>(fmt: &mut String, parent: &Expr, unparse_named_expr: F)
 where
-    Ident: AsRef<str>,
-    F: Fn(&mut String, &[NamedExpr<Ident, Code>], &Code) + Copy,
+    F: Fn(&mut String, &[NamedExpr], &Code) + Copy,
 {
     match parent {
         Expr::Literal(literal) => { fmt.push('"'); fmt.push_str(literal); fmt.push('"'); },
@@ -289,11 +267,7 @@ where
     }
 }
 
-fn unparse_named_expr_full<Ident, Code>(fmt: &mut String, named_exprs: &[NamedExpr<Ident, Code>], code: &Code)
-where
-    Ident: AsRef<str>,
-    Code: AsRef<str>,
-{
+fn unparse_named_expr_full(fmt: &mut String, named_exprs: &[NamedExpr], code: &Code) {
     for named_expr in named_exprs {
         if let Some(ident) = named_expr.name.as_ref() {
             fmt.push_str(ident.as_ref());
@@ -307,10 +281,7 @@ where
     fmt.push('}');
 }
 
-fn unparse_named_expr_anon<Ident, Code>(fmt: &mut String, named_exprs: &[NamedExpr<Ident, Code>], code: &Code)
-where
-    Ident: AsRef<str>,
-{
+fn unparse_named_expr_anon(fmt: &mut String, named_exprs: &[NamedExpr], _: &Code) {
     unparse_expr(fmt, &named_exprs.first().unwrap().expr, unparse_named_expr_anon);
     for named_expr in named_exprs.iter().skip(1) {
         fmt.push(' ');
