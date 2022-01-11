@@ -18,7 +18,7 @@ Token: ast::Token = {
 };
 
 LiteralOrRegex: regex_deriv::RegEx = {
-    <"LITERAL"> => ast::regex_literal(<>),
+    <"LITERAL"> => regex_deriv_syntax::literal(<>),
     <"REGEX"> => regex_deriv_syntax::parse(<>).unwrap(),
 };
 

@@ -15,6 +15,8 @@ pub mod lexer;
 pub mod parser;
 pub mod tok;
 
+pub mod bnf;
+
 #[macro_use]
 mod macros;
 
