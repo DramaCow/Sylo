@@ -64,8 +64,8 @@ impl BNF {
         // writeln!(fmt, "---");
 
         for rule in &self.rules {
-            let padding = rule.name.len() + 3;
-            write!(fmt, "{} ::=", rule.name);
+            let padding = rule.name.len() + 1;
+            write!(fmt, "{} =", rule.name);
 
             for (i, production) in rule.productions.iter().enumerate() {
                 if i > 0 {
@@ -144,11 +144,11 @@ impl<'a> BNFBuilder<'a> {
         for (i, rule) in grammar.rules.iter().enumerate() {
             let name = rule.name.to_string();
             builder.rules[i] = match builder.visit(&rule.expr) {
-                Ret::Symbol(symbol) => Rule { name, productions: vec![Production { symbols: vec![symbol], action: Action::Forward }] },
+                Ret::Symbol(symbol) => Rule { name, productions: vec![mk_fwd_production(symbol)] },
                 Ret::Production(production) => Rule { name, productions: vec![production] },
                 Ret::Alt(productions) => Rule { name, productions },
-                Ret::Star(symbol) => make_star_rule(name, i, symbol),
-                Ret::Plus(symbol) => make_plus_rule(name, i, symbol),
+                Ret::Star(symbol) => mk_star_rule(name, i, symbol),
+                Ret::Plus(symbol) => mk_plus_rule(name, i, symbol),
             }
         }
 
@@ -163,13 +163,13 @@ impl<'a> BNFBuilder<'a> {
 
     fn add_star_rule(&mut self, symbol: imp::Symbol) -> usize {
         let index = self.rules.len();
-        self.rules.push(make_star_rule(format!("<{}>", index), index, symbol));
+        self.rules.push(mk_star_rule(format!("<{}>", index), index, symbol));
         index
     }
 
     fn add_plus_rule(&mut self, symbol: imp::Symbol) -> usize {
         let index = self.rules.len();
-        self.rules.push(make_plus_rule(format!("<{}>", index), index, symbol));
+        self.rules.push(mk_plus_rule(format!("<{}>", index), index, symbol));
         index
     }
 
@@ -202,11 +202,11 @@ impl<'a> BNFBuilder<'a> {
                 let mut new_productions = Vec::new();
                 for expr in exprs {
                     match self.visit(expr) {
-                        Ret::Symbol(symbol) => new_productions.push(make_forward_production(symbol)),
+                        Ret::Symbol(symbol) => new_productions.push(mk_fwd_production(symbol)),
                         Ret::Production(production) => new_productions.push(production),
                         Ret::Alt(productions) => new_productions.extend(productions),
-                        Ret::Star(symbol) => new_productions.push(make_forward_production(Var(self.add_star_rule(symbol)))),
-                        Ret::Plus(symbol) => new_productions.push(make_forward_production(Var(self.add_plus_rule(symbol)))),
+                        Ret::Star(symbol) => new_productions.push(mk_fwd_production(Var(self.add_star_rule(symbol)))),
+                        Ret::Plus(symbol) => new_productions.push(mk_fwd_production(Var(self.add_plus_rule(symbol)))),
                     }
                 }
                 Ret::Alt(new_productions)
@@ -264,18 +264,18 @@ fn collect_literals(parent: &ast::Expr, literals: &mut HashMap<String, usize>, c
     }
 }
 
-fn make_forward_production(symbol: imp::Symbol) -> Production {
+fn mk_fwd_production(symbol: imp::Symbol) -> Production {
     Production { symbols: vec![symbol], action: Action::Forward }
 }
 
-fn make_star_rule(name: String, index: usize, symbol: imp::Symbol) -> Rule {
+fn mk_star_rule(name: String, index: usize, symbol: imp::Symbol) -> Rule {
     Rule { name, productions: vec![
         Production { symbols: vec![Var(index), symbol], action: Action::Vec },
         Production { symbols: Vec::new(), action: Action::Vec }
     ]}
 }
 
-fn make_plus_rule(name: String, index: usize, symbol: imp::Symbol) -> Rule {
+fn mk_plus_rule(name: String, index: usize, symbol: imp::Symbol) -> Rule {
     Rule { name, productions: vec![
         Production { symbols: vec![Var(index), symbol], action: Action::Vec },
         Production { symbols: vec![symbol], action: Action::Vec }
