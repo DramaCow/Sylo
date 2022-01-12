@@ -17,8 +17,8 @@ pub struct Rule {
 
 #[derive(Clone)]
 pub struct Production {
-    symbols: Vec<imp::Symbol>,
-    action: Action,
+    pub symbols: Vec<imp::Symbol>,
+    pub action: Action,
 }
 
 #[derive(Clone)]
@@ -35,19 +35,37 @@ impl BNF {
         BNFBuilder::new(grammar).build()
     }
 
+    // pub fn vocab(&self) -> Vec<String> {
+    //     self.tokens.iter().map(|token| token.name.to_string()).collect()
+    // }
+
+    // pub fn lexicon(&self) -> Vec<RegEx> {
+    //     self.tokens.iter().map(|token| token.regex.clone()).collect()
+    // }
+
+    // pub fn syntax(&self) -> Result<imp::Grammar, imp::GrammarBuildError> {
+    //     self.rules.iter().fold(imp::GrammarBuilder::new(), |acc, rule| {
+    //         acc.rule(&rule.productions.iter().map(|production| production.symbols.as_slice()).collect::<Vec<_>>())
+    //     }).build()
+    // }
+
+    // pub fn actions(&self) -> Vec<Action> {
+    //     self.rules.iter().flat_map(|rule| rule.productions.iter().map(|production| production.action.clone())).collect()
+    // }
+
     pub fn dump(&self) -> String {
         let mut fmt = String::new();
         
-        let padding = self.tokens.iter().map(|token| token.name.len()).max().unwrap();
-        for (i, token) in self.tokens.iter().enumerate() {
-            writeln!(fmt, "{:width$} \\\\ id = {}", token.name, i, width = padding);
-        }
+        // let padding = self.tokens.iter().map(|token| token.name.len()).max().unwrap();
+        // for (i, token) in self.tokens.iter().enumerate() {
+        //     writeln!(fmt, "{:width$} \\\\ id = {}", token.name, i, width = padding);
+        // }
 
-        writeln!(fmt, "---");
+        // writeln!(fmt, "---");
 
         for rule in &self.rules {
             let padding = rule.name.len() + 3;
-            write!(fmt, "{} -->", rule.name);
+            write!(fmt, "{} ::=", rule.name);
 
             for (i, production) in rule.productions.iter().enumerate() {
                 if i > 0 {
@@ -88,6 +106,8 @@ enum Ret {
     Symbol(imp::Symbol),
     Production(Production),
     Alt(Vec<Production>),
+    Star(imp::Symbol),
+    Plus(imp::Symbol),
 }
 
 impl<'a> BNFBuilder<'a> {
@@ -127,6 +147,8 @@ impl<'a> BNFBuilder<'a> {
                 Ret::Symbol(symbol) => Rule { name, productions: vec![Production { symbols: vec![symbol], action: Action::Forward }] },
                 Ret::Production(production) => Rule { name, productions: vec![production] },
                 Ret::Alt(productions) => Rule { name, productions },
+                Ret::Star(symbol) => make_star_rule(name, i, symbol),
+                Ret::Plus(symbol) => make_plus_rule(name, i, symbol),
             }
         }
 
@@ -139,11 +161,25 @@ impl<'a> BNFBuilder<'a> {
         index
     }
 
+    fn add_star_rule(&mut self, symbol: imp::Symbol) -> usize {
+        let index = self.rules.len();
+        self.rules.push(make_star_rule(format!("<{}>", index), index, symbol));
+        index
+    }
+
+    fn add_plus_rule(&mut self, symbol: imp::Symbol) -> usize {
+        let index = self.rules.len();
+        self.rules.push(make_plus_rule(format!("<{}>", index), index, symbol));
+        index
+    }
+
     fn get_symbol(&mut self, expr: &ast::Expr) -> imp::Symbol {
         match self.visit(expr) {
             Ret::Symbol(symbol) => symbol,
             Ret::Production(production) => Var(self.add_rule(vec![production])),
             Ret::Alt(productions) => Var(self.add_rule(productions)),
+            Ret::Star(symbol) => Var(self.add_star_rule(symbol)),
+            Ret::Plus(symbol) => Var(self.add_plus_rule(symbol)),
         }
     }
 
@@ -166,9 +202,11 @@ impl<'a> BNFBuilder<'a> {
                 let mut new_productions = Vec::new();
                 for expr in exprs {
                     match self.visit(expr) {
-                        Ret::Symbol(symbol) => new_productions.push(Production { symbols: vec![symbol], action: Action::Forward }),
+                        Ret::Symbol(symbol) => new_productions.push(make_forward_production(symbol)),
                         Ret::Production(production) => new_productions.push(production),
                         Ret::Alt(productions) => new_productions.extend(productions),
+                        Ret::Star(symbol) => new_productions.push(make_forward_production(Var(self.add_star_rule(symbol)))),
+                        Ret::Plus(symbol) => new_productions.push(make_forward_production(Var(self.add_plus_rule(symbol)))),
                     }
                 }
                 Ret::Alt(new_productions)
@@ -187,22 +225,14 @@ impl<'a> BNFBuilder<'a> {
                 // becomes
                 // E  --> E0
                 // E0 --> E0 A | eps
-                let index = self.add_rule(Vec::new());
-                let symbol = self.get_symbol(expr);
-                self.rules[index].productions.push(Production { symbols: vec![Var(index), symbol], action: Action::Vec });
-                self.rules[index].productions.push(Production { symbols: Vec::new(), action: Action::Vec });
-                Ret::Symbol(Var(index))
+                Ret::Star(self.get_symbol(expr))
             },
             ast::Expr::Plus(expr) => {
                 // E --> A+
                 // becomes
                 // E  --> E0
                 // E0 --> E0 A | A
-                let index = self.add_rule(Vec::new());
-                let symbol = self.get_symbol(expr);
-                self.rules[index].productions.push(Production { symbols: vec![Var(index), symbol], action: Action::Vec });
-                self.rules[index].productions.push(Production { symbols: vec![symbol], action: Action::Vec });
-                Ret::Symbol(Var(index))
+                Ret::Plus(self.get_symbol(expr))
             },
         }
     }
@@ -215,13 +245,11 @@ impl<'a> BNFBuilder<'a> {
             .chain(self.grammar.tokens.iter().cloned())
             .collect();
 
-        // let rules = self.rules.iter().fold(imp::GrammarBuilder::new(), |acc, rule| {
-        //     acc.rule(&rule.productions.iter().map(|production| production.symbols.as_slice()).collect::<Vec<_>>())
-        // }).build().unwrap();
-
         BNF { tokens, rules: self.rules }
     }
 }
+
+
 
 fn collect_literals(parent: &ast::Expr, literals: &mut HashMap<String, usize>, count: usize) -> usize {
     match parent {
@@ -234,4 +262,22 @@ fn collect_literals(parent: &ast::Expr, literals: &mut HashMap<String, usize>, c
         | ast::Expr::Star(expr)
         | ast::Expr::Plus(expr)        => collect_literals(expr, literals, count),
     }
+}
+
+fn make_forward_production(symbol: imp::Symbol) -> Production {
+    Production { symbols: vec![symbol], action: Action::Forward }
+}
+
+fn make_star_rule(name: String, index: usize, symbol: imp::Symbol) -> Rule {
+    Rule { name, productions: vec![
+        Production { symbols: vec![Var(index), symbol], action: Action::Vec },
+        Production { symbols: Vec::new(), action: Action::Vec }
+    ]}
+}
+
+fn make_plus_rule(name: String, index: usize, symbol: imp::Symbol) -> Rule {
+    Rule { name, productions: vec![
+        Production { symbols: vec![Var(index), symbol], action: Action::Vec },
+        Production { symbols: vec![symbol], action: Action::Vec }
+    ]}
 }
