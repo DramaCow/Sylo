@@ -1,12 +1,12 @@
 extern crate sylo;
 
 use sylo::tok::Scan;
-use sylo::meta::GrammarParser;
-use sylo::bnf::BNF;
+use sylo::meta::MetaParser;
+use sylo::repr::MetaRepr;
 
 fn main() {
     let text = include_str!("meta.grammar");
-    let grammar = GrammarParser::new().parse(text, Scan::new(text)).unwrap();
-    let bnf = BNF::new(&grammar);
-    print!("{}", bnf.dump());
+    let grammar = MetaParser::new().parse(text, Scan::new(text)).unwrap();
+    println!("{}", grammar.dump());
+    println!("{}", grammar.repr().dump());
 }

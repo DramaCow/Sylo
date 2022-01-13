@@ -1,9 +1,12 @@
 use std::collections::{HashMap, hash_map::Entry::{Occupied, Vacant}};
 use regex_deriv::RegEx;
 use regex_deriv_syntax as re;
-use lr_parsing_tools::grammar::{self as imp, Symbol::{Terminal as Word, Variable as Var}};
+use crate::repr::MetaRepr;
 
-pub struct Grammar {
+/// An abstract description of a language. This is what is expected to be
+/// produced from a successful parse of a metasyntactic language description
+/// (i.e. via the meta parser).
+pub struct MetaAST {
     pub tokens: Vec<Token>,
     pub rules: Vec<Rule>,
 }
@@ -42,14 +45,19 @@ impl Expr {
     }
 }
 
-impl Grammar {
+impl MetaAST {
+    #[must_use]
+    pub fn repr(&self) -> MetaRepr {
+        MetaRepr::new(self)
+    }
+
     #[must_use]
     pub fn unparse(&self) -> String {
         self._unparse_imp(unparse_named_expr_full)
     }
 
     #[must_use]
-    pub fn unparse_anon(&self) -> String {
+    pub fn dump(&self) -> String {
         self._unparse_imp(unparse_named_expr_anon)
     }
     

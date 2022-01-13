@@ -4,8 +4,8 @@ use std::iter::once;
 
 grammar<'input>(text: &'input str);
 
-pub Grammar: ast::Grammar = {
-    <tokens:Token*> <rules:Rule+> => ast::Grammar { tokens, rules },
+pub Meta: ast::MetaAST = {
+    <tokens:Token*> <rules:Rule+> => ast::MetaAST { tokens, rules },
 };
 
 Token: ast::Token = {

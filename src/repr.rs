@@ -1,12 +1,17 @@
 use crate::ast;
 use regex_deriv::RegEx;
 use std::collections::{HashMap, hash_map::Entry::{Occupied, Vacant}};
-use lr_parsing_tools::grammar::{self as imp, Symbol::{Terminal as Word, Variable as Var}};
+use lr_parsing_tools::grammar::{Symbol, Symbol::{Terminal as Word, Variable as Var}};
 use std::fmt::Write;
 
-pub struct BNF {
-    tokens: Vec<ast::Token>,
-    rules: Vec<Rule>,
+/// An intermediate representation of a language that is more amenable to
+/// compilation into a usable parser. Typically, this is not constructed
+/// directly, but instead is constructed from a [`MetaAST`](ast::MetaAST).
+/// This representation doesn't have inline terminals, excludes "EBNF"
+/// convenience operations such as *, +, ? etc., and flattens nested rules.
+pub struct MetaRepr {
+    pub tokens: Vec<ast::Token>,
+    pub rules: Vec<Rule>,
 }
 
 #[derive(Clone)]
@@ -17,7 +22,7 @@ pub struct Rule {
 
 #[derive(Clone)]
 pub struct Production {
-    pub symbols: Vec<imp::Symbol>,
+    pub symbols: Vec<Symbol>,
     pub action: Action,
 }
 
@@ -30,28 +35,10 @@ pub enum Action {
     Vec,
 }
 
-impl BNF {
-    pub fn new(grammar: &ast::Grammar) -> Self {
-        BNFBuilder::new(grammar).build()
+impl MetaRepr {
+    pub fn new(grammar: &ast::MetaAST) -> Self {
+        MetaReprBuilder::new(grammar).build()
     }
-
-    // pub fn vocab(&self) -> Vec<String> {
-    //     self.tokens.iter().map(|token| token.name.to_string()).collect()
-    // }
-
-    // pub fn lexicon(&self) -> Vec<RegEx> {
-    //     self.tokens.iter().map(|token| token.regex.clone()).collect()
-    // }
-
-    // pub fn syntax(&self) -> Result<imp::Grammar, imp::GrammarBuildError> {
-    //     self.rules.iter().fold(imp::GrammarBuilder::new(), |acc, rule| {
-    //         acc.rule(&rule.productions.iter().map(|production| production.symbols.as_slice()).collect::<Vec<_>>())
-    //     }).build()
-    // }
-
-    // pub fn actions(&self) -> Vec<Action> {
-    //     self.rules.iter().flat_map(|rule| rule.productions.iter().map(|production| production.action.clone())).collect()
-    // }
 
     pub fn dump(&self) -> String {
         let mut fmt = String::new();
@@ -94,8 +81,8 @@ impl BNF {
 // === INTERNALS ===
 // =================
 
-struct BNFBuilder<'a> {
-    grammar: &'a ast::Grammar,
+struct MetaReprBuilder<'a> {
+    grammar: &'a ast::MetaAST,
     literals: HashMap<String, usize>,
     tokens: HashMap<String, usize>,
     variables: HashMap<String, usize>,
@@ -103,15 +90,15 @@ struct BNFBuilder<'a> {
 }
 
 enum Ret {
-    Symbol(imp::Symbol),
+    Symbol(Symbol),
     Production(Production),
     Alt(Vec<Production>),
-    Star(imp::Symbol),
-    Plus(imp::Symbol),
+    Star(Symbol),
+    Plus(Symbol),
 }
 
-impl<'a> BNFBuilder<'a> {
-    fn new(grammar: &'a ast::Grammar) -> Self {
+impl<'a> MetaReprBuilder<'a> {
+    fn new(grammar: &'a ast::MetaAST) -> Self {
         let mut literals = HashMap::new();
         grammar.rules.iter().fold(0, |acc, rule| collect_literals(&rule.expr, &mut literals, acc));
 
@@ -133,7 +120,7 @@ impl<'a> BNFBuilder<'a> {
 
         // println!("{:?}", variables);
 
-        let mut builder = BNFBuilder {
+        let mut builder = MetaReprBuilder {
             grammar,
             literals,
             tokens,
@@ -161,19 +148,19 @@ impl<'a> BNFBuilder<'a> {
         index
     }
 
-    fn add_star_rule(&mut self, symbol: imp::Symbol) -> usize {
+    fn add_star_rule(&mut self, symbol: Symbol) -> usize {
         let index = self.rules.len();
         self.rules.push(mk_star_rule(format!("<{}>", index), index, symbol));
         index
     }
 
-    fn add_plus_rule(&mut self, symbol: imp::Symbol) -> usize {
+    fn add_plus_rule(&mut self, symbol: Symbol) -> usize {
         let index = self.rules.len();
         self.rules.push(mk_plus_rule(format!("<{}>", index), index, symbol));
         index
     }
 
-    fn get_symbol(&mut self, expr: &ast::Expr) -> imp::Symbol {
+    fn get_symbol(&mut self, expr: &ast::Expr) -> Symbol {
         match self.visit(expr) {
             Ret::Symbol(symbol) => symbol,
             Ret::Production(production) => Var(self.add_rule(vec![production])),
@@ -237,7 +224,7 @@ impl<'a> BNFBuilder<'a> {
         }
     }
 
-    fn build(self) -> BNF {
+    fn build(self) -> MetaRepr {
         let mut literal_tokens: Vec<_> = self.literals.into_iter().collect();
         literal_tokens.sort_by_key(|entry| entry.1);
 
@@ -245,7 +232,7 @@ impl<'a> BNFBuilder<'a> {
             .chain(self.grammar.tokens.iter().cloned())
             .collect();
 
-        BNF { tokens, rules: self.rules }
+        MetaRepr { tokens, rules: self.rules }
     }
 }
 
@@ -264,18 +251,18 @@ fn collect_literals(parent: &ast::Expr, literals: &mut HashMap<String, usize>, c
     }
 }
 
-fn mk_fwd_production(symbol: imp::Symbol) -> Production {
+fn mk_fwd_production(symbol: Symbol) -> Production {
     Production { symbols: vec![symbol], action: Action::Forward }
 }
 
-fn mk_star_rule(name: String, index: usize, symbol: imp::Symbol) -> Rule {
+fn mk_star_rule(name: String, index: usize, symbol: Symbol) -> Rule {
     Rule { name, productions: vec![
         Production { symbols: vec![Var(index), symbol], action: Action::Vec },
         Production { symbols: Vec::new(), action: Action::Vec }
     ]}
 }
 
-fn mk_plus_rule(name: String, index: usize, symbol: imp::Symbol) -> Rule {
+fn mk_plus_rule(name: String, index: usize, symbol: Symbol) -> Rule {
     Rule { name, productions: vec![
         Production { symbols: vec![Var(index), symbol], action: Action::Vec },
         Production { symbols: vec![symbol], action: Action::Vec }
