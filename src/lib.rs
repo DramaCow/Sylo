@@ -16,9 +16,6 @@ pub mod repr;
 pub mod lexer;
 pub mod parser;
 
-#[macro_use]
-mod macros;
-
 // =================
 // === INTERNALS ===
 // =================

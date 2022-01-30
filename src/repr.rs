@@ -40,7 +40,7 @@ impl MetaRepr {
         MetaReprBuilder::new(grammar).build()
     }
 
-    pub fn dump(&self) -> String {
+    pub fn dumps(&self) -> String {
         let mut fmt = String::new();
         
         // let padding = self.tokens.iter().map(|token| token.name.len()).max().unwrap();
@@ -49,6 +49,9 @@ impl MetaRepr {
         // }
 
         // writeln!(fmt, "---");
+
+        let wordnames: Vec<_> = self.tokens.iter()
+            .filter_map(|token| if let ast::Token::Rule { name, .. } = token { Some(name) } else { None }).collect();
 
         for rule in &self.rules {
             let padding = rule.name.len() + 1;
@@ -64,7 +67,9 @@ impl MetaRepr {
                 } else {
                     for symbol in &production.symbols {
                         match symbol.clone() {
-                            Word(word) => write!(fmt, " \"{}\"", &self.tokens[word].name),
+                            Word(word) => {
+                                write!(fmt, " \"{}\"", wordnames[word])
+                            },
                             Var(var) => write!(fmt, " {}", &self.rules[var].name),
                         };
                     }
@@ -104,8 +109,9 @@ impl<'a> MetaReprBuilder<'a> {
 
         // println!("{:?}", literals);
 
-        let tokens = grammar.tokens.iter().enumerate()            
-            .map(|(i, token)| (token.name.to_string(), i + literals.len())).collect();
+        let tokens = grammar.tokens.iter()
+            .filter_map(|token| if let ast::Token::Rule { name, .. } = token { Some(name) } else { None })
+            .enumerate().map(|(i, name)| (name.to_string(), i + literals.len())).collect();
 
         // println!("{:?}", tokens);
         
@@ -228,7 +234,8 @@ impl<'a> MetaReprBuilder<'a> {
         let mut literal_tokens: Vec<_> = self.literals.into_iter().collect();
         literal_tokens.sort_by_key(|entry| entry.1);
 
-        let tokens: Vec<ast::Token> = literal_tokens.iter().map(|literal| ast::Token { name: literal.0.to_string(), regex: regex_deriv_syntax::literal(&literal.0) })
+        let tokens: Vec<ast::Token> = literal_tokens.iter()
+            .map(|(literal, _)| ast::Token::Rule { name: literal.to_string(), regex: regex_deriv_syntax::literal(&literal) })
             .chain(self.grammar.tokens.iter().cloned())
             .collect();
 

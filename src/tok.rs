@@ -27,6 +27,7 @@ pub enum Token<'a> {
     Semi,
     Less,
     Greater,
+    Ignore,
     Ident(&'a str),
     Token(&'a str),
     Literal(&'a str),
@@ -98,6 +99,14 @@ impl<'a> Scan<'a> {
             }
         }
     }
+
+    fn ident_or_keyword(&mut self, start: usize, end: usize) -> Spanned<Token<'a>> {
+        let lexeme = &self.input[start..end];
+        match lexeme {
+            "ignore" => (start, Token::Ignore, end),
+            _ => (start, Token::Ident(lexeme), end),
+        }
+    }
     
     fn ident_tail(&mut self) -> usize {
         loop {
@@ -154,13 +163,13 @@ impl<'a> Iterator for Scan<'a> {
                                 },
                                 _ => {
                                     let end = self.ident_tail();
-                                    Some(Ok((i, Token::Ident(&self.input[i..end]), end)))
+                                    Some(Ok(self.ident_or_keyword(i, end)))
                                 },
                             }
                          },
                         _ => {
                             let end = self.ident_tail();
-                            Some(Ok((i, Token::Ident(&self.input[i..end]), end)))
+                            Some(Ok(self.ident_or_keyword(i, end)))
                         },
                     }
                 }

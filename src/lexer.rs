@@ -1,84 +1,71 @@
 use regex_deriv as re;
 
-pub struct LexerDefBuilder {
-    def: LexerDef,
+pub struct LexerBuilder {
+    vocab: Vec<String>,
+    regexes: Vec<re::RegEx>,
+    classes: Vec<Option<usize>>,
+    num_classes: usize,
 }
 
-#[derive(Clone, Copy)]
-pub enum Command {
-    Skip,
-    Emit,
-}
-
-pub struct LexerDef {
-    pub vocab: Vec<String>,
-    pub regexes: Vec<re::RegEx>,
-    pub commands: Vec<Command>,
-}
-
-impl LexerDefBuilder {
+impl LexerBuilder {
     #[must_use]
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
-        Self { def: LexerDef { vocab: Vec::new(), regexes: Vec::new(), commands: Vec::new() } }
-    }
-
-    pub fn rule(&mut self, label: String, regex: re::RegEx) -> &mut Self {
-        self._rule_interal(label, regex, Command::Emit)
-    }
-
-    pub fn skip(&mut self, label: String, regex: re::RegEx) -> &mut Self {
-        self._rule_interal(label, regex, Command::Skip)
-    }
-
-    #[must_use]
-    pub fn vocab(&self) -> &[String] {
-        &self.def.vocab
-    }
-
-    /// # Panics
-    #[must_use]
-    pub fn build(self) -> LexerDef {
-        if self.def.regexes.is_empty() {
-            panic!("Need at least 1 RegEx.")
-        }
-        self.def
-    }
-
-    fn _rule_interal(&mut self, label: String, regex: re::RegEx, command: Command) -> &mut Self {
-        self.def.vocab.push(label);
-        self.def.regexes.push(regex);
-        self.def.commands.push(command);
+    pub fn rule(mut self, label: String, pattern: re::RegEx) -> Self {
+        self.vocab.push(label);
+        self.regexes.push(pattern);
+        self.classes.push(Some(self.num_classes));
+        self.num_classes += 1;
         self
     }
-}
 
-impl LexerDef {
+    #[must_use]
+    pub fn ignore(mut self, pattern: re::RegEx) -> Self {
+        self.regexes.push(pattern);
+        self.classes.push(None);
+        self
+    }
+
     /// # Panics
     #[must_use]
-    pub fn build(&self) -> Lexer {
+    pub fn build(self) -> Lexer {
         if self.regexes.is_empty() {
             panic!("Need at least 1 RegEx.")
         }
         
         Lexer {
-            vocab: self.vocab.clone(),
+            vocab: self.vocab,
             table: re::NaiveLexTable::new(&re::DFA::from(&self.regexes).minimize()),
-            commands: self.commands.clone(),
+            classes: self.classes,
         }
     }
 }
 
 pub struct Lexer {
-    pub vocab: Vec<String>,
-    pub(super) table: re::NaiveLexTable,
-    pub commands: Vec<Command>,
+    vocab: Vec<String>,
+    table: re::NaiveLexTable,
+    classes: Vec<Option<usize>>,
 }
 
-pub type Scan<'a> = re::Scan<'a, re::NaiveLexTable>;
+pub struct Scan<'a> {
+    lexer: &'a Lexer,
+    scan_imp: re::Scan<'a, re::NaiveLexTable>,
+}
+
+impl<'a> Iterator for Scan<'a> {
+    type Item = Result<re::Token, re::ScanError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.scan_imp.next()? {
+            Ok(token) => Some(Ok(token)),
+            Err(err) => Some(Err(err)),
+        }
+    }
+}
 
 impl<'a> Lexer {
     pub fn scan<I: AsRef<[u8]> + ?Sized>(&'a self, input: &'a I) -> Scan<'a> {
-        Scan::new(&self.table, input)
+        Scan {
+            lexer: self,
+            scan_imp: re::Scan::new(&self.table, input),
+        }
     }
 }

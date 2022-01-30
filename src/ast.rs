@@ -12,9 +12,9 @@ pub struct MetaAST {
 }
 
 #[derive(Clone)]
-pub struct Token {
-    pub name: String,
-    pub regex: RegEx,
+pub enum Token {
+    Rule { name: String, regex: RegEx },
+    Ignore { regex: RegEx },
 }
 
 pub struct Rule {
@@ -57,7 +57,7 @@ impl MetaAST {
     }
 
     #[must_use]
-    pub fn dump(&self) -> String {
+    pub fn dumps(&self) -> String {
         self._unparse_imp(unparse_named_expr_anon)
     }
     

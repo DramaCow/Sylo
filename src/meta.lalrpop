@@ -10,10 +10,10 @@ pub Meta: ast::MetaAST = {
 
 Token: ast::Token = {
     <t:"TOKEN"> "=" <regex:LiteralOrRegex> ";" => {
-        ast::Token {
-            name: t.to_string(),
-            regex,
-        }
+        ast::Token::Rule { name: t.to_string(), regex }
+    },
+    "ignore" <regex:LiteralOrRegex> ";" => {
+        ast::Token::Ignore { regex }
     },
 };
 
@@ -71,6 +71,7 @@ extern {
         ";"       => tok::Token::Semi,
         "<"       => tok::Token::Less,
         ">"       => tok::Token::Greater,
+        "ignore"  => tok::Token::Ignore,
         "IDENT"   => tok::Token::Ident(<&'input str>),
         "TOKEN"   => tok::Token::Token(<&'input str>),
         "LITERAL" => tok::Token::Literal(<&'input str>),
