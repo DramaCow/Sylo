@@ -1,0 +1,61 @@
+digraph CC {
+    rankdir=LR;
+    
+    node[shape=point]; q;
+    node[shape=plain]; accept[label=<<b>ACCEPT</b>>];
+    s0[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s0</b></td></tr>
+            <tr><td align="left">S' &rarr; &bull;S</td></tr>
+            <tr><td bgcolor="grey" align="left">S &rarr; &bull;C C</td></tr>
+            <tr><td bgcolor="grey" align="left">C &rarr; &bull;c C</td></tr>
+            <tr><td bgcolor="grey" align="left">C &rarr; &bull;d</td></tr>
+        </table>>];
+    s1[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s1</b></td></tr>
+            <tr><td align="left">S &rarr; C&bull;C</td></tr>
+            <tr><td bgcolor="grey" align="left">C &rarr; &bull;c C</td></tr>
+            <tr><td bgcolor="grey" align="left">C &rarr; &bull;d</td></tr>
+        </table>>];
+    s2[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s2</b></td></tr>
+            <tr><td align="left">C &rarr; c&bull;C</td></tr>
+            <tr><td bgcolor="grey" align="left">C &rarr; &bull;c C</td></tr>
+            <tr><td bgcolor="grey" align="left">C &rarr; &bull;d</td></tr>
+        </table>>];
+    s3[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s3</b></td></tr>
+            <tr><td align="left">C &rarr; d&bull; [$ c d]</td></tr>
+        </table>>];
+    s4[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s4</b></td></tr>
+            <tr><td align="left">S' &rarr; S&bull;</td></tr>
+        </table>>];
+    s5[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s5</b></td></tr>
+            <tr><td align="left">S &rarr; C C&bull; [$]</td></tr>
+        </table>>];
+    s6[label=
+        <<table border="1" cellborder="0">
+            <tr><td align="center"><b>s6</b></td></tr>
+            <tr><td align="left">C &rarr; c C&bull; [c $ d]</td></tr>
+        </table>>];
+    
+    q->s0;
+    s4->accept[label="&#9633;"];
+    s0->s1[label="C"];
+    s0->s3[label="d"];
+    s0->s4[label="S"];
+    s0->s2[label="c"];
+    s1->s5[label="C"];
+    s1->s2[label="c"];
+    s1->s3[label="d"];
+    s2->s3[label="d"];
+    s2->s2[label="c"];
+    s2->s6[label="C"];
+}

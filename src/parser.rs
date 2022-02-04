@@ -118,9 +118,10 @@ pub enum Strategy {
 // }
 
 pub struct Parser {
-    pub lexer: lexer::Lexer,
-    pub var_names: Vec<String>,
-    pub parsing_table: table::NaiveLR1Table,
+    lexer: lexer::Lexer,
+    var_names: Vec<String>,
+    parsing_table: table::NaiveLR1Table,
+    actions: Vec<String>,
 }
 
 type Parse<'a, F> = table::Parse<'a, table::NaiveLR1Table, lexer::Scan<'a>, regex_deriv::Token, F>;

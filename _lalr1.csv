@@ -1,0 +1,5 @@
+nonterminal transition	DR	Read	Follow	reads	includes
+(s0, C)	c, d	c, d	c, d		
+(s0, S)	$	$	$		
+(s1, C)			$		(s0, S)
+(s2, C)			$, c, d		(s0, C), (s1, C), (s2, C)
