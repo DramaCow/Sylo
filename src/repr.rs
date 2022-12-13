@@ -1,7 +1,7 @@
 use crate::ast;
 use regex_deriv::RegEx;
 use std::collections::{HashMap, hash_map::Entry::{Occupied, Vacant}};
-use lr_parsing_tools::grammar::{Symbol, Symbol::{Terminal as Word, Variable as Var}};
+use lr_parsing_tools::grammar::{Symbol, Symbol::{Terminal as Word, Variable as Var}, Grammar, GrammarBuilder};
 use std::fmt::Write;
 
 /// An intermediate representation of a language that is more amenable to
@@ -11,19 +11,9 @@ use std::fmt::Write;
 /// convenience operations such as *, +, ? etc., and flattens nested rules.
 pub struct MetaRepr {
     pub tokens: Vec<ast::Token>,
-    pub rules: Vec<Rule>,
-}
-
-#[derive(Clone)]
-pub struct Rule {
-    pub name: String,
-    pub productions: Vec<Production>,
-}
-
-#[derive(Clone)]
-pub struct Production {
-    pub symbols: Vec<Symbol>,
-    pub action: Action,
+    pub varnames: Vec<String>,
+    pub grammar: Grammar,
+    pub actions: Vec<Action>,
 }
 
 #[derive(Clone)]
@@ -42,44 +32,76 @@ impl MetaRepr {
 
     pub fn dumps(&self) -> String {
         let mut fmt = String::new();
-        
-        // let padding = self.tokens.iter().map(|token| token.name.len()).max().unwrap();
-        // for (i, token) in self.tokens.iter().enumerate() {
-        //     writeln!(fmt, "{:width$} \\\\ id = {}", token.name, i, width = padding);
-        // }
-
-        // writeln!(fmt, "---");
 
         let wordnames: Vec<_> = self.tokens.iter()
             .filter_map(|token| if let ast::Token::Rule { name, .. } = token { Some(name) } else { None }).collect();
 
-        for rule in &self.rules {
-            let padding = rule.name.len() + 1;
-            write!(fmt, "{} =", rule.name);
+        for (varname, rule) in self.varnames.iter().zip(self.grammar.rules()) {
+            let padding = varname.len() + 1;
+            write!(fmt, "{} =", varname).unwrap();
 
-            for (i, production) in rule.productions.iter().enumerate() {
+            for (i, symbols) in rule.alts().enumerate() {
                 if i > 0 {
-                    write!(fmt, "{:width$}|", "", width = padding);
+                    write!(fmt, "{:width$}|", "", width = padding).unwrap();
                 }
 
-                if production.symbols.is_empty() {
-                    writeln!(fmt, " \u{03b5}");
+                if symbols.is_empty() {
+                    writeln!(fmt, " \u{03b5}").unwrap();
                 } else {
-                    for symbol in &production.symbols {
+                    for symbol in symbols {
                         match symbol.clone() {
-                            Word(word) => {
-                                write!(fmt, " \"{}\"", wordnames[word])
-                            },
-                            Var(var) => write!(fmt, " {}", &self.rules[var].name),
+                            Word(word) => write!(fmt, " \"{}\"", wordnames[word]).unwrap(),
+                            Var(var) => write!(fmt, " {}", &self.varnames[var]).unwrap(),
                         };
                     }
-                    writeln!(fmt);
+                    writeln!(fmt).unwrap();
                 }
             }
         }
 
-        return fmt;
+        fmt
     }
+
+    // pub fn dumps(&self) -> String {
+    //     let mut fmt = String::new();
+        
+    //     // let padding = self.tokens.iter().map(|token| token.name.len()).max().unwrap();
+    //     // for (i, token) in self.tokens.iter().enumerate() {
+    //     //     writeln!(fmt, "{:width$} \\\\ id = {}", token.name, i, width = padding);
+    //     // }
+
+    //     // writeln!(fmt, "---");
+
+    //     let wordnames: Vec<_> = self.tokens.iter()
+    //         .filter_map(|token| if let ast::Token::Rule { name, .. } = token { Some(name) } else { None }).collect();
+
+    //     for rule in &self.rules {
+    //         let padding = rule.name.len() + 1;
+    //         write!(fmt, "{} =", rule.name);
+
+    //         for (i, production) in rule.productions.iter().enumerate() {
+    //             if i > 0 {
+    //                 write!(fmt, "{:width$}|", "", width = padding);
+    //             }
+
+    //             if production.symbols.is_empty() {
+    //                 writeln!(fmt, " \u{03b5}");
+    //             } else {
+    //                 for symbol in &production.symbols {
+    //                     match symbol.clone() {
+    //                         Word(word) => {
+    //                             write!(fmt, " \"{}\"", wordnames[word])
+    //                         },
+    //                         Var(var) => write!(fmt, " {}", &self.rules[var].name),
+    //                     };
+    //                 }
+    //                 writeln!(fmt);
+    //             }
+    //         }
+    //     }
+
+    //     return fmt;
+    // }
 }
 
 // =================
@@ -92,6 +114,18 @@ struct MetaReprBuilder<'a> {
     tokens: HashMap<String, usize>,
     variables: HashMap<String, usize>,
     rules: Vec<Rule>,
+}
+
+#[derive(Clone)]
+struct Rule {
+    pub name: String,
+    pub productions: Vec<Production>,
+}
+
+#[derive(Clone)]
+struct Production {
+    pub symbols: Vec<Symbol>,
+    pub action: Action,
 }
 
 enum Ret {
@@ -239,11 +273,21 @@ impl<'a> MetaReprBuilder<'a> {
             .chain(self.grammar.tokens.iter().cloned())
             .collect();
 
-        MetaRepr { tokens, rules: self.rules }
+        let mut varnames = Vec::with_capacity(self.rules.len());
+        let mut actions = Vec::new();
+        let mut builder = GrammarBuilder::new();
+        for rule in self.rules {
+            varnames.push(rule.name);
+            builder = builder.new_rule();
+            for production in rule.productions {
+                builder = builder.add_production(production.symbols);
+                actions.push(production.action);
+            }
+        }
+
+        MetaRepr { tokens, varnames, grammar: builder.build().unwrap(), actions }
     }
 }
-
-
 
 fn collect_literals(parent: &ast::Expr, literals: &mut HashMap<String, usize>, count: usize) -> usize {
     match parent {
